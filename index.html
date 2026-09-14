@@ -3,19 +3,80 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Demo Lab — bookmark demos</title>
+  <title>Baseball Swing Lab — Demo Lab</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main>
-    <p class="eyebrow">Demo Lab</p>
-    <h1>Morning bookmark demos</h1>
-    <p class="lede">
-      Each day a small, runnable demo lands here from an X Bookmark —
-      libraries, UI tricks, APIs, tools you can try in the browser.
-    </p>
-    <p class="hint">This is the base template. Daily demos ship on preview branches.</p>
-  </main>
-  <script src="app.js"></script>
+  <div class="app">
+    <header class="header">
+      <p class="eyebrow">Demo Lab · Sep 14, 2026</p>
+      <h1>Baseball Swing Lab</h1>
+      <p class="lede">
+        A phone-camera swing coach slice — inspired by
+        <a href="https://x.com/measure_plan/status/2097715692069859769" target="_blank" rel="noopener">tennis CV coaching demos</a>.
+        Upload a clip or try the built-in sample to see bat path overlays and swing metrics, all in your browser.
+      </p>
+    </header>
+
+    <section class="controls" aria-label="Input controls">
+      <div class="control-row">
+        <button type="button" id="btn-sample" class="btn btn-primary" aria-pressed="true">
+          ▶ Sample swing
+        </button>
+        <label class="btn btn-secondary upload-label">
+          Upload video
+          <input type="file" id="file-input" accept="video/mp4,video/webm,video/quicktime" hidden />
+        </label>
+      </div>
+      <p id="mode-label" class="mode-label">Sample mode — no upload needed</p>
+    </section>
+
+    <section class="stage" aria-label="Swing analysis">
+      <div class="canvas-wrap">
+        <video id="video" playsinline muted hidden></video>
+        <canvas id="canvas" width="640" height="360" aria-label="Swing overlay"></canvas>
+        <div id="loading" class="loading hidden" role="status">Analyzing frames…</div>
+      </div>
+
+      <div class="scrubber-row">
+        <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Frame scrubber" />
+        <button type="button" id="btn-replay" class="btn btn-ghost" title="Replay">↻</button>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Swing metrics">
+      <h2>Live metrics</h2>
+      <p class="metrics-note">Demo estimates — not calibrated radar data.</p>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <span class="metric-label">Contact frame</span>
+          <span class="metric-value" id="metric-contact">—</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Swing plane</span>
+          <span class="metric-value" id="metric-plane">—</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Bat speed (proxy)</span>
+          <span class="metric-value" id="metric-batspeed">—</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Exit velo (est.)</span>
+          <span class="metric-value" id="metric-exitvelo">—</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="summary" class="summary hidden" aria-label="Session summary">
+      <h2>Session summary</h2>
+      <ul id="summary-list"></ul>
+    </section>
+
+    <footer class="footer">
+      <p>Client-side only · MediaPipe Pose · Future: Roboflow bat/ball detection</p>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
