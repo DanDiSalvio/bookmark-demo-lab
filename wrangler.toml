@@ -1,0 +1,5 @@
+# Cloudflare Pages project config (free tier).
+# Project name should match the Cloudflare Pages project once connected.
+name = "bookmark-demo-lab"
+pages_build_output_dir = "."
+compatibility_date = "2026-09-14"
