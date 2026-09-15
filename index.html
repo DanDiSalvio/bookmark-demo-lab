@@ -12,96 +12,110 @@
       <p class="eyebrow">Demo Lab · Sep 15, 2026</p>
       <h1>AI Logo Lab</h1>
       <p class="lede">
-        A Flux-inspired generative logo playground — inspired by
-        <a href="https://x.com/tom_doerr/status/1894189645811888324" target="_blank" rel="noopener">open-source AI logo tools using Flux</a>.
-        Type a brand name, pick a style and palette, and get instant SVG logo candidates — all procedural, client-side, no API keys.
+        Type a brand name, pick a style and palette, and get instant SVG logo candidates —
+        procedural, client-side, no API keys. Inspired by clean SaaS logo makers.
       </p>
-      <p class="disclaimer">
-        <span class="badge">Demo mode</span>
-        Procedural SVG art for the morning ship. Real Flux image generation can be a follow-up.
-      </p>
+      <p class="disclaimer">Procedural SVG art for the morning ship. Real Flux image generation can follow.</p>
     </header>
 
+    <nav class="wizard-nav" aria-label="Create logo steps">
+      <button type="button" class="wizard-step wizard-step--active" data-step="1" id="wizard-step-1">1. Name</button>
+      <button type="button" class="wizard-step" data-step="2" id="wizard-step-2" disabled>2. Style</button>
+      <button type="button" class="wizard-step" data-step="3" id="wizard-step-3" disabled>3. Palette</button>
+    </nav>
+
     <section class="panel" aria-label="Logo settings">
-      <div class="field">
-        <label for="brand-name">Brand name <span class="required-mark" aria-hidden="true">*</span></label>
-        <input
-          type="text"
-          id="brand-name"
-          placeholder="e.g. Northwind Studio"
-          maxlength="40"
-          autocomplete="off"
-          required
-          aria-required="true"
-          aria-describedby="brand-name-error"
-        />
-        <p id="brand-name-error" class="field-error hidden" role="alert"></p>
+      <div class="wizard-panel wizard-panel--active" data-step-panel="1">
+        <h2 class="panel-title">Brand name</h2>
+        <p class="panel-hint">Start with your company or product name. We'll preview it across every style.</p>
+        <div class="field">
+          <label for="brand-name">Brand name <span class="required-mark" aria-hidden="true">*</span></label>
+          <input
+            type="text"
+            id="brand-name"
+            placeholder="e.g. Northwind Studio"
+            maxlength="40"
+            autocomplete="off"
+            required
+            aria-required="true"
+            aria-describedby="brand-name-error"
+          />
+          <p id="brand-name-error" class="field-error hidden" role="alert"></p>
+        </div>
+        <div class="field">
+          <label for="tagline">Tagline <span class="optional">(optional)</span></label>
+          <input type="text" id="tagline" placeholder="Build faster" maxlength="60" autocomplete="off" />
+        </div>
+        <div class="wizard-actions">
+          <button type="button" id="btn-step-1-next" class="btn btn-primary">Continue to styles</button>
+        </div>
       </div>
 
-      <div class="field">
-        <label for="tagline">Tagline <span class="optional">(optional)</span></label>
-        <input type="text" id="tagline" placeholder="Build faster" maxlength="60" autocomplete="off" />
+      <div class="wizard-panel" data-step-panel="2">
+        <h2 class="panel-title">Pick a style</h2>
+        <p class="panel-hint">Each card previews your brand in a different treatment. Pick your favorite — we'll generate all six styles.</p>
+        <fieldset class="field">
+          <legend class="hidden">Style</legend>
+          <div class="style-grid" id="style-grid" role="radiogroup" aria-label="Logo style"></div>
+        </fieldset>
+        <div class="wizard-actions">
+          <button type="button" id="btn-step-2-back" class="btn btn-secondary">Back</button>
+          <button type="button" id="btn-step-2-next" class="btn btn-primary">Continue to palette</button>
+        </div>
       </div>
 
-      <fieldset class="field">
-        <legend>Style</legend>
-        <div class="chip-row" id="style-chips" role="group" aria-label="Logo style">
-          <button type="button" class="chip chip--active" data-style="geometric">Geometric</button>
-          <button type="button" class="chip" data-style="wordmark">Wordmark</button>
-          <button type="button" class="chip" data-style="monogram">Monogram</button>
-          <button type="button" class="chip" data-style="badge">Badge</button>
-          <button type="button" class="chip" data-style="gradient">Gradient</button>
+      <div class="wizard-panel" data-step-panel="3">
+        <h2 class="panel-title">Color palette</h2>
+        <p class="panel-hint">One accent color drives the mark. Backgrounds stay neutral for a clean, print-ready look.</p>
+        <fieldset class="field">
+          <legend>Palette</legend>
+          <div class="palette-row" id="palette-presets" role="radiogroup" aria-label="Color palette">
+            <label class="palette-swatch palette-swatch--active" title="Emerald">
+              <input type="radio" name="palette" value="emerald" checked />
+              <span class="palette-preview" style="--c1:#059669;--c2:#ecfdf5"></span>
+              <span class="palette-name">Emerald</span>
+            </label>
+            <label class="palette-swatch" title="Coral">
+              <input type="radio" name="palette" value="coral" />
+              <span class="palette-preview" style="--c1:#ea580c;--c2:#fff7ed"></span>
+              <span class="palette-name">Coral</span>
+            </label>
+            <label class="palette-swatch" title="Ocean">
+              <input type="radio" name="palette" value="ocean" />
+              <span class="palette-preview" style="--c1:#0284c7;--c2:#f0f9ff"></span>
+              <span class="palette-name">Ocean</span>
+            </label>
+            <label class="palette-swatch" title="Slate">
+              <input type="radio" name="palette" value="slate" />
+              <span class="palette-preview" style="--c1:#475569;--c2:#f8fafc"></span>
+              <span class="palette-name">Slate</span>
+            </label>
+            <label class="palette-swatch" title="Mono">
+              <input type="radio" name="palette" value="mono" />
+              <span class="palette-preview" style="--c1:#1c1917;--c2:#fafaf9"></span>
+              <span class="palette-name">Mono</span>
+            </label>
+          </div>
+          <div class="custom-accent">
+            <label for="custom-accent">Custom accent</label>
+            <input type="color" id="custom-accent" value="#059669" />
+            <span class="custom-accent-hint">Overrides palette primary</span>
+          </div>
+        </fieldset>
+        <div class="wizard-actions">
+          <button type="button" id="btn-step-3-back" class="btn btn-secondary">Back</button>
+          <button type="button" id="btn-generate" class="btn btn-primary">Generate logos</button>
         </div>
-      </fieldset>
-
-      <fieldset class="field">
-        <legend>Color palette</legend>
-        <div class="palette-row" id="palette-presets" role="radiogroup" aria-label="Color palette">
-          <label class="palette-swatch palette-swatch--active" title="Indigo Night">
-            <input type="radio" name="palette" value="indigo" checked />
-            <span class="palette-preview" style="--c1:#6366f1;--c2:#312e81;--c3:#a5b4fc"></span>
-            <span class="palette-name">Indigo</span>
-          </label>
-          <label class="palette-swatch" title="Coral Spark">
-            <input type="radio" name="palette" value="coral" />
-            <span class="palette-preview" style="--c1:#f97316;--c2:#9a3412;--c3:#fdba74"></span>
-            <span class="palette-name">Coral</span>
-          </label>
-          <label class="palette-swatch" title="Forest Mint">
-            <input type="radio" name="palette" value="forest" />
-            <span class="palette-preview" style="--c1:#10b981;--c2:#064e3b;--c3:#6ee7b7"></span>
-            <span class="palette-name">Forest</span>
-          </label>
-          <label class="palette-swatch" title="Sunset Gold">
-            <input type="radio" name="palette" value="sunset" />
-            <span class="palette-preview" style="--c1:#f59e0b;--c2:#78350f;--c3:#fcd34d"></span>
-            <span class="palette-name">Sunset</span>
-          </label>
-          <label class="palette-swatch" title="Monochrome">
-            <input type="radio" name="palette" value="mono" />
-            <span class="palette-preview" style="--c1:#e2e8f0;--c2:#0f172a;--c3:#94a3b8"></span>
-            <span class="palette-name">Mono</span>
-          </label>
-        </div>
-        <div class="custom-accent">
-          <label for="custom-accent">Custom accent</label>
-          <input type="color" id="custom-accent" value="#8b5cf6" />
-          <span class="custom-accent-hint">Overrides primary when set</span>
-        </div>
-      </fieldset>
-
-      <button type="button" id="btn-generate" class="btn btn-primary btn-generate">
-        Generate logos
-      </button>
+      </div>
     </section>
 
     <section id="results" class="results hidden" aria-label="Generated logos">
       <div class="results-header">
-        <h2>Candidates</h2>
+        <h2>Your logo options</h2>
         <p id="results-meta" class="results-meta"></p>
       </div>
       <div id="results-empty" class="results-empty hidden">
-        <p>Enter a brand name above and click <strong>Generate logos</strong> to see candidates here.</p>
+        <p>Complete the steps above and click <strong>Generate logos</strong> to see candidates with mockups.</p>
       </div>
       <div id="logo-grid" class="logo-grid"></div>
     </section>
@@ -116,7 +130,7 @@
     </section>
 
     <footer class="footer">
-      <p>Client-side only · Procedural SVG · Real Flux integration is future work</p>
+      <p>Client-side only · SVG primary · PNG export available</p>
     </footer>
   </div>
 
@@ -134,6 +148,7 @@
       <div class="modal-actions">
         <button type="button" id="btn-download-svg" class="btn btn-primary">Download SVG</button>
         <button type="button" id="btn-download-png" class="btn btn-secondary">Download PNG</button>
+        <p class="download-note">SVG is the primary format — scalable and editable. PNG for quick sharing.</p>
       </div>
     </div>
   </div>
