@@ -9,7 +9,7 @@
 <body>
   <div class="app">
     <header class="header">
-      <p class="eyebrow">Demo Lab · Sep 14, 2026</p>
+      <p class="eyebrow">Demo Lab · Sep 15, 2026</p>
       <h1>Baseball Swing Lab</h1>
       <p class="lede">
         A phone-camera swing coach slice — inspired by
@@ -17,6 +17,19 @@
         Upload a clip or try the built-in sample to see bat path overlays and swing metrics, all in your browser.
       </p>
     </header>
+
+    <aside id="first-run-cta" class="first-run-cta hidden" role="note">
+      <div class="first-run-cta__body">
+        <p class="first-run-cta__title">New here?</p>
+        <p class="first-run-cta__text">Tap <strong>Sample swing</strong> to watch a demo cycle — no upload needed. Or drop a short side-view clip (≤10 s works best).</p>
+      </div>
+      <div class="first-run-cta__actions">
+        <button type="button" id="btn-first-run" class="btn btn-primary btn-sm">Try sample</button>
+        <button type="button" id="btn-dismiss-cta" class="btn btn-ghost btn-sm">Dismiss</button>
+      </div>
+    </aside>
+
+    <div id="error-banner" class="error-banner hidden" role="alert"></div>
 
     <section class="controls" aria-label="Input controls">
       <div class="control-row">
@@ -36,7 +49,10 @@
       <div class="canvas-wrap">
         <video id="video" playsinline muted hidden></video>
         <canvas id="canvas" width="640" height="360" aria-label="Swing overlay"></canvas>
-        <div id="loading" class="loading hidden" role="status">Analyzing frames…</div>
+        <div id="loading" class="loading hidden" role="status">
+          <span id="loading-text">Analyzing frames…</span>
+          <span id="loading-progress" class="loading-progress"></span>
+        </div>
       </div>
 
       <div class="scrubber-row">
@@ -47,12 +63,15 @@
 
     <section class="metrics" aria-label="Swing metrics">
       <h2>Live metrics</h2>
-      <p class="metrics-note">Demo estimates — not calibrated radar data.</p>
+      <p class="metrics-note">
+        <span class="demo-estimate-badge">Demo estimates</span>
+        — not calibrated radar or launch-monitor data.
+      </p>
 
       <div class="metrics-group">
         <h3 class="metrics-subheading">At this frame</h3>
         <div class="metric-grid metric-grid--playhead">
-          <div class="metric-card">
+          <div class="metric-card metric-card--playhead">
             <span class="metric-label">Frame</span>
             <span class="metric-value" id="metric-frame">—</span>
           </div>
@@ -60,21 +79,21 @@
       </div>
 
       <div class="metrics-group">
-        <h3 class="metrics-subheading">This swing</h3>
+        <h3 class="metrics-subheading">This swing <span class="demo-estimate-badge demo-estimate-badge--sm">demo totals</span></h3>
         <div class="metric-grid">
-          <div class="metric-card">
+          <div class="metric-card metric-card--contact">
             <span class="metric-label">Contact frame</span>
             <span class="metric-value" id="metric-contact">—</span>
           </div>
-          <div class="metric-card">
+          <div class="metric-card metric-card--plane">
             <span class="metric-label">Swing plane</span>
             <span class="metric-value" id="metric-plane">—</span>
           </div>
-          <div class="metric-card">
+          <div class="metric-card metric-card--batspeed">
             <span class="metric-label">Bat speed (proxy)</span>
             <span class="metric-value" id="metric-batspeed">—</span>
           </div>
-          <div class="metric-card">
+          <div class="metric-card metric-card--exitvelo">
             <span class="metric-label">Exit velo (est.)</span>
             <span class="metric-value" id="metric-exitvelo">—</span>
           </div>
@@ -89,6 +108,15 @@
     <section id="summary" class="summary hidden" aria-label="Session summary">
       <h2>Session summary</h2>
       <ul id="summary-list"></ul>
+    </section>
+
+    <section id="history" class="history hidden" aria-label="Recent sessions">
+      <div class="history-header">
+        <h2>Recent swings</h2>
+        <button type="button" id="btn-clear-history" class="btn btn-ghost btn-sm">Clear</button>
+      </div>
+      <p class="history-note">Last 5 sessions stored locally in your browser.</p>
+      <ul id="history-list" class="history-list"></ul>
     </section>
 
     <footer class="footer">
