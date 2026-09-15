@@ -10,11 +10,14 @@ Inspired by [open-source AI logo generator using Flux](https://x.com/tom_doerr/s
 
 ### What it demos
 
-- **Brand + tagline inputs** — type a name and optional tagline
-- **Style chips** — geometric, wordmark, monogram, badge, gradient
+- **Stepped create flow** — name → style → palette
+- **Brand + tagline inputs** — type a name and optional tagline (AL-1 validation)
+- **Visual style cards** — six distinct treatments of the same brand name (geometric, wordmark, monogram, badge, gradient, minimal)
+- **Neutral canvas + one accent** — clean SaaS logo-maker look (no AI-purple glow)
 - **Color palettes** — five presets plus a custom accent picker
-- **Generate** — produces 6 distinct SVG logo candidates (procedural / deterministic, no API keys)
-- **Preview & download** — click a candidate to enlarge; download as SVG or PNG (canvas rasterize)
+- **Generate** — produces 6 distinct SVG logo candidates (one per style)
+- **Mockup previews** — business card, coffee cup, and letterhead context on each result
+- **Preview & download** — click a candidate to enlarge; **SVG primary**, PNG secondary
 - **Recent history** — last 5 generations in `localStorage`
 
 All processing runs client-side. No backend, no Flux API, no secrets. Real Flux image generation can be a follow-up.
