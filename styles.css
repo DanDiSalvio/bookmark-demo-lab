@@ -69,6 +69,7 @@ h1 {
 .control-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.6rem;
 }
 
@@ -119,6 +120,20 @@ h1 {
 
 .upload-label { cursor: pointer; }
 
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(62, 207, 110, 0.12);
+  border: 1px solid rgba(62, 207, 110, 0.35);
+}
+
 .mode-label {
   font-size: 0.8rem;
   color: var(--muted);
@@ -131,6 +146,12 @@ h1 {
   border-radius: var(--radius);
   overflow: hidden;
   margin-bottom: 1.25rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.stage--sample {
+  border-color: rgba(62, 207, 110, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(62, 207, 110, 0.08);
 }
 
 .canvas-wrap {
@@ -178,8 +199,14 @@ h1 {
 
 #scrubber {
   flex: 1;
-  accent-color: var(--accent);
+  accent-color: var(--muted);
   height: 4px;
+  transition: accent-color 0.15s;
+}
+
+#scrubber.scrubber-active,
+#scrubber:focus-visible {
+  accent-color: var(--accent);
 }
 
 .metrics h2,
@@ -198,14 +225,38 @@ h1 {
   margin: 0 0 0.75rem;
 }
 
+.metrics-group {
+  margin-bottom: 1rem;
+}
+
+.metrics-group:last-child {
+  margin-bottom: 0;
+}
+
+.metrics-subheading {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.6rem;
 }
 
+.metric-grid--playhead {
+  grid-template-columns: 1fr;
+  max-width: 8rem;
+}
+
 @media (min-width: 480px) {
-  .metric-grid { grid-template-columns: repeat(4, 1fr); }
+  .metric-grid:not(.metric-grid--playhead) {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .metric-card {
@@ -234,6 +285,16 @@ h1 {
 }
 
 .metric-value.highlight { color: var(--accent); }
+
+.metrics-footnotes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
 
 .summary {
   margin-top: 1.25rem;

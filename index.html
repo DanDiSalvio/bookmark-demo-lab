@@ -27,11 +27,12 @@
           Upload video
           <input type="file" id="file-input" accept="video/mp4,video/webm,video/quicktime" hidden />
         </label>
+        <span id="sample-badge" class="mode-badge" aria-label="Sample mode active">Sample</span>
       </div>
       <p id="mode-label" class="mode-label">Sample mode — no upload needed</p>
     </section>
 
-    <section class="stage" aria-label="Swing analysis">
+    <section id="stage" class="stage stage--sample" aria-label="Swing analysis">
       <div class="canvas-wrap">
         <video id="video" playsinline muted hidden></video>
         <canvas id="canvas" width="640" height="360" aria-label="Swing overlay"></canvas>
@@ -47,23 +48,41 @@
     <section class="metrics" aria-label="Swing metrics">
       <h2>Live metrics</h2>
       <p class="metrics-note">Demo estimates — not calibrated radar data.</p>
-      <div class="metric-grid">
-        <div class="metric-card">
-          <span class="metric-label">Contact frame</span>
-          <span class="metric-value" id="metric-contact">—</span>
+
+      <div class="metrics-group">
+        <h3 class="metrics-subheading">At this frame</h3>
+        <div class="metric-grid metric-grid--playhead">
+          <div class="metric-card">
+            <span class="metric-label">Frame</span>
+            <span class="metric-value" id="metric-frame">—</span>
+          </div>
         </div>
-        <div class="metric-card">
-          <span class="metric-label">Swing plane</span>
-          <span class="metric-value" id="metric-plane">—</span>
+      </div>
+
+      <div class="metrics-group">
+        <h3 class="metrics-subheading">This swing</h3>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <span class="metric-label">Contact frame</span>
+            <span class="metric-value" id="metric-contact">—</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Swing plane</span>
+            <span class="metric-value" id="metric-plane">—</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Bat speed (proxy)</span>
+            <span class="metric-value" id="metric-batspeed">—</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Exit velo (est.)</span>
+            <span class="metric-value" id="metric-exitvelo">—</span>
+          </div>
         </div>
-        <div class="metric-card">
-          <span class="metric-label">Bat speed (proxy)</span>
-          <span class="metric-value" id="metric-batspeed">—</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Exit velo (est.)</span>
-          <span class="metric-value" id="metric-exitvelo">—</span>
-        </div>
+        <p class="metrics-footnotes">
+          <span>* Bat speed proxy — uncalibrated estimate from pose motion, not radar.</span>
+          <span>† Exit velocity — model placeholder, not measured ball speed.</span>
+        </p>
       </div>
     </section>
 
