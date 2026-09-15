@@ -3,127 +3,125 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Baseball Swing Lab — Demo Lab</title>
+  <title>AI Logo Lab — Demo Lab</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app">
     <header class="header">
       <p class="eyebrow">Demo Lab · Sep 15, 2026</p>
-      <h1>Baseball Swing Lab</h1>
+      <h1>AI Logo Lab</h1>
       <p class="lede">
-        A phone-camera swing coach slice — inspired by
-        <a href="https://x.com/measure_plan/status/2097715692069859769" target="_blank" rel="noopener">tennis CV coaching demos</a>.
-        Upload a clip or try the built-in sample to see bat path overlays and swing metrics, all in your browser.
+        A Flux-inspired generative logo playground — inspired by
+        <a href="https://x.com/tom_doerr/status/1894189645811888324" target="_blank" rel="noopener">open-source AI logo tools using Flux</a>.
+        Type a brand name, pick a style and palette, and get instant SVG logo candidates — all procedural, client-side, no API keys.
+      </p>
+      <p class="disclaimer">
+        <span class="badge">Demo mode</span>
+        Procedural SVG art for the morning ship. Real Flux image generation can be a follow-up.
       </p>
     </header>
 
-    <aside id="first-run-cta" class="first-run-cta hidden" role="note">
-      <div class="first-run-cta__body">
-        <p class="first-run-cta__title">New here?</p>
-        <p class="first-run-cta__text">Tap <strong>Sample swing</strong> to watch a demo cycle — no upload needed. Or drop a short side-view clip (≤10 s works best).</p>
+    <section class="panel" aria-label="Logo settings">
+      <div class="field">
+        <label for="brand-name">Brand name</label>
+        <input type="text" id="brand-name" placeholder="Acme Labs" maxlength="40" autocomplete="off" />
       </div>
-      <div class="first-run-cta__actions">
-        <button type="button" id="btn-first-run" class="btn btn-primary btn-sm">Try sample</button>
-        <button type="button" id="btn-dismiss-cta" class="btn btn-ghost btn-sm">Dismiss</button>
+
+      <div class="field">
+        <label for="tagline">Tagline <span class="optional">(optional)</span></label>
+        <input type="text" id="tagline" placeholder="Build faster" maxlength="60" autocomplete="off" />
       </div>
-    </aside>
 
-    <div id="error-banner" class="error-banner hidden" role="alert"></div>
-
-    <section class="controls" aria-label="Input controls">
-      <div class="control-row">
-        <button type="button" id="btn-sample" class="btn btn-primary" aria-pressed="true">
-          ▶ Sample swing
-        </button>
-        <label class="btn btn-secondary upload-label">
-          Upload video
-          <input type="file" id="file-input" accept="video/mp4,video/webm,video/quicktime" hidden />
-        </label>
-        <span id="sample-badge" class="mode-badge" aria-label="Sample mode active">Sample</span>
-      </div>
-      <p id="mode-label" class="mode-label">Sample mode — no upload needed</p>
-    </section>
-
-    <section id="stage" class="stage stage--sample" aria-label="Swing analysis">
-      <div class="canvas-wrap">
-        <video id="video" playsinline muted hidden></video>
-        <canvas id="canvas" width="640" height="360" aria-label="Swing overlay"></canvas>
-        <div id="loading" class="loading hidden" role="status">
-          <span id="loading-text">Analyzing frames…</span>
-          <span id="loading-progress" class="loading-progress"></span>
+      <fieldset class="field">
+        <legend>Style</legend>
+        <div class="chip-row" id="style-chips" role="group" aria-label="Logo style">
+          <button type="button" class="chip chip--active" data-style="geometric">Geometric</button>
+          <button type="button" class="chip" data-style="wordmark">Wordmark</button>
+          <button type="button" class="chip" data-style="monogram">Monogram</button>
+          <button type="button" class="chip" data-style="badge">Badge</button>
+          <button type="button" class="chip" data-style="gradient">Gradient</button>
         </div>
-      </div>
+      </fieldset>
 
-      <div class="scrubber-row">
-        <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Frame scrubber" />
-        <button type="button" id="btn-replay" class="btn btn-ghost" title="Replay">↻</button>
-      </div>
-    </section>
-
-    <section class="metrics" aria-label="Swing metrics">
-      <h2>Live metrics</h2>
-      <p class="metrics-note">
-        <span class="demo-estimate-badge">Demo estimates</span>
-        — not calibrated radar or launch-monitor data.
-      </p>
-
-      <div class="metrics-group">
-        <h3 class="metrics-subheading">At this frame</h3>
-        <div class="metric-grid metric-grid--playhead">
-          <div class="metric-card metric-card--playhead">
-            <span class="metric-label">Frame</span>
-            <span class="metric-value" id="metric-frame">—</span>
-          </div>
+      <fieldset class="field">
+        <legend>Color palette</legend>
+        <div class="palette-row" id="palette-presets" role="radiogroup" aria-label="Color palette">
+          <label class="palette-swatch palette-swatch--active" title="Indigo Night">
+            <input type="radio" name="palette" value="indigo" checked />
+            <span class="palette-preview" style="--c1:#6366f1;--c2:#312e81;--c3:#a5b4fc"></span>
+            <span class="palette-name">Indigo</span>
+          </label>
+          <label class="palette-swatch" title="Coral Spark">
+            <input type="radio" name="palette" value="coral" />
+            <span class="palette-preview" style="--c1:#f97316;--c2:#9a3412;--c3:#fdba74"></span>
+            <span class="palette-name">Coral</span>
+          </label>
+          <label class="palette-swatch" title="Forest Mint">
+            <input type="radio" name="palette" value="forest" />
+            <span class="palette-preview" style="--c1:#10b981;--c2:#064e3b;--c3:#6ee7b7"></span>
+            <span class="palette-name">Forest</span>
+          </label>
+          <label class="palette-swatch" title="Sunset Gold">
+            <input type="radio" name="palette" value="sunset" />
+            <span class="palette-preview" style="--c1:#f59e0b;--c2:#78350f;--c3:#fcd34d"></span>
+            <span class="palette-name">Sunset</span>
+          </label>
+          <label class="palette-swatch" title="Monochrome">
+            <input type="radio" name="palette" value="mono" />
+            <span class="palette-preview" style="--c1:#e2e8f0;--c2:#0f172a;--c3:#94a3b8"></span>
+            <span class="palette-name">Mono</span>
+          </label>
         </div>
-      </div>
-
-      <div class="metrics-group">
-        <h3 class="metrics-subheading">This swing <span class="demo-estimate-badge demo-estimate-badge--sm">demo totals</span></h3>
-        <div class="metric-grid">
-          <div class="metric-card metric-card--contact">
-            <span class="metric-label">Contact frame</span>
-            <span class="metric-value" id="metric-contact">—</span>
-          </div>
-          <div class="metric-card metric-card--plane">
-            <span class="metric-label">Swing plane</span>
-            <span class="metric-value" id="metric-plane">—</span>
-          </div>
-          <div class="metric-card metric-card--batspeed">
-            <span class="metric-label">Bat speed (proxy)</span>
-            <span class="metric-value" id="metric-batspeed">—</span>
-          </div>
-          <div class="metric-card metric-card--exitvelo">
-            <span class="metric-label">Exit velo (est.)</span>
-            <span class="metric-value" id="metric-exitvelo">—</span>
-          </div>
+        <div class="custom-accent">
+          <label for="custom-accent">Custom accent</label>
+          <input type="color" id="custom-accent" value="#8b5cf6" />
+          <span class="custom-accent-hint">Overrides primary when set</span>
         </div>
-        <p class="metrics-footnotes">
-          <span>* Bat speed proxy — uncalibrated estimate from pose motion, not radar.</span>
-          <span>† Exit velocity — model placeholder, not measured ball speed.</span>
-        </p>
+      </fieldset>
+
+      <button type="button" id="btn-generate" class="btn btn-primary btn-generate">
+        Generate logos
+      </button>
+    </section>
+
+    <section id="results" class="results hidden" aria-label="Generated logos">
+      <div class="results-header">
+        <h2>Candidates</h2>
+        <p id="results-meta" class="results-meta"></p>
       </div>
+      <div id="logo-grid" class="logo-grid"></div>
     </section>
 
-    <section id="summary" class="summary hidden" aria-label="Session summary">
-      <h2>Session summary</h2>
-      <ul id="summary-list"></ul>
-    </section>
-
-    <section id="history" class="history hidden" aria-label="Recent sessions">
+    <section id="history" class="history hidden" aria-label="Recent generations">
       <div class="history-header">
-        <h2>Recent swings</h2>
+        <h2>Recent generations</h2>
         <button type="button" id="btn-clear-history" class="btn btn-ghost btn-sm">Clear</button>
       </div>
-      <p class="history-note">Last 5 sessions stored locally in your browser.</p>
+      <p class="history-note">Last 5 runs stored locally in your browser.</p>
       <ul id="history-list" class="history-list"></ul>
     </section>
 
     <footer class="footer">
-      <p>Client-side only · MediaPipe Pose · Future: Roboflow bat/ball detection</p>
+      <p>Client-side only · Procedural SVG · Real Flux integration is future work</p>
     </footer>
   </div>
 
-  <script type="module" src="app.js"></script>
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-title">Logo preview</h2>
+        <button type="button" id="modal-close" class="btn btn-ghost btn-sm" aria-label="Close">✕</button>
+      </div>
+      <div id="modal-preview" class="modal-preview"></div>
+      <div class="modal-actions">
+        <button type="button" id="btn-download-svg" class="btn btn-secondary">Download SVG</button>
+        <button type="button" id="btn-download-png" class="btn btn-primary">Download PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>

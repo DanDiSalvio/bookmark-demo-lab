@@ -2,28 +2,22 @@
 
 Morning bookmark demos for Dan's Demo Lab pipeline.
 
-## Today's demo: Baseball Swing Lab
+## Today's demo: AI Logo Lab
 
-**Branch:** `demo/2026-09-15-baseball-overnight` (overnight refinement)
+**Branch:** `demo/2026-09-15-ai-logo`
 
-### Overnight pass (Sep 15)
-
-- **Upload robustness** — long clips capped to first 10 s; file input resets for same-file re-select; progress + clearer error messages; throttled playback (~10 fps)
-- **swingTotals** — single source of truth for session metrics; demo-estimate badges and footnotes; last-5 session history in `localStorage`
-- **Polish** — metric card accent borders (BS-6), footer contrast (BS-7), first-run CTA, mobile layout pass
-
-**Earlier branch:** `demo/2026-09-14-baseball-swing`
-
-Inspired by [tennis CV coaching via phone video](https://x.com/measure_plan/status/2097715692069859769) — this slice applies the same idea to **hitting a baseball**.
+Inspired by [open-source AI logo generator using Flux](https://x.com/tom_doerr/status/1894189645811888324) — this slice is a **Flux-inspired generative logo playground** that runs entirely in the browser.
 
 ### What it demos
 
-- **Sample mode** — animated batter with bat-path overlay and live metrics (no upload needed)
-- **Upload mode** — drop an mp4/webm clip; MediaPipe Pose tracks body + approximates bat path from wrists
-- **Metrics panel** — contact frame estimate, swing plane angle, bat speed proxy, exit-velo placeholder (all labeled as demo estimates)
-- **Session summary** — short recap after each swing cycle
+- **Brand + tagline inputs** — type a name and optional tagline
+- **Style chips** — geometric, wordmark, monogram, badge, gradient
+- **Color palettes** — five presets plus a custom accent picker
+- **Generate** — produces 6 distinct SVG logo candidates (procedural / deterministic, no API keys)
+- **Preview & download** — click a candidate to enlarge; download as SVG or PNG (canvas rasterize)
+- **Recent history** — last 5 generations in `localStorage`
 
-All processing runs client-side in the browser. No backend, no API keys.
+All processing runs client-side. No backend, no Flux API, no secrets. Real Flux image generation can be a follow-up.
 
 ### Try locally
 
@@ -32,13 +26,11 @@ npx serve .
 # open http://localhost:3000
 ```
 
-Click **Sample swing** for the built-in demo, or **Upload video** for your own clip.
+Enter a brand name, pick a style and palette, then click **Generate logos**. Click any candidate to preview and download.
 
-### Future work
+### Prior work
 
-- Roboflow RF-DETR bat/ball detection for real contact point
-- Calibrated exit velocity from tracked ball flight
-- Side-by-side comparison across swings
+**Baseball Swing Lab** (Sep 15 overnight pass) lives on `main` and branch `demo/2026-09-15-baseball-overnight`. Earlier: `demo/2026-09-14-baseball-swing`. Phone-camera swing coach with MediaPipe Pose — see git history on those branches.
 
 ---
 

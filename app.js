@@ -1,970 +1,539 @@
 /**
- * Baseball Swing Lab — client-side swing analysis demo.
- * Sample mode: animated canvas batter. Upload mode: MediaPipe Pose overlay.
+ * AI Logo Lab — client-side procedural SVG logo generator.
+ * Flux-inspired playground; deterministic generative art, no API keys.
  */
 
-const POSE_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
-const POSE_MODEL =
-  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+const HISTORY_KEY = "ail-logo-history";
+const HISTORY_MAX = 5;
+const CANDIDATE_COUNT = 6;
 
-const MAX_ANALYSIS_SECONDS = 10;
-const ANALYSIS_FPS = 15;
-const PLAYBACK_INTERVAL_MS = 100;
-const SESSION_HISTORY_KEY = "bsl-session-history";
-const SESSION_HISTORY_MAX = 5;
-const SESSION_HISTORY_DEDUPE_MS = 30_000;
-const FIRST_RUN_KEY = "bsl-first-run-done";
-
-const L = {
-  NOSE: 0,
-  L_SHOULDER: 11,
-  R_SHOULDER: 12,
-  L_ELBOW: 13,
-  R_ELBOW: 14,
-  L_WRIST: 15,
-  R_WRIST: 16,
-  L_HIP: 23,
-  R_HIP: 24,
-  L_KNEE: 25,
-  R_KNEE: 26,
-  L_ANKLE: 27,
-  R_ANKLE: 28,
+const PALETTES = {
+  indigo: { primary: "#6366f1", secondary: "#312e81", accent: "#a5b4fc", bg: "#0f0f1a", fg: "#eef2ff" },
+  coral: { primary: "#f97316", secondary: "#9a3412", accent: "#fdba74", bg: "#1a0f0a", fg: "#fff7ed" },
+  forest: { primary: "#10b981", secondary: "#064e3b", accent: "#6ee7b7", bg: "#0a1410", fg: "#ecfdf5" },
+  sunset: { primary: "#f59e0b", secondary: "#78350f", accent: "#fcd34d", bg: "#14100a", fg: "#fffbeb" },
+  mono: { primary: "#e2e8f0", secondary: "#0f172a", accent: "#94a3b8", bg: "#0a0a0c", fg: "#f8fafc" },
 };
-
-const SKELETON = [
-  [L.L_SHOULDER, L.R_SHOULDER],
-  [L.L_SHOULDER, L.L_ELBOW],
-  [L.L_ELBOW, L.L_WRIST],
-  [L.R_SHOULDER, L.R_ELBOW],
-  [L.R_ELBOW, L.R_WRIST],
-  [L.L_SHOULDER, L.L_HIP],
-  [L.R_SHOULDER, L.R_HIP],
-  [L.L_HIP, L.R_HIP],
-  [L.L_HIP, L.L_KNEE],
-  [L.L_KNEE, L.L_ANKLE],
-  [L.R_HIP, L.R_KNEE],
-  [L.R_KNEE, L.R_ANKLE],
-];
 
 const $ = (id) => document.getElementById(id);
 
-const canvas = $("canvas");
-const ctx = canvas.getContext("2d");
-const video = $("video");
-const scrubber = $("scrubber");
-const loading = $("loading");
-const loadingText = $("loading-text");
-const loadingProgress = $("loading-progress");
-const errorBanner = $("error-banner");
-const summaryEl = $("summary");
-const summaryList = $("summary-list");
-const historyEl = $("history");
+const brandInput = $("brand-name");
+const taglineInput = $("tagline");
+const styleChips = $("style-chips");
+const palettePresets = $("palette-presets");
+const customAccent = $("custom-accent");
+const btnGenerate = $("btn-generate");
+const resultsSection = $("results");
+const resultsMeta = $("results-meta");
+const logoGrid = $("logo-grid");
+const historySection = $("history");
 const historyList = $("history-list");
-const stageEl = $("stage");
-const sampleBadge = $("sample-badge");
-const firstRunCta = $("first-run-cta");
-const fileInput = $("file-input");
+const modal = $("modal");
+const modalBackdrop = $("modal-backdrop");
+const modalClose = $("modal-close");
+const modalPreview = $("modal-preview");
+const modalTitle = $("modal-title");
+const btnDownloadSvg = $("btn-download-svg");
+const btnDownloadPng = $("btn-download-png");
 
-const playheadEls = {
-  frame: $("metric-frame"),
-};
+let selectedStyle = "geometric";
+let useCustomAccent = false;
+/** @type {{ brand: string, tagline: string, style: string, palette: string, candidates: { id: string, svg: string }[] } | null} */
+let currentGeneration = null;
+/** @type {{ svg: string, brand: string } | null} */
+let selectedCandidate = null;
 
-const swingEls = {
-  contact: $("metric-contact"),
-  plane: $("metric-plane"),
-  batspeed: $("metric-batspeed"),
-  exitvelo: $("metric-exitvelo"),
-};
-
-/** @type {{ contactFrame: number, plane: number, batSpeed: number, exitVelo: number, mode: string } | null} */
-let swingTotals = null;
-
-let mode = "sample";
-let animId = null;
-let sampleT = 0;
-let samplePlaying = true;
-let samplePath = [];
-let frameData = [];
-let contactFrame = -1;
-let poseLandmarker = null;
-let videoUrl = null;
-let analyzing = false;
-let analysisCapNote = "";
-/** True after the current sample run has been saved to session history. */
-let sampleHistorySaved = false;
-
-// ─── Swing totals (single source of truth) ───────────────────────────
-
-function setSwingTotals(data, { persistHistory = true } = {}) {
-  swingTotals = {
-    contactFrame: data.contactFrame,
-    plane: data.plane,
-    batSpeed: data.batSpeed,
-    exitVelo: data.exitVelo,
-    mode: data.mode,
-  };
-  updateSwingTotalsUI();
-  showSummary();
-  if (persistHistory) {
-    saveSessionToHistory();
+function hashString(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
+  return h >>> 0;
 }
 
-function clearSwingTotals() {
-  swingTotals = null;
-  updateSwingTotalsUI();
-  summaryEl.classList.add("hidden");
+function createRng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
 }
 
-function updatePlayheadUI(frame) {
-  playheadEls.frame.textContent = frame != null ? `f${frame}` : "—";
+function getInitials(brand) {
+  const words = brand.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "A";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-function updateSwingTotalsUI() {
-  if (!swingTotals) {
-    swingEls.contact.textContent = "—";
-    swingEls.plane.textContent = "—";
-    swingEls.batspeed.textContent = "—";
-    swingEls.exitvelo.textContent = "—";
+function escapeXml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function getPalette() {
+  const preset = document.querySelector('input[name="palette"]:checked')?.value || "indigo";
+  const base = { ...PALETTES[preset] };
+  if (useCustomAccent) {
+    base.primary = customAccent.value;
+    base.accent = lightenColor(customAccent.value, 0.35);
+  }
+  return base;
+}
+
+function lightenColor(hex, amount) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, ((n >> 16) & 255) + Math.round(255 * amount));
+  const g = Math.min(255, ((n >> 8) & 255) + Math.round(255 * amount));
+  const b = Math.min(255, (n & 255) + Math.round(255 * amount));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+function svgWrap(content, palette, w = 512, h = 512) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+  <rect width="${w}" height="${h}" fill="${palette.bg}" rx="24"/>
+  ${content}
+</svg>`;
+}
+
+function generateGeometric(brand, tagline, palette, rng, variant) {
+  const initials = getInitials(brand);
+  const cx = 256;
+  const cy = 240;
+  const sides = 3 + Math.floor(rng() * 5);
+  const rotation = rng() * 360;
+  const rOuter = 90 + variant * 8;
+  const rInner = 40 + rng() * 30;
+
+  let shapes = "";
+  for (let i = 0; i < sides; i++) {
+    const angle = (i / sides) * Math.PI * 2 + (rotation * Math.PI) / 180;
+    const x = cx + Math.cos(angle) * rOuter;
+    const y = cy + Math.sin(angle) * rOuter;
+    const size = 28 + rng() * 40;
+    const fill = i % 2 === 0 ? palette.primary : palette.accent;
+    if (rng() > 0.5) {
+      shapes += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${size.toFixed(1)}" fill="${fill}" opacity="0.85"/>`;
+    } else {
+      shapes += `<rect x="${(x - size / 2).toFixed(1)}" y="${(y - size / 2).toFixed(1)}" width="${size.toFixed(1)}" height="${size.toFixed(1)}" fill="${fill}" transform="rotate(${(angle * 180) / Math.PI} ${x.toFixed(1)} ${y.toFixed(1)})" opacity="0.85"/>`;
+    }
+  }
+
+  shapes += `<circle cx="${cx}" cy="${cy}" r="${rInner.toFixed(1)}" fill="${palette.secondary}" opacity="0.9"/>`;
+  shapes += `<text x="${cx}" y="${cy + 12}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="${rInner * 0.9}" font-weight="700" fill="${palette.fg}">${escapeXml(initials)}</text>`;
+  shapes += `<text x="${cx}" y="380" text-anchor="middle" font-family="system-ui,sans-serif" font-size="36" font-weight="700" fill="${palette.fg}">${escapeXml(brand)}</text>`;
+  if (tagline) {
+    shapes += `<text x="${cx}" y="420" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="${palette.accent}">${escapeXml(tagline)}</text>`;
+  }
+
+  return svgWrap(shapes, palette);
+}
+
+function generateWordmark(brand, tagline, palette, rng, variant) {
+  const fontSize = brand.length > 12 ? 52 : brand.length > 8 ? 64 : 76;
+  const letterSpacing = variant * 2 + rng() * 4;
+  const skew = (rng() - 0.5) * 8;
+
+  let content = `<defs>
+    <linearGradient id="wm-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${palette.primary}"/>
+      <stop offset="100%" stop-color="${palette.accent}"/>
+    </linearGradient>
+  </defs>`;
+
+  const underlineWidth = 120 + variant * 30 + rng() * 80;
+  content += `<rect x="${256 - underlineWidth / 2}" y="290" width="${underlineWidth}" height="6" rx="3" fill="url(#wm-grad)" opacity="0.9"/>`;
+  content += `<text x="256" y="260" text-anchor="middle" font-family="Georgia,serif" font-size="${fontSize}" font-weight="700" fill="url(#wm-grad)" letter-spacing="${letterSpacing}" transform="skewX(${skew.toFixed(1)})">${escapeXml(brand)}</text>`;
+
+  if (tagline) {
+    content += `<text x="256" y="340" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" fill="${palette.accent}" letter-spacing="2">${escapeXml(tagline.toUpperCase())}</text>`;
+  }
+
+  const dotCount = 3 + variant;
+  for (let i = 0; i < dotCount; i++) {
+    const dx = 256 - (dotCount - 1) * 12 + i * 24;
+    content += `<circle cx="${dx}" cy="370" r="4" fill="${palette.primary}" opacity="${0.4 + rng() * 0.6}"/>`;
+  }
+
+  return svgWrap(content, palette);
+}
+
+function generateMonogram(brand, tagline, palette, rng, variant) {
+  const initials = getInitials(brand);
+  const shape = variant % 3;
+  const cx = 256;
+  const cy = 220;
+
+  let frame = "";
+  if (shape === 0) {
+    frame = `<circle cx="${cx}" cy="${cy}" r="110" fill="${palette.primary}" opacity="0.15"/>
+      <circle cx="${cx}" cy="${cy}" r="95" fill="none" stroke="${palette.primary}" stroke-width="4"/>`;
+  } else if (shape === 1) {
+    frame = `<rect x="${cx - 100}" y="${cy - 100}" width="200" height="200" rx="28" fill="${palette.primary}" opacity="0.15"/>
+      <rect x="${cx - 95}" y="${cy - 95}" width="190" height="190" rx="24" fill="none" stroke="${palette.primary}" stroke-width="4"/>`;
+  } else {
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      pts.push(`${cx + Math.cos(a) * 100},${cy + Math.sin(a) * 100}`);
+    }
+    frame = `<polygon points="${pts.join(" ")}" fill="${palette.primary}" opacity="0.15"/>
+      <polygon points="${pts.join(" ")}" fill="none" stroke="${palette.primary}" stroke-width="4"/>`;
+  }
+
+  const fontSize = initials.length > 1 ? 72 : 96;
+  let content = frame;
+  content += `<text x="${cx}" y="${cy + fontSize * 0.35}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="${fontSize}" font-weight="800" fill="${palette.fg}">${escapeXml(initials)}</text>`;
+  content += `<text x="${cx}" y="400" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" font-weight="600" fill="${palette.fg}">${escapeXml(brand)}</text>`;
+  if (tagline) {
+    content += `<text x="${cx}" y="435" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="${palette.accent}">${escapeXml(tagline)}</text>`;
+  }
+
+  return svgWrap(content, palette);
+}
+
+function generateBadge(brand, tagline, palette, rng, variant) {
+  const cx = 256;
+  const badgeH = 180 + variant * 10;
+  const badgeW = 280 + variant * 15;
+
+  let content = `<defs>
+    <linearGradient id="badge-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="${palette.primary}"/>
+      <stop offset="100%" stop-color="${palette.secondary}"/>
+    </linearGradient>
+  </defs>`;
+
+  content += `<path d="M ${cx - badgeW / 2} ${200 - badgeH / 2}
+    L ${cx + badgeW / 2} ${200 - badgeH / 2}
+    L ${cx + badgeW / 2 - 20} ${200 + badgeH / 2}
+    L ${cx} ${200 + badgeH / 2 + 30}
+    L ${cx - badgeW / 2 + 20} ${200 + badgeH / 2}
+    Z" fill="url(#badge-grad)" stroke="${palette.accent}" stroke-width="3"/>`;
+
+  const iconR = 28;
+  content += `<circle cx="${cx}" cy="${200 - badgeH / 2 + 50}" r="${iconR}" fill="${palette.bg}" opacity="0.5"/>`;
+  content += `<text x="${cx}" y="${200 - badgeH / 2 + 60}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="${palette.fg}">${escapeXml(getInitials(brand))}</text>`;
+  content += `<text x="${cx}" y="${200 + 10}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="32" font-weight="700" fill="${palette.fg}">${escapeXml(brand)}</text>`;
+  if (tagline) {
+    content += `<text x="${cx}" y="${200 + 45}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="${palette.accent}">${escapeXml(tagline)}</text>`;
+  }
+
+  const starCount = 3 + (variant % 3);
+  for (let i = 0; i < starCount; i++) {
+    const sx = cx - (starCount - 1) * 18 + i * 36;
+    content += `<polygon points="${sx},${200 + badgeH / 2 + 50} ${sx + 6},${200 + badgeH / 2 + 62} ${sx + 12},${200 + badgeH / 2 + 50} ${sx + 9},${200 + badgeH / 2 + 56} ${sx + 3},${200 + badgeH / 2 + 56}" fill="${palette.accent}" opacity="0.7"/>`;
+  }
+
+  return svgWrap(content, palette);
+}
+
+function generateGradient(brand, tagline, palette, rng, variant) {
+  const angle = variant * 30 + rng() * 60;
+  const cx = 256;
+  const cy = 200;
+
+  let content = `<defs>
+    <linearGradient id="grad-bg" gradientTransform="rotate(${angle} 0.5 0.5)">
+      <stop offset="0%" stop-color="${palette.primary}"/>
+      <stop offset="50%" stop-color="${palette.secondary}"/>
+      <stop offset="100%" stop-color="${palette.accent}"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  content += `<rect width="512" height="512" fill="url(#grad-bg)" rx="24"/>`;
+
+  const blobCount = 2 + (variant % 3);
+  for (let i = 0; i < blobCount; i++) {
+    const bx = 80 + rng() * 352;
+    const by = 60 + rng() * 200;
+    const br = 40 + rng() * 80;
+    content += `<circle cx="${bx.toFixed(0)}" cy="${by.toFixed(0)}" r="${br.toFixed(0)}" fill="${palette.fg}" opacity="${(0.05 + rng() * 0.12).toFixed(2)}"/>`;
+  }
+
+  const iconSize = 100 + variant * 8;
+  content += `<circle cx="${cx}" cy="${cy}" r="${iconSize}" fill="${palette.bg}" opacity="0.35" filter="url(#glow)"/>`;
+  content += `<text x="${cx}" y="${cy + 14}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="${iconSize * 0.55}" font-weight="800" fill="${palette.fg}">${escapeXml(getInitials(brand))}</text>`;
+  content += `<text x="${cx}" y="370" text-anchor="middle" font-family="system-ui,sans-serif" font-size="40" font-weight="700" fill="${palette.fg}">${escapeXml(brand)}</text>`;
+  if (tagline) {
+    content += `<text x="${cx}" y="410" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="${palette.fg}" opacity="0.85">${escapeXml(tagline)}</text>`;
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">${content}</svg>`;
+}
+
+const GENERATORS = {
+  geometric: generateGeometric,
+  wordmark: generateWordmark,
+  monogram: generateMonogram,
+  badge: generateBadge,
+  gradient: generateGradient,
+};
+
+function generateCandidates(brand, tagline, style, paletteName) {
+  const palette = getPalette();
+  const generator = GENERATORS[style] || generateGeometric;
+  const baseSeed = hashString(`${brand}|${tagline}|${style}|${paletteName}|${palette.primary}`);
+  const candidates = [];
+
+  for (let i = 0; i < CANDIDATE_COUNT; i++) {
+    const rng = createRng(baseSeed + i * 7919);
+    const svg = generator(brand, tagline, palette, rng, i);
+    candidates.push({ id: `${baseSeed}-${i}`, svg });
+  }
+
+  return candidates;
+}
+
+function renderGrid(candidates, brand) {
+  logoGrid.innerHTML = candidates
+    .map(
+      (c, i) => `
+    <button type="button" class="logo-card" data-index="${i}" aria-label="Logo candidate ${i + 1} for ${escapeXml(brand)}">
+      <div class="logo-card__preview">${c.svg}</div>
+      <span class="logo-card__label">#${i + 1}</span>
+    </button>`
+    )
+    .join("");
+
+  logoGrid.querySelectorAll(".logo-card").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.index);
+      openModal(candidates[idx], brand);
+    });
+  });
+}
+
+function openModal(candidate, brand) {
+  selectedCandidate = { svg: candidate.svg, brand };
+  modalPreview.innerHTML = candidate.svg;
+  modalTitle.textContent = `${brand} — logo preview`;
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closeModal() {
+  modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  selectedCandidate = null;
+}
+
+function downloadSvg() {
+  if (!selectedCandidate) return;
+  const blob = new Blob([selectedCandidate.svg], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${slugify(selectedCandidate.brand)}-logo.svg`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadPng() {
+  if (!selectedCandidate) return;
+  const svgEl = modalPreview.querySelector("svg");
+  if (!svgEl) return;
+
+  const svgData = new XMLSerializer().serializeToString(svgEl);
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 1024;
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, 1024, 1024);
+    URL.revokeObjectURL(url);
+    canvas.toBlob((pngBlob) => {
+      if (!pngBlob) return;
+      const pngUrl = URL.createObjectURL(pngBlob);
+      const a = document.createElement("a");
+      a.href = pngUrl;
+      a.download = `${slugify(selectedCandidate.brand)}-logo.png`;
+      a.click();
+      URL.revokeObjectURL(pngUrl);
+    }, "image/png");
+  };
+  img.onerror = () => URL.revokeObjectURL(url);
+  img.src = url;
+}
+
+function slugify(str) {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "logo";
+}
+
+function handleGenerate() {
+  const brand = brandInput.value.trim();
+  if (!brand) {
+    brandInput.focus();
+    brandInput.classList.add("input-error");
+    setTimeout(() => brandInput.classList.remove("input-error"), 600);
     return;
   }
 
-  swingEls.contact.textContent = `f${swingTotals.contactFrame}`;
-  swingEls.plane.textContent = `${swingTotals.plane.toFixed(0)}°`;
-  swingEls.batspeed.textContent = `${swingTotals.batSpeed.toFixed(0)} mph*`;
-  swingEls.exitvelo.textContent = `${swingTotals.exitVelo.toFixed(0)} mph†`;
-}
+  const tagline = taglineInput.value.trim();
+  const paletteName = document.querySelector('input[name="palette"]:checked')?.value || "indigo";
+  const candidates = generateCandidates(brand, tagline, selectedStyle, paletteName);
 
-function showSummary() {
-  if (!swingTotals) return;
-
-  summaryEl.classList.remove("hidden");
-  const items = [
-    `Contact detected near frame ${swingTotals.contactFrame} (${swingTotals.mode} mode).`,
-    `Swing plane angle: ~${swingTotals.plane.toFixed(0)}° from horizontal.`,
-    `Peak bat speed proxy: ~${swingTotals.batSpeed.toFixed(0)} mph (*uncalibrated demo estimate).`,
-    `Estimated exit velocity: ~${swingTotals.exitVelo.toFixed(0)} mph (†model placeholder, not measured).`,
-    analysisCapNote || null,
-    "Full bat/ball tracking with Roboflow RF-DETR is future work.",
-  ].filter(Boolean);
-
-  summaryList.innerHTML = items.map((t) => `<li>${t}</li>`).join("");
-}
-
-function computeSampleSwingTotals() {
-  const steps = 120;
-  let contactFrame = -1;
-  let peakBatSpeed = 0;
-  let peakPlane = 0;
-  let peakExitVelo = 0;
-
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const { phase } = samplePhase(t);
-    const m = sampleMetrics(t, phase);
-
-    if (m.contact != null) {
-      contactFrame = m.contact;
-    }
-    if (m.batSpeed > peakBatSpeed) {
-      peakBatSpeed = m.batSpeed;
-      peakPlane = m.plane;
-      peakExitVelo = m.exitVelo;
-    }
-  }
-
-  return {
-    contactFrame: contactFrame >= 0 ? contactFrame : 39,
-    plane: peakPlane,
-    batSpeed: peakBatSpeed,
-    exitVelo: peakExitVelo,
-    mode: "sample",
+  currentGeneration = {
+    brand,
+    tagline,
+    style: selectedStyle,
+    palette: paletteName,
+    candidates,
   };
+
+  resultsSection.classList.remove("hidden");
+  resultsMeta.textContent = `${CANDIDATE_COUNT} ${selectedStyle} variants · ${paletteName} palette`;
+  renderGrid(candidates, brand);
+  saveHistory(currentGeneration);
+  renderHistory();
 }
 
-// ─── Session history (localStorage) ──────────────────────────────────
-
-function loadSessionHistory() {
+function loadHistory() {
   try {
-    const raw = localStorage.getItem(SESSION_HISTORY_KEY);
+    const raw = localStorage.getItem(HISTORY_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-function historyEntryMatches(a, b) {
-  return (
-    a.mode === b.mode &&
-    a.contactFrame === b.contactFrame &&
-    a.plane === b.plane &&
-    a.batSpeed === b.batSpeed &&
-    a.exitVelo === b.exitVelo
-  );
-}
-
-function saveSessionToHistory() {
-  if (!swingTotals) return;
-
+function saveHistory(gen) {
   const entry = {
     ts: Date.now(),
-    mode: swingTotals.mode,
-    contactFrame: swingTotals.contactFrame,
-    plane: Math.round(swingTotals.plane),
-    batSpeed: Math.round(swingTotals.batSpeed),
-    exitVelo: Math.round(swingTotals.exitVelo),
+    brand: gen.brand,
+    tagline: gen.tagline,
+    style: gen.style,
+    palette: gen.palette,
   };
 
-  const history = loadSessionHistory();
-  const latest = history[0];
-  if (
-    latest &&
-    historyEntryMatches(latest, entry) &&
-    entry.ts - latest.ts < SESSION_HISTORY_DEDUPE_MS
-  ) {
-    return;
-  }
-
+  const history = loadHistory();
   history.unshift(entry);
-  const trimmed = history.slice(0, SESSION_HISTORY_MAX);
-
   try {
-    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(trimmed));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, HISTORY_MAX)));
   } catch (err) {
-    console.warn("Could not save session history:", err);
+    console.warn("Could not save history:", err);
   }
-
-  renderSessionHistory();
 }
 
-function renderSessionHistory() {
-  const history = loadSessionHistory();
+function renderHistory() {
+  const history = loadHistory();
   if (history.length === 0) {
-    historyEl.classList.add("hidden");
+    historySection.classList.add("hidden");
     return;
   }
 
-  historyEl.classList.remove("hidden");
+  historySection.classList.remove("hidden");
   historyList.innerHTML = history
-    .map((s) => {
-      const when = new Date(s.ts).toLocaleString(undefined, {
+    .map((h) => {
+      const when = new Date(h.ts).toLocaleString(undefined, {
         month: "short",
         day: "numeric",
         hour: "numeric",
         minute: "2-digit",
       });
+      const tag = h.tagline ? ` · "${escapeXml(h.tagline)}"` : "";
       return `<li>
-        <span class="history-when">${when}</span>
-        <span class="history-mode">${s.mode}</span>
-        <span class="history-stats">f${s.contactFrame} · ${s.plane}° · ${s.batSpeed} mph*</span>
+        <button type="button" class="history-item" data-brand="${escapeXml(h.brand)}" data-tagline="${escapeXml(h.tagline || "")}" data-style="${h.style}" data-palette="${h.palette}">
+          <span class="history-when">${when}</span>
+          <span class="history-brand">${escapeXml(h.brand)}${tag}</span>
+          <span class="history-meta">${h.style} · ${h.palette}</span>
+        </button>
       </li>`;
     })
     .join("");
-}
 
-function clearSessionHistory() {
-  try {
-    localStorage.removeItem(SESSION_HISTORY_KEY);
-  } catch {
-    /* ignore */
-  }
-  renderSessionHistory();
-}
-
-// ─── Loading & error UI ──────────────────────────────────────────────
-
-function setLoading(active, message = "Analyzing frames…", progress = "") {
-  loading.classList.toggle("hidden", !active);
-  if (loadingText) loadingText.textContent = message;
-  if (loadingProgress) loadingProgress.textContent = progress;
-}
-
-function showError(message) {
-  errorBanner.textContent = message;
-  errorBanner.classList.remove("hidden");
-}
-
-function clearError() {
-  errorBanner.textContent = "";
-  errorBanner.classList.add("hidden");
-}
-
-function resetFileInput() {
-  fileInput.value = "";
-}
-
-// ─── First-run CTA ───────────────────────────────────────────────────
-
-function initFirstRunCta() {
-  if (!firstRunCta) return;
-
-  const seen = localStorage.getItem(FIRST_RUN_KEY);
-  if (seen) {
-    firstRunCta.classList.add("hidden");
-    return;
-  }
-
-  firstRunCta.classList.remove("hidden");
-}
-
-function dismissFirstRunCta() {
-  try {
-    localStorage.setItem(FIRST_RUN_KEY, "1");
-  } catch {
-    /* ignore */
-  }
-  firstRunCta.classList.add("hidden");
-}
-
-// ─── Sample mode animation ───────────────────────────────────────────
-
-function samplePhase(t) {
-  if (t < 0.15) return { phase: "stance", p: t / 0.15 };
-  if (t < 0.35) return { phase: "load", p: (t - 0.15) / 0.2 };
-  if (t < 0.72) return { phase: "swing", p: (t - 0.35) / 0.37 };
-  return { phase: "follow", p: (t - 0.72) / 0.28 };
-}
-
-function samplePose(t, w, h) {
-  const { phase, p } = samplePhase(t);
-  const cx = w * 0.42;
-  const baseY = h * 0.72;
-  const scale = h * 0.38;
-
-  const ease = (x) => x * x * (3 - 2 * x);
-  const ep = ease(p);
-
-  let loadRot = 0;
-  let swingRot = 0;
-  let batExt = 0.55;
-
-  if (phase === "load") loadRot = ep * 0.35;
-  if (phase === "swing") {
-    loadRot = 0.35 * (1 - ep);
-    swingRot = ep * 2.1;
-    batExt = 0.55 + ep * 0.35;
-  }
-  if (phase === "follow") {
-    swingRot = 2.1 + ep * 0.6;
-    batExt = 0.9 - ep * 0.15;
-  }
-
-  const torsoRot = loadRot * 0.4 + swingRot * 0.15;
-  const shoulderY = baseY - scale * 0.42;
-  const hipY = baseY - scale * 0.12;
-
-  const ls = {
-    x: cx - scale * 0.14 * Math.cos(torsoRot),
-    y: shoulderY + scale * 0.02 * Math.sin(torsoRot),
-  };
-  const rs = {
-    x: cx + scale * 0.14 * Math.cos(torsoRot),
-    y: shoulderY - scale * 0.02 * Math.sin(torsoRot),
-  };
-  const lh = { x: cx - scale * 0.1, y: hipY };
-  const rh = { x: cx + scale * 0.1, y: hipY };
-
-  const armAngle = -0.5 - loadRot + swingRot;
-  const le = {
-    x: ls.x + scale * 0.18 * Math.cos(armAngle - 0.3),
-    y: ls.y + scale * 0.18 * Math.sin(armAngle - 0.3),
-  };
-  const re = {
-    x: rs.x + scale * 0.16 * Math.cos(armAngle + 0.5),
-    y: rs.y + scale * 0.16 * Math.sin(armAngle + 0.5),
-  };
-  const lw = {
-    x: le.x + scale * 0.16 * Math.cos(armAngle + 0.2),
-    y: le.y + scale * 0.16 * Math.sin(armAngle + 0.2),
-  };
-  const rw = {
-    x: re.x + scale * 0.14 * Math.cos(armAngle + 0.8),
-    y: re.y + scale * 0.14 * Math.sin(armAngle + 0.8),
-  };
-
-  const handMid = { x: (lw.x + rw.x) / 2, y: (lw.y + rw.y) / 2 };
-  const batAngle = armAngle + 0.9 + swingRot * 0.3;
-  const batTip = {
-    x: handMid.x + scale * batExt * Math.cos(batAngle),
-    y: handMid.y + scale * batExt * Math.sin(batAngle),
-  };
-
-  const lk = { x: lh.x - scale * 0.02, y: hipY + scale * 0.22 };
-  const rk = { x: rh.x + scale * 0.02, y: hipY + scale * 0.22 };
-  const la = { x: lk.x - scale * 0.02, y: baseY };
-  const ra = { x: rk.x + scale * 0.02, y: baseY };
-
-  const landmarks = [];
-  landmarks[L.NOSE] = { x: cx, y: shoulderY - scale * 0.12 };
-  landmarks[L.L_SHOULDER] = ls;
-  landmarks[L.R_SHOULDER] = rs;
-  landmarks[L.L_ELBOW] = le;
-  landmarks[L.R_ELBOW] = re;
-  landmarks[L.L_WRIST] = lw;
-  landmarks[L.R_WRIST] = rw;
-  landmarks[L.L_HIP] = lh;
-  landmarks[L.R_HIP] = rh;
-  landmarks[L.L_KNEE] = lk;
-  landmarks[L.R_KNEE] = rk;
-  landmarks[L.L_ANKLE] = la;
-  landmarks[L.R_ANKLE] = ra;
-
-  return { landmarks, batTip, handMid, phase, t };
-}
-
-function drawField(w, h) {
-  ctx.fillStyle = "#0d1a12";
-  ctx.fillRect(0, 0, w, h);
-
-  const grd = ctx.createLinearGradient(0, h * 0.55, 0, h);
-  grd.addColorStop(0, "#1a3d28");
-  grd.addColorStop(1, "#0d2818");
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, h * 0.55, w, h * 0.45);
-
-  ctx.strokeStyle = "rgba(255,255,255,0.06)";
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 6; i++) {
-    const y = h * 0.58 + i * (h * 0.07);
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(w, y);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = "rgba(255,255,255,0.04)";
-  ctx.font = "11px system-ui";
-  ctx.fillText("SAMPLE MODE", 12, 20);
-}
-
-function drawSkeleton(landmarks, w, h) {
-  ctx.strokeStyle = "rgba(94, 184, 255, 0.85)";
-  ctx.lineWidth = 3;
-  ctx.lineCap = "round";
-
-  for (const [a, b] of SKELETON) {
-    const p1 = landmarks[a];
-    const p2 = landmarks[b];
-    if (!p1 || !p2) continue;
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.stroke();
-  }
-
-  for (const pt of landmarks) {
-    if (!pt) continue;
-    ctx.fillStyle = "#5eb8ff";
-    ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function drawBatPath(path, w, h) {
-  if (path.length < 2) return;
-
-  ctx.strokeStyle = "rgba(245, 197, 66, 0.25)";
-  ctx.lineWidth = 12;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(path[0].x, path[0].y);
-  for (let i = 1; i < path.length; i++) {
-    ctx.lineTo(path[i].x, path[i].y);
-  }
-  ctx.stroke();
-
-  ctx.strokeStyle = "#f5c542";
-  ctx.lineWidth = 3;
-  ctx.shadowColor = "rgba(245, 197, 66, 0.5)";
-  ctx.shadowBlur = 8;
-  ctx.beginPath();
-  ctx.moveTo(path[0].x, path[0].y);
-  for (let i = 1; i < path.length; i++) {
-    ctx.lineTo(path[i].x, path[i].y);
-  }
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-}
-
-function drawBat(handMid, batTip) {
-  ctx.strokeStyle = "#f5c542";
-  ctx.lineWidth = 5;
-  ctx.lineCap = "round";
-  ctx.shadowColor = "rgba(245, 197, 66, 0.6)";
-  ctx.shadowBlur = 10;
-  ctx.beginPath();
-  ctx.moveTo(handMid.x, handMid.y);
-  ctx.lineTo(batTip.x, batTip.y);
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.arc(batTip.x, batTip.y, 5, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawContactMarker(pt) {
-  if (!pt) return;
-  ctx.strokeStyle = "#3ecf6e";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(pt.x, pt.y, 14, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = "rgba(62, 207, 110, 0.3)";
-  ctx.fill();
-}
-
-function sampleMetrics(t, phase) {
-  const frame = Math.round(t * 60);
-  let plane = 28;
-  let batSpeed = 0;
-  let exitVelo = 0;
-
-  if (phase === "swing" || phase === "follow") {
-    const sp = phase === "swing" ? samplePhase(t).p : 1;
-    plane = 24 + sp * 8;
-    batSpeed = 45 + sp * 38;
-    exitVelo = batSpeed * 0.62;
-  } else if (phase === "load") {
-    plane = 32;
-    batSpeed = 12;
-    exitVelo = 0;
-  }
-
-  const contact =
-    phase === "swing" && samplePhase(t).p > 0.55 ? frame : null;
-
-  return { frame, plane, batSpeed, exitVelo, contact };
-}
-
-function renderSample() {
-  const w = canvas.width;
-  const h = canvas.height;
-  const pose = samplePose(sampleT, w, h);
-
-  drawField(w, h);
-  drawSkeleton(pose.landmarks, w, h);
-
-  samplePath.push({ x: pose.batTip.x, y: pose.batTip.y });
-  if (samplePath.length > 40) samplePath.shift();
-  drawBatPath(samplePath, w, h);
-  drawBat(pose.handMid, pose.batTip);
-
-  const contactTotalsFrame = swingTotals?.contactFrame;
-  if (
-    contactTotalsFrame != null &&
-    Math.round(sampleT * 60) === contactTotalsFrame
-  ) {
-    drawContactMarker(pose.batTip);
-  } else if (
-    pose.phase === "swing" &&
-    samplePhase(sampleT).p > 0.55 &&
-    !swingTotals
-  ) {
-    drawContactMarker(pose.batTip);
-  }
-
-  updatePlayheadUI(Math.round(sampleT * 60));
-  scrubber.value = Math.round(sampleT * 100);
-
-  if (samplePlaying) {
-    sampleT += 0.008;
-    if (sampleT >= 1) {
-      sampleT = 0;
-      samplePath = [];
-      const totals = computeSampleSwingTotals();
-      setSwingTotals(totals, { persistHistory: !sampleHistorySaved });
-      sampleHistorySaved = true;
-    }
-  }
-}
-
-function sampleLoop() {
-  if (mode !== "sample") return;
-  renderSample();
-  animId = requestAnimationFrame(sampleLoop);
-}
-
-// ─── Video + MediaPipe mode ──────────────────────────────────────────
-
-async function initPose() {
-  if (poseLandmarker) return poseLandmarker;
-  setLoading(true, "Loading pose model…", "");
-  const { PoseLandmarker, FilesetResolver } = await import(`${POSE_CDN}/vision_bundle.mjs`);
-  const vision = await FilesetResolver.forVisionTasks(`${POSE_CDN}/wasm`);
-  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: POSE_MODEL, delegate: "GPU" },
-    runningMode: "VIDEO",
-    numPoses: 1,
-  });
-  return poseLandmarker;
-}
-
-function normToCanvas(lm, w, h) {
-  return { x: lm.x * w, y: lm.y * h, z: lm.z, visibility: lm.visibility };
-}
-
-async function analyzeVideo() {
-  if (!video.src || analyzing) return;
-  analyzing = true;
-  clearError();
-  analysisCapNote = "";
-  setLoading(true, "Analyzing frames…", "");
-  frameData = [];
-  contactFrame = -1;
-  clearSwingTotals();
-
-  try {
-    const landmarker = await initPose();
-    video.currentTime = 0;
-    await new Promise((r) => {
-      if (video.readyState >= 2) r();
-      else video.addEventListener("loadeddata", r, { once: true });
-    });
-
-    const fullDuration = video.duration;
-    if (!Number.isFinite(fullDuration) || fullDuration <= 0) {
-      throw new Error("Could not read video duration — try a different clip.");
-    }
-
-    const cappedDuration = Math.min(fullDuration, MAX_ANALYSIS_SECONDS);
-    if (fullDuration > MAX_ANALYSIS_SECONDS) {
-      analysisCapNote = `Clip trimmed to first ${MAX_ANALYSIS_SECONDS}s for faster analysis (full clip: ${fullDuration.toFixed(1)}s).`;
-    }
-
-    const step = 1 / ANALYSIS_FPS;
-    const totalFrames = Math.ceil(cappedDuration * ANALYSIS_FPS);
-    let t = 0;
-    let frameIdx = 0;
-
-    while (t < cappedDuration) {
-      setLoading(
-        true,
-        "Analyzing frames…",
-        `Frame ${frameIdx + 1} of ~${totalFrames}`
-      );
-
-      video.currentTime = t;
-      await new Promise((r) => {
-        const onSeek = () => {
-          video.removeEventListener("seeked", onSeek);
-          r();
-        };
-        video.addEventListener("seeked", onSeek);
-      });
-
-      const result = landmarker.detectForVideo(video, performance.now());
-      const w = canvas.width;
-      const h = canvas.height;
-
-      if (result.landmarks && result.landmarks[0]) {
-        const raw = result.landmarks[0];
-        const landmarks = raw.map((lm) => normToCanvas(lm, w, h));
-        const lw = landmarks[L.L_WRIST];
-        const rw = landmarks[L.R_WRIST];
-        const handMid = { x: (lw.x + rw.x) / 2, y: (lw.y + rw.y) / 2 };
-        const batLen = Math.hypot(rw.x - lw.x, rw.y - lw.y) * 2.8;
-        const batAngle = Math.atan2(rw.y - lw.y, rw.x - lw.x);
-        const batTip = {
-          x: handMid.x + batLen * Math.cos(batAngle),
-          y: handMid.y + batLen * Math.sin(batAngle),
-        };
-
-        frameData.push({ t, frameIdx, landmarks, batTip, handMid });
+  historyList.querySelectorAll(".history-item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      brandInput.value = btn.dataset.brand || "";
+      taglineInput.value = btn.dataset.tagline || "";
+      selectStyle(btn.dataset.style || "geometric");
+      const paletteRadio = document.querySelector(`input[name="palette"][value="${btn.dataset.palette}"]`);
+      if (paletteRadio) {
+        paletteRadio.checked = true;
+        updatePaletteUI();
       }
-
-      t += step;
-      frameIdx++;
-    }
-
-    if (frameData.length < 3) {
-      throw new Error(
-        "Not enough pose data detected — use a side-view clip with the batter fully visible."
-      );
-    }
-
-    computeVideoMetrics();
-    scrubber.max = Math.max(frameData.length - 1, 0);
-    scrubber.value = 0;
-    setSwingTotals({
-      contactFrame,
-      plane: computedMetrics.plane,
-      batSpeed: computedMetrics.batSpeed,
-      exitVelo: computedMetrics.exitVelo,
-      mode: "upload",
+      handleGenerate();
     });
-    renderVideoFrame(0);
-    playVideoLoop();
-    $("mode-label").textContent = `Upload complete — ${frameData.length} frames analyzed`;
-  } catch (err) {
-    console.error("Analysis failed:", err);
-    const msg =
-      err instanceof Error
-        ? err.message
-        : "Analysis failed — try another clip or use sample mode.";
-    showError(msg);
-    $("mode-label").textContent = "Upload failed — try sample mode or another clip";
-    setSampleMode();
-  } finally {
-    analyzing = false;
-    setLoading(false);
-    resetFileInput();
+  });
+}
+
+function clearHistory() {
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch {
+    /* ignore */
   }
+  renderHistory();
 }
 
-let computedMetrics = { plane: 0, batSpeed: 0, exitVelo: 0 };
-
-function computeVideoMetrics() {
-  if (frameData.length < 3) return;
-
-  let maxVel = 0;
-  let maxVelIdx = 0;
-  const batTips = frameData.map((f) => f.batTip);
-
-  for (let i = 1; i < batTips.length; i++) {
-    const dt = frameData[i].t - frameData[i - 1].t;
-    if (dt <= 0) continue;
-    const dx = batTips[i].x - batTips[i - 1].x;
-    const dy = batTips[i].y - batTips[i - 1].y;
-    const vel = Math.hypot(dx, dy) / dt;
-    if (vel > maxVel) {
-      maxVel = vel;
-      maxVelIdx = i;
-    }
-  }
-
-  contactFrame = frameData[maxVelIdx]?.frameIdx ?? -1;
-
-  const cf = frameData[Math.max(0, maxVelIdx - 2)];
-  const ct = frameData[maxVelIdx];
-  if (cf && ct) {
-    const dx = ct.batTip.x - cf.batTip.x;
-    const dy = ct.batTip.y - cf.batTip.y;
-    computedMetrics.plane = Math.abs(Math.atan2(dy, dx) * (180 / Math.PI));
-  }
-
-  const pxPerSec = maxVel;
-  const scaleFactor = 0.18;
-  computedMetrics.batSpeed = Math.min(pxPerSec * scaleFactor, 95);
-  computedMetrics.exitVelo = computedMetrics.batSpeed * 0.58;
+function selectStyle(style) {
+  selectedStyle = style;
+  styleChips.querySelectorAll(".chip").forEach((chip) => {
+    chip.classList.toggle("chip--active", chip.dataset.style === style);
+  });
 }
 
-function renderVideoFrame(idx) {
-  const frame = frameData[idx];
-  if (!frame) return;
-
-  const w = canvas.width;
-  const h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
-
-  video.currentTime = frame.t;
-  ctx.drawImage(video, 0, 0, w, h);
-
-  ctx.fillStyle = "rgba(0,0,0,0.35)";
-  ctx.fillRect(0, 0, w, 28);
-  ctx.fillStyle = "#fff";
-  ctx.font = "11px system-ui";
-  ctx.fillText("UPLOAD MODE", 12, 18);
-
-  drawSkeleton(frame.landmarks, w, h);
-
-  const pathStart = Math.max(0, idx - 25);
-  const path = frameData.slice(pathStart, idx + 1).map((f) => f.batTip);
-  drawBatPath(path, w, h);
-  drawBat(frame.handMid, frame.batTip);
-
-  if (frame.frameIdx === contactFrame) {
-    drawContactMarker(frame.batTip);
-  }
-
-  updatePlayheadUI(frame.frameIdx);
+function updatePaletteUI() {
+  palettePresets.querySelectorAll(".palette-swatch").forEach((swatch) => {
+    const input = swatch.querySelector("input");
+    swatch.classList.toggle("palette-swatch--active", input?.checked);
+  });
 }
 
-let videoPlayTimer = null;
-let videoFrameIdx = 0;
-
-function playVideoLoop() {
-  if (mode !== "video" || frameData.length === 0) return;
-  stopVideoLoop();
-
-  const tick = () => {
-    renderVideoFrame(videoFrameIdx);
-    scrubber.value = videoFrameIdx;
-    videoFrameIdx++;
-    if (videoFrameIdx >= frameData.length) {
-      videoFrameIdx = 0;
-    }
-    videoPlayTimer = window.setTimeout(tick, PLAYBACK_INTERVAL_MS);
-  };
-  tick();
-}
-
-function stopVideoLoop() {
-  if (videoPlayTimer != null) {
-    clearTimeout(videoPlayTimer);
-    videoPlayTimer = null;
-  }
-}
-
-// ─── Mode switching ──────────────────────────────────────────────────
-
-function updateModeAffordance() {
-  const isSample = mode === "sample";
-  stageEl.classList.toggle("stage--sample", isSample);
-  stageEl.classList.toggle("stage--upload", !isSample);
-  sampleBadge.classList.toggle("hidden", !isSample);
-  $("btn-sample").setAttribute("aria-pressed", String(isSample));
-}
-
-function setSampleMode() {
-  mode = "sample";
-  sampleT = 0;
-  samplePath = [];
-  samplePlaying = true;
-  sampleHistorySaved = false;
-  analysisCapNote = "";
-  clearSwingTotals();
-  clearError();
-  stopVideoLoop();
-  video.hidden = true;
-  video.pause();
-  if (videoUrl) {
-    URL.revokeObjectURL(videoUrl);
-    videoUrl = null;
-  }
-  video.removeAttribute("src");
-  $("mode-label").textContent = "Sample mode — no upload needed";
-  scrubber.max = 100;
-  scrubber.value = 0;
-  updateModeAffordance();
-  resetFileInput();
-  cancelAnimationFrame(animId);
-  sampleLoop();
-}
-
-async function setVideoMode(file) {
-  if (analyzing) return;
-
-  const maxSizeMb = 80;
-  if (file.size > maxSizeMb * 1024 * 1024) {
-    showError(`File too large (${Math.round(file.size / 1024 / 1024)} MB). Try a clip under ${maxSizeMb} MB.`);
-    resetFileInput();
-    return;
-  }
-
-  const allowed = ["video/mp4", "video/webm", "video/quicktime", "video/mov"];
-  if (file.type && !allowed.includes(file.type)) {
-    showError(`Unsupported format (${file.type || "unknown"}). Use mp4, webm, or mov.`);
-    resetFileInput();
-    return;
-  }
-
-  dismissFirstRunCta();
-  mode = "video";
-  samplePlaying = false;
-  cancelAnimationFrame(animId);
-  stopVideoLoop();
-  clearSwingTotals();
-  clearError();
-  $("mode-label").textContent = `Loading: ${file.name}`;
-  updateModeAffordance();
-
-  if (videoUrl) URL.revokeObjectURL(videoUrl);
-  videoUrl = URL.createObjectURL(file);
-  video.src = videoUrl;
-  video.hidden = false;
-
-  video.onloadedmetadata = () => {
-    const aspect = video.videoWidth / video.videoHeight;
-    canvas.width = 640;
-    canvas.height = Math.round(640 / aspect);
-    analyzeVideo();
-  };
-
-  video.onerror = () => {
-    showError("Could not load video — file may be corrupted or unsupported.");
-    resetFileInput();
-    setSampleMode();
-  };
-}
-
-// ─── Scrubber accent ─────────────────────────────────────────────────
-
-function setScrubberActive(active) {
-  scrubber.classList.toggle("scrubber-active", active);
-}
-
-// ─── Event listeners ─────────────────────────────────────────────────
-
-$("btn-sample").addEventListener("click", () => {
-  dismissFirstRunCta();
-  setSampleMode();
+styleChips.addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (chip?.dataset.style) selectStyle(chip.dataset.style);
 });
 
-$("btn-first-run").addEventListener("click", () => {
-  dismissFirstRunCta();
-  setSampleMode();
+palettePresets.addEventListener("change", () => {
+  useCustomAccent = false;
+  updatePaletteUI();
 });
 
-$("btn-dismiss-cta").addEventListener("click", dismissFirstRunCta);
-
-$("btn-clear-history").addEventListener("click", clearSessionHistory);
-
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files?.[0];
-  if (file) setVideoMode(file);
+customAccent.addEventListener("input", () => {
+  useCustomAccent = true;
 });
 
-scrubber.addEventListener("pointerdown", () => setScrubberActive(true));
+btnGenerate.addEventListener("click", handleGenerate);
 
-scrubber.addEventListener("input", () => {
-  if (mode === "sample") {
-    sampleT = Number(scrubber.value) / 100;
-    samplePlaying = false;
-    samplePath = [];
-    for (let i = 0; i <= sampleT * 40; i++) {
-      const t = i / 40;
-      const pose = samplePose(t, canvas.width, canvas.height);
-      samplePath.push({ x: pose.batTip.x, y: pose.batTip.y });
-    }
-    renderSample();
-  } else if (frameData.length) {
-    stopVideoLoop();
-    videoFrameIdx = Number(scrubber.value);
-    renderVideoFrame(videoFrameIdx);
+brandInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") handleGenerate();
+});
+
+taglineInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") handleGenerate();
+});
+
+modalClose.addEventListener("click", closeModal);
+modalBackdrop.addEventListener("click", closeModal);
+btnDownloadSvg.addEventListener("click", downloadSvg);
+btnDownloadPng.addEventListener("click", downloadPng);
+
+$("btn-clear-history").addEventListener("click", clearHistory);
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+    closeModal();
   }
 });
-
-scrubber.addEventListener("pointerup", () => setScrubberActive(false));
-scrubber.addEventListener("change", () => setScrubberActive(false));
-
-$("btn-replay").addEventListener("click", () => {
-  clearSwingTotals();
-  if (mode === "sample") {
-    sampleT = 0;
-    samplePath = [];
-    samplePlaying = true;
-  } else if (frameData.length) {
-    videoFrameIdx = 0;
-    setSwingTotals(
-      {
-        contactFrame,
-        plane: computedMetrics.plane,
-        batSpeed: computedMetrics.batSpeed,
-        exitVelo: computedMetrics.exitVelo,
-        mode: "upload",
-      },
-      { persistHistory: false }
-    );
-    playVideoLoop();
-  }
-});
-
-// ─── Boot ────────────────────────────────────────────────────────────
 
 document.documentElement.dataset.ready = "true";
-initFirstRunCta();
-renderSessionHistory();
-setSampleMode();
+renderHistory();
+brandInput.focus();
