@@ -12,6 +12,7 @@ const ANALYSIS_FPS = 15;
 const PLAYBACK_INTERVAL_MS = 100;
 const SESSION_HISTORY_KEY = "bsl-session-history";
 const SESSION_HISTORY_MAX = 5;
+const SESSION_HISTORY_DEDUPE_MS = 30_000;
 const FIRST_RUN_KEY = "bsl-first-run-done";
 
 const L = {
@@ -89,10 +90,12 @@ let poseLandmarker = null;
 let videoUrl = null;
 let analyzing = false;
 let analysisCapNote = "";
+/** True after the current sample run has been saved to session history. */
+let sampleHistorySaved = false;
 
 // ─── Swing totals (single source of truth) ───────────────────────────
 
-function setSwingTotals(data) {
+function setSwingTotals(data, { persistHistory = true } = {}) {
   swingTotals = {
     contactFrame: data.contactFrame,
     plane: data.plane,
@@ -102,7 +105,9 @@ function setSwingTotals(data) {
   };
   updateSwingTotalsUI();
   showSummary();
-  saveSessionToHistory();
+  if (persistHistory) {
+    saveSessionToHistory();
+  }
 }
 
 function clearSwingTotals() {
@@ -188,6 +193,16 @@ function loadSessionHistory() {
   }
 }
 
+function historyEntryMatches(a, b) {
+  return (
+    a.mode === b.mode &&
+    a.contactFrame === b.contactFrame &&
+    a.plane === b.plane &&
+    a.batSpeed === b.batSpeed &&
+    a.exitVelo === b.exitVelo
+  );
+}
+
 function saveSessionToHistory() {
   if (!swingTotals) return;
 
@@ -201,6 +216,15 @@ function saveSessionToHistory() {
   };
 
   const history = loadSessionHistory();
+  const latest = history[0];
+  if (
+    latest &&
+    historyEntryMatches(latest, entry) &&
+    entry.ts - latest.ts < SESSION_HISTORY_DEDUPE_MS
+  ) {
+    return;
+  }
+
   history.unshift(entry);
   const trimmed = history.slice(0, SESSION_HISTORY_MAX);
 
@@ -550,7 +574,9 @@ function renderSample() {
     if (sampleT >= 1) {
       sampleT = 0;
       samplePath = [];
-      setSwingTotals(computeSampleSwingTotals());
+      const totals = computeSampleSwingTotals();
+      setSwingTotals(totals, { persistHistory: !sampleHistorySaved });
+      sampleHistorySaved = true;
     }
   }
 }
@@ -797,6 +823,7 @@ function setSampleMode() {
   sampleT = 0;
   samplePath = [];
   samplePlaying = true;
+  sampleHistorySaved = false;
   analysisCapNote = "";
   clearSwingTotals();
   clearError();
@@ -921,13 +948,16 @@ $("btn-replay").addEventListener("click", () => {
     samplePlaying = true;
   } else if (frameData.length) {
     videoFrameIdx = 0;
-    setSwingTotals({
-      contactFrame,
-      plane: computedMetrics.plane,
-      batSpeed: computedMetrics.batSpeed,
-      exitVelo: computedMetrics.exitVelo,
-      mode: "upload",
-    });
+    setSwingTotals(
+      {
+        contactFrame,
+        plane: computedMetrics.plane,
+        batSpeed: computedMetrics.batSpeed,
+        exitVelo: computedMetrics.exitVelo,
+        mode: "upload",
+      },
+      { persistHistory: false }
+    );
     playVideoLoop();
   }
 });

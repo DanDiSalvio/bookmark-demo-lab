@@ -5,7 +5,7 @@
   --bg-elevated: #1a2230;
   --fg: #eef2f6;
   --muted: #8b95a5;
-  --footer-fg: #a8b4c4;
+  --footer-fg: #c5ced9;
   --accent: #3ecf6e;
   --accent-dim: #2a9d52;
   --bat: #f5c542;
@@ -520,7 +520,7 @@ h1 {
 .footer {
   margin-top: 2rem;
   padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
   text-align: center;
   font-size: 0.78rem;
   color: var(--footer-fg);
