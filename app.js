@@ -6,6 +6,24 @@
 const HISTORY_KEY = "ail-logo-history";
 const HISTORY_MAX = 5;
 const CANDIDATE_COUNT = 6;
+const BRAND_PLACEHOLDER = "e.g. Northwind Studio";
+
+/** Lowercase brand names that look like placeholders, not real brands. */
+const PLACEHOLDER_BRANDS = new Set([
+  "acme labs",
+  "acme",
+  "brand name",
+  "company name",
+  "your brand",
+  "your company",
+  "my brand",
+  "logo",
+  "untitled",
+  "test",
+  "example",
+  "sample",
+  "lorem ipsum",
+]);
 
 const PALETTES = {
   indigo: { primary: "#6366f1", secondary: "#312e81", accent: "#a5b4fc", bg: "#0f0f1a", fg: "#eef2ff" },
@@ -18,7 +36,9 @@ const PALETTES = {
 const $ = (id) => document.getElementById(id);
 
 const brandInput = $("brand-name");
+const brandError = $("brand-name-error");
 const taglineInput = $("tagline");
+const toastEl = $("toast");
 const styleChips = $("style-chips");
 const palettePresets = $("palette-presets");
 const customAccent = $("custom-accent");
@@ -377,15 +397,79 @@ function slugify(str) {
     .replace(/^-|-$/g, "") || "logo";
 }
 
-function handleGenerate() {
-  const brand = brandInput.value.trim();
+let toastTimer = null;
+
+function showToast(message, variant = "error") {
+  if (!toastEl) return;
+  toastEl.textContent = message;
+  toastEl.classList.remove("hidden", "toast--error", "toast--success");
+  toastEl.classList.add(`toast--${variant}`);
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastEl.classList.add("hidden");
+    toastTimer = null;
+  }, 4200);
+}
+
+function isPlaceholderBrand(brand) {
+  const normalized = brand.trim().toLowerCase();
+  if (!normalized) return true;
+  if (PLACEHOLDER_BRANDS.has(normalized)) return true;
+  if (normalized === BRAND_PLACEHOLDER.toLowerCase()) return true;
+  return false;
+}
+
+function setBrandFieldError(message) {
+  if (!brandError) return;
+  if (message) {
+    brandError.textContent = message;
+    brandError.classList.remove("hidden");
+    brandInput.classList.add("input-error");
+    brandInput.setAttribute("aria-invalid", "true");
+  } else {
+    brandError.textContent = "";
+    brandError.classList.add("hidden");
+    brandInput.classList.remove("input-error");
+    brandInput.setAttribute("aria-invalid", "false");
+  }
+}
+
+function validateBrandName(rawValue) {
+  const brand = rawValue.trim();
+
   if (!brand) {
+    return { ok: false, message: "Brand name is required — enter your company or product name." };
+  }
+
+  if (brand.length < 2) {
+    return { ok: false, message: "Brand name must be at least 2 characters." };
+  }
+
+  if (isPlaceholderBrand(brand)) {
+    return {
+      ok: false,
+      message: "Replace the placeholder with your real brand name (e.g. Northwind Studio).",
+    };
+  }
+
+  return { ok: true, brand };
+}
+
+function handleGenerate() {
+  const validation = validateBrandName(brandInput.value);
+
+  if (!validation.ok) {
+    setBrandFieldError(validation.message);
+    showToast(validation.message, "error");
     brandInput.focus();
     brandInput.classList.add("input-error");
     setTimeout(() => brandInput.classList.remove("input-error"), 600);
     return;
   }
 
+  setBrandFieldError("");
+  const brand = validation.brand;
   const tagline = taglineInput.value.trim();
   const paletteName = document.querySelector('input[name="palette"]:checked')?.value || "indigo";
   const candidates = generateCandidates(brand, tagline, selectedStyle, paletteName);
@@ -399,6 +483,7 @@ function handleGenerate() {
   };
 
   resultsSection.classList.remove("hidden");
+  $("results-empty")?.classList.add("hidden");
   resultsMeta.textContent = `${CANDIDATE_COUNT} ${selectedStyle} variants · ${paletteName} palette`;
   renderGrid(candidates, brand);
   saveHistory(currentGeneration);
@@ -512,6 +597,12 @@ customAccent.addEventListener("input", () => {
 });
 
 btnGenerate.addEventListener("click", handleGenerate);
+
+brandInput.addEventListener("input", () => {
+  if (brandInput.getAttribute("aria-invalid") === "true") {
+    setBrandFieldError("");
+  }
+});
 
 brandInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") handleGenerate();

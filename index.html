@@ -24,8 +24,18 @@
 
     <section class="panel" aria-label="Logo settings">
       <div class="field">
-        <label for="brand-name">Brand name</label>
-        <input type="text" id="brand-name" placeholder="Acme Labs" maxlength="40" autocomplete="off" />
+        <label for="brand-name">Brand name <span class="required-mark" aria-hidden="true">*</span></label>
+        <input
+          type="text"
+          id="brand-name"
+          placeholder="e.g. Northwind Studio"
+          maxlength="40"
+          autocomplete="off"
+          required
+          aria-required="true"
+          aria-describedby="brand-name-error"
+        />
+        <p id="brand-name-error" class="field-error hidden" role="alert"></p>
       </div>
 
       <div class="field">
@@ -90,6 +100,9 @@
         <h2>Candidates</h2>
         <p id="results-meta" class="results-meta"></p>
       </div>
+      <div id="results-empty" class="results-empty hidden">
+        <p>Enter a brand name above and click <strong>Generate logos</strong> to see candidates here.</p>
+      </div>
       <div id="logo-grid" class="logo-grid"></div>
     </section>
 
@@ -112,15 +125,20 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2 id="modal-title">Logo preview</h2>
-        <button type="button" id="modal-close" class="btn btn-ghost btn-sm" aria-label="Close">✕</button>
+        <button type="button" id="modal-close" class="btn btn-close" aria-label="Close preview">
+          <span class="btn-close__icon" aria-hidden="true">×</span>
+          <span class="btn-close__label">Close</span>
+        </button>
       </div>
       <div id="modal-preview" class="modal-preview"></div>
       <div class="modal-actions">
-        <button type="button" id="btn-download-svg" class="btn btn-secondary">Download SVG</button>
-        <button type="button" id="btn-download-png" class="btn btn-primary">Download PNG</button>
+        <button type="button" id="btn-download-svg" class="btn btn-primary">Download SVG</button>
+        <button type="button" id="btn-download-png" class="btn btn-secondary">Download PNG</button>
       </div>
     </div>
   </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>
