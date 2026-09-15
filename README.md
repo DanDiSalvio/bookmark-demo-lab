@@ -4,7 +4,15 @@ Morning bookmark demos for Dan's Demo Lab pipeline.
 
 ## Today's demo: Baseball Swing Lab
 
-**Branch:** `demo/2026-09-14-baseball-swing`
+**Branch:** `demo/2026-09-15-baseball-overnight` (overnight refinement)
+
+### Overnight pass (Sep 15)
+
+- **Upload robustness** — long clips capped to first 10 s; file input resets for same-file re-select; progress + clearer error messages; throttled playback (~10 fps)
+- **swingTotals** — single source of truth for session metrics; demo-estimate badges and footnotes; last-5 session history in `localStorage`
+- **Polish** — metric card accent borders (BS-6), footer contrast (BS-7), first-run CTA, mobile layout pass
+
+**Earlier branch:** `demo/2026-09-14-baseball-swing`
 
 Inspired by [tennis CV coaching via phone video](https://x.com/measure_plan/status/2097715692069859769) — this slice applies the same idea to **hitting a baseball**.
 

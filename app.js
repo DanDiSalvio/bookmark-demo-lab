@@ -7,6 +7,13 @@ const POSE_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 const POSE_MODEL =
   "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 
+const MAX_ANALYSIS_SECONDS = 10;
+const ANALYSIS_FPS = 15;
+const PLAYBACK_INTERVAL_MS = 100;
+const SESSION_HISTORY_KEY = "bsl-session-history";
+const SESSION_HISTORY_MAX = 5;
+const FIRST_RUN_KEY = "bsl-first-run-done";
+
 const L = {
   NOSE: 0,
   L_SHOULDER: 11,
@@ -45,10 +52,17 @@ const ctx = canvas.getContext("2d");
 const video = $("video");
 const scrubber = $("scrubber");
 const loading = $("loading");
+const loadingText = $("loading-text");
+const loadingProgress = $("loading-progress");
+const errorBanner = $("error-banner");
 const summaryEl = $("summary");
 const summaryList = $("summary-list");
+const historyEl = $("history");
+const historyList = $("history-list");
 const stageEl = $("stage");
 const sampleBadge = $("sample-badge");
+const firstRunCta = $("first-run-cta");
+const fileInput = $("file-input");
 
 const playheadEls = {
   frame: $("metric-frame"),
@@ -74,6 +88,7 @@ let contactFrame = -1;
 let poseLandmarker = null;
 let videoUrl = null;
 let analyzing = false;
+let analysisCapNote = "";
 
 // ─── Swing totals (single source of truth) ───────────────────────────
 
@@ -87,6 +102,7 @@ function setSwingTotals(data) {
   };
   updateSwingTotalsUI();
   showSummary();
+  saveSessionToHistory();
 }
 
 function clearSwingTotals() {
@@ -121,10 +137,12 @@ function showSummary() {
   const items = [
     `Contact detected near frame ${swingTotals.contactFrame} (${swingTotals.mode} mode).`,
     `Swing plane angle: ~${swingTotals.plane.toFixed(0)}° from horizontal.`,
-    `Peak bat speed proxy: ~${swingTotals.batSpeed.toFixed(0)} mph (*uncalibrated).`,
-    `Estimated exit velocity: ~${swingTotals.exitVelo.toFixed(0)} mph (†model placeholder).`,
+    `Peak bat speed proxy: ~${swingTotals.batSpeed.toFixed(0)} mph (*uncalibrated demo estimate).`,
+    `Estimated exit velocity: ~${swingTotals.exitVelo.toFixed(0)} mph (†model placeholder, not measured).`,
+    analysisCapNote || null,
     "Full bat/ball tracking with Roboflow RF-DETR is future work.",
-  ];
+  ].filter(Boolean);
+
   summaryList.innerHTML = items.map((t) => `<li>${t}</li>`).join("");
 }
 
@@ -157,6 +175,121 @@ function computeSampleSwingTotals() {
     exitVelo: peakExitVelo,
     mode: "sample",
   };
+}
+
+// ─── Session history (localStorage) ──────────────────────────────────
+
+function loadSessionHistory() {
+  try {
+    const raw = localStorage.getItem(SESSION_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSessionToHistory() {
+  if (!swingTotals) return;
+
+  const entry = {
+    ts: Date.now(),
+    mode: swingTotals.mode,
+    contactFrame: swingTotals.contactFrame,
+    plane: Math.round(swingTotals.plane),
+    batSpeed: Math.round(swingTotals.batSpeed),
+    exitVelo: Math.round(swingTotals.exitVelo),
+  };
+
+  const history = loadSessionHistory();
+  history.unshift(entry);
+  const trimmed = history.slice(0, SESSION_HISTORY_MAX);
+
+  try {
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(trimmed));
+  } catch (err) {
+    console.warn("Could not save session history:", err);
+  }
+
+  renderSessionHistory();
+}
+
+function renderSessionHistory() {
+  const history = loadSessionHistory();
+  if (history.length === 0) {
+    historyEl.classList.add("hidden");
+    return;
+  }
+
+  historyEl.classList.remove("hidden");
+  historyList.innerHTML = history
+    .map((s) => {
+      const when = new Date(s.ts).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      return `<li>
+        <span class="history-when">${when}</span>
+        <span class="history-mode">${s.mode}</span>
+        <span class="history-stats">f${s.contactFrame} · ${s.plane}° · ${s.batSpeed} mph*</span>
+      </li>`;
+    })
+    .join("");
+}
+
+function clearSessionHistory() {
+  try {
+    localStorage.removeItem(SESSION_HISTORY_KEY);
+  } catch {
+    /* ignore */
+  }
+  renderSessionHistory();
+}
+
+// ─── Loading & error UI ──────────────────────────────────────────────
+
+function setLoading(active, message = "Analyzing frames…", progress = "") {
+  loading.classList.toggle("hidden", !active);
+  if (loadingText) loadingText.textContent = message;
+  if (loadingProgress) loadingProgress.textContent = progress;
+}
+
+function showError(message) {
+  errorBanner.textContent = message;
+  errorBanner.classList.remove("hidden");
+}
+
+function clearError() {
+  errorBanner.textContent = "";
+  errorBanner.classList.add("hidden");
+}
+
+function resetFileInput() {
+  fileInput.value = "";
+}
+
+// ─── First-run CTA ───────────────────────────────────────────────────
+
+function initFirstRunCta() {
+  if (!firstRunCta) return;
+
+  const seen = localStorage.getItem(FIRST_RUN_KEY);
+  if (seen) {
+    firstRunCta.classList.add("hidden");
+    return;
+  }
+
+  firstRunCta.classList.remove("hidden");
+}
+
+function dismissFirstRunCta() {
+  try {
+    localStorage.setItem(FIRST_RUN_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+  firstRunCta.classList.add("hidden");
 }
 
 // ─── Sample mode animation ───────────────────────────────────────────
@@ -432,6 +565,7 @@ function sampleLoop() {
 
 async function initPose() {
   if (poseLandmarker) return poseLandmarker;
+  setLoading(true, "Loading pose model…", "");
   const { PoseLandmarker, FilesetResolver } = await import(`${POSE_CDN}/vision_bundle.mjs`);
   const vision = await FilesetResolver.forVisionTasks(`${POSE_CDN}/wasm`);
   poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
@@ -449,7 +583,9 @@ function normToCanvas(lm, w, h) {
 async function analyzeVideo() {
   if (!video.src || analyzing) return;
   analyzing = true;
-  loading.classList.remove("hidden");
+  clearError();
+  analysisCapNote = "";
+  setLoading(true, "Analyzing frames…", "");
   frameData = [];
   contactFrame = -1;
   clearSwingTotals();
@@ -462,13 +598,28 @@ async function analyzeVideo() {
       else video.addEventListener("loadeddata", r, { once: true });
     });
 
-    const duration = video.duration;
-    const fps = 15;
-    const step = 1 / fps;
+    const fullDuration = video.duration;
+    if (!Number.isFinite(fullDuration) || fullDuration <= 0) {
+      throw new Error("Could not read video duration — try a different clip.");
+    }
+
+    const cappedDuration = Math.min(fullDuration, MAX_ANALYSIS_SECONDS);
+    if (fullDuration > MAX_ANALYSIS_SECONDS) {
+      analysisCapNote = `Clip trimmed to first ${MAX_ANALYSIS_SECONDS}s for faster analysis (full clip: ${fullDuration.toFixed(1)}s).`;
+    }
+
+    const step = 1 / ANALYSIS_FPS;
+    const totalFrames = Math.ceil(cappedDuration * ANALYSIS_FPS);
     let t = 0;
     let frameIdx = 0;
 
-    while (t < duration) {
+    while (t < cappedDuration) {
+      setLoading(
+        true,
+        "Analyzing frames…",
+        `Frame ${frameIdx + 1} of ~${totalFrames}`
+      );
+
       video.currentTime = t;
       await new Promise((r) => {
         const onSeek = () => {
@@ -502,6 +653,12 @@ async function analyzeVideo() {
       frameIdx++;
     }
 
+    if (frameData.length < 3) {
+      throw new Error(
+        "Not enough pose data detected — use a side-view clip with the batter fully visible."
+      );
+    }
+
     computeVideoMetrics();
     scrubber.max = Math.max(frameData.length - 1, 0);
     scrubber.value = 0;
@@ -514,12 +671,20 @@ async function analyzeVideo() {
     });
     renderVideoFrame(0);
     playVideoLoop();
+    $("mode-label").textContent = `Upload complete — ${frameData.length} frames analyzed`;
   } catch (err) {
     console.error("Analysis failed:", err);
-    $("mode-label").textContent = "Analysis failed — try another clip or use sample mode.";
+    const msg =
+      err instanceof Error
+        ? err.message
+        : "Analysis failed — try another clip or use sample mode.";
+    showError(msg);
+    $("mode-label").textContent = "Upload failed — try sample mode or another clip";
+    setSampleMode();
   } finally {
     analyzing = false;
-    loading.classList.add("hidden");
+    setLoading(false);
+    resetFileInput();
   }
 }
 
@@ -591,12 +756,12 @@ function renderVideoFrame(idx) {
   updatePlayheadUI(frame.frameIdx);
 }
 
-let videoPlayId = null;
+let videoPlayTimer = null;
 let videoFrameIdx = 0;
 
 function playVideoLoop() {
   if (mode !== "video" || frameData.length === 0) return;
-  cancelAnimationFrame(videoPlayId);
+  stopVideoLoop();
 
   const tick = () => {
     renderVideoFrame(videoFrameIdx);
@@ -605,14 +770,16 @@ function playVideoLoop() {
     if (videoFrameIdx >= frameData.length) {
       videoFrameIdx = 0;
     }
-    videoPlayId = requestAnimationFrame(tick);
+    videoPlayTimer = window.setTimeout(tick, PLAYBACK_INTERVAL_MS);
   };
-  videoPlayId = requestAnimationFrame(tick);
+  tick();
 }
 
 function stopVideoLoop() {
-  if (videoPlayId) cancelAnimationFrame(videoPlayId);
-  videoPlayId = null;
+  if (videoPlayTimer != null) {
+    clearTimeout(videoPlayTimer);
+    videoPlayTimer = null;
+  }
 }
 
 // ─── Mode switching ──────────────────────────────────────────────────
@@ -630,7 +797,9 @@ function setSampleMode() {
   sampleT = 0;
   samplePath = [];
   samplePlaying = true;
+  analysisCapNote = "";
   clearSwingTotals();
+  clearError();
   stopVideoLoop();
   video.hidden = true;
   video.pause();
@@ -643,17 +812,36 @@ function setSampleMode() {
   scrubber.max = 100;
   scrubber.value = 0;
   updateModeAffordance();
+  resetFileInput();
   cancelAnimationFrame(animId);
   sampleLoop();
 }
 
 async function setVideoMode(file) {
+  if (analyzing) return;
+
+  const maxSizeMb = 80;
+  if (file.size > maxSizeMb * 1024 * 1024) {
+    showError(`File too large (${Math.round(file.size / 1024 / 1024)} MB). Try a clip under ${maxSizeMb} MB.`);
+    resetFileInput();
+    return;
+  }
+
+  const allowed = ["video/mp4", "video/webm", "video/quicktime", "video/mov"];
+  if (file.type && !allowed.includes(file.type)) {
+    showError(`Unsupported format (${file.type || "unknown"}). Use mp4, webm, or mov.`);
+    resetFileInput();
+    return;
+  }
+
+  dismissFirstRunCta();
   mode = "video";
   samplePlaying = false;
   cancelAnimationFrame(animId);
   stopVideoLoop();
   clearSwingTotals();
-  $("mode-label").textContent = `Analyzing: ${file.name}`;
+  clearError();
+  $("mode-label").textContent = `Loading: ${file.name}`;
   updateModeAffordance();
 
   if (videoUrl) URL.revokeObjectURL(videoUrl);
@@ -667,6 +855,12 @@ async function setVideoMode(file) {
     canvas.height = Math.round(640 / aspect);
     analyzeVideo();
   };
+
+  video.onerror = () => {
+    showError("Could not load video — file may be corrupted or unsupported.");
+    resetFileInput();
+    setSampleMode();
+  };
 }
 
 // ─── Scrubber accent ─────────────────────────────────────────────────
@@ -677,9 +871,21 @@ function setScrubberActive(active) {
 
 // ─── Event listeners ─────────────────────────────────────────────────
 
-$("btn-sample").addEventListener("click", setSampleMode);
+$("btn-sample").addEventListener("click", () => {
+  dismissFirstRunCta();
+  setSampleMode();
+});
 
-$("file-input").addEventListener("change", (e) => {
+$("btn-first-run").addEventListener("click", () => {
+  dismissFirstRunCta();
+  setSampleMode();
+});
+
+$("btn-dismiss-cta").addEventListener("click", dismissFirstRunCta);
+
+$("btn-clear-history").addEventListener("click", clearSessionHistory);
+
+fileInput.addEventListener("change", (e) => {
   const file = e.target.files?.[0];
   if (file) setVideoMode(file);
 });
@@ -729,4 +935,6 @@ $("btn-replay").addEventListener("click", () => {
 // ─── Boot ────────────────────────────────────────────────────────────
 
 document.documentElement.dataset.ready = "true";
+initFirstRunCta();
+renderSessionHistory();
 setSampleMode();
