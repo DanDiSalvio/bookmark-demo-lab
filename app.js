@@ -1,3 +1,645 @@
-// Base shell for Demo Lab morning bookmark demos.
-// Daily branches replace or extend this with a focused, runnable demo.
+/**
+ * Baseball Swing Lab — client-side swing analysis demo.
+ * Sample mode: animated canvas batter. Upload mode: MediaPipe Pose overlay.
+ */
+
+const POSE_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const POSE_MODEL =
+  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+
+const L = {
+  NOSE: 0,
+  L_SHOULDER: 11,
+  R_SHOULDER: 12,
+  L_ELBOW: 13,
+  R_ELBOW: 14,
+  L_WRIST: 15,
+  R_WRIST: 16,
+  L_HIP: 23,
+  R_HIP: 24,
+  L_KNEE: 25,
+  R_KNEE: 26,
+  L_ANKLE: 27,
+  R_ANKLE: 28,
+};
+
+const SKELETON = [
+  [L.L_SHOULDER, L.R_SHOULDER],
+  [L.L_SHOULDER, L.L_ELBOW],
+  [L.L_ELBOW, L.L_WRIST],
+  [L.R_SHOULDER, L.R_ELBOW],
+  [L.R_ELBOW, L.R_WRIST],
+  [L.L_SHOULDER, L.L_HIP],
+  [L.R_SHOULDER, L.R_HIP],
+  [L.L_HIP, L.R_HIP],
+  [L.L_HIP, L.L_KNEE],
+  [L.L_KNEE, L.L_ANKLE],
+  [L.R_HIP, L.R_KNEE],
+  [L.R_KNEE, L.R_ANKLE],
+];
+
+const $ = (id) => document.getElementById(id);
+
+const canvas = $("canvas");
+const ctx = canvas.getContext("2d");
+const video = $("video");
+const scrubber = $("scrubber");
+const loading = $("loading");
+const summaryEl = $("summary");
+const summaryList = $("summary-list");
+
+const metrics = {
+  contact: $("metric-contact"),
+  plane: $("metric-plane"),
+  batspeed: $("metric-batspeed"),
+  exitvelo: $("metric-exitvelo"),
+};
+
+let mode = "sample";
+let animId = null;
+let sampleT = 0;
+let samplePlaying = true;
+let samplePath = [];
+let frameData = [];
+let contactFrame = -1;
+let poseLandmarker = null;
+let videoUrl = null;
+let analyzing = false;
+
+// ─── Sample mode animation ───────────────────────────────────────────
+
+function samplePhase(t) {
+  if (t < 0.15) return { phase: "stance", p: t / 0.15 };
+  if (t < 0.35) return { phase: "load", p: (t - 0.15) / 0.2 };
+  if (t < 0.72) return { phase: "swing", p: (t - 0.35) / 0.37 };
+  return { phase: "follow", p: (t - 0.72) / 0.28 };
+}
+
+function samplePose(t, w, h) {
+  const { phase, p } = samplePhase(t);
+  const cx = w * 0.42;
+  const baseY = h * 0.72;
+  const scale = h * 0.38;
+
+  const ease = (x) => x * x * (3 - 2 * x);
+  const ep = ease(p);
+
+  let loadRot = 0;
+  let swingRot = 0;
+  let batExt = 0.55;
+
+  if (phase === "load") loadRot = ep * 0.35;
+  if (phase === "swing") {
+    loadRot = 0.35 * (1 - ep);
+    swingRot = ep * 2.1;
+    batExt = 0.55 + ep * 0.35;
+  }
+  if (phase === "follow") {
+    swingRot = 2.1 + ep * 0.6;
+    batExt = 0.9 - ep * 0.15;
+  }
+
+  const torsoRot = loadRot * 0.4 + swingRot * 0.15;
+  const shoulderY = baseY - scale * 0.42;
+  const hipY = baseY - scale * 0.12;
+
+  const ls = {
+    x: cx - scale * 0.14 * Math.cos(torsoRot),
+    y: shoulderY + scale * 0.02 * Math.sin(torsoRot),
+  };
+  const rs = {
+    x: cx + scale * 0.14 * Math.cos(torsoRot),
+    y: shoulderY - scale * 0.02 * Math.sin(torsoRot),
+  };
+  const lh = { x: cx - scale * 0.1, y: hipY };
+  const rh = { x: cx + scale * 0.1, y: hipY };
+
+  const armAngle = -0.5 - loadRot + swingRot;
+  const le = {
+    x: ls.x + scale * 0.18 * Math.cos(armAngle - 0.3),
+    y: ls.y + scale * 0.18 * Math.sin(armAngle - 0.3),
+  };
+  const re = {
+    x: rs.x + scale * 0.16 * Math.cos(armAngle + 0.5),
+    y: rs.y + scale * 0.16 * Math.sin(armAngle + 0.5),
+  };
+  const lw = {
+    x: le.x + scale * 0.16 * Math.cos(armAngle + 0.2),
+    y: le.y + scale * 0.16 * Math.sin(armAngle + 0.2),
+  };
+  const rw = {
+    x: re.x + scale * 0.14 * Math.cos(armAngle + 0.8),
+    y: re.y + scale * 0.14 * Math.sin(armAngle + 0.8),
+  };
+
+  const handMid = { x: (lw.x + rw.x) / 2, y: (lw.y + rw.y) / 2 };
+  const batAngle = armAngle + 0.9 + swingRot * 0.3;
+  const batTip = {
+    x: handMid.x + scale * batExt * Math.cos(batAngle),
+    y: handMid.y + scale * batExt * Math.sin(batAngle),
+  };
+
+  const lk = { x: lh.x - scale * 0.02, y: hipY + scale * 0.22 };
+  const rk = { x: rh.x + scale * 0.02, y: hipY + scale * 0.22 };
+  const la = { x: lk.x - scale * 0.02, y: baseY };
+  const ra = { x: rk.x + scale * 0.02, y: baseY };
+
+  const landmarks = [];
+  landmarks[L.NOSE] = { x: cx, y: shoulderY - scale * 0.12 };
+  landmarks[L.L_SHOULDER] = ls;
+  landmarks[L.R_SHOULDER] = rs;
+  landmarks[L.L_ELBOW] = le;
+  landmarks[L.R_ELBOW] = re;
+  landmarks[L.L_WRIST] = lw;
+  landmarks[L.R_WRIST] = rw;
+  landmarks[L.L_HIP] = lh;
+  landmarks[L.R_HIP] = rh;
+  landmarks[L.L_KNEE] = lk;
+  landmarks[L.R_KNEE] = rk;
+  landmarks[L.L_ANKLE] = la;
+  landmarks[L.R_ANKLE] = ra;
+
+  return { landmarks, batTip, handMid, phase, t };
+}
+
+function drawField(w, h) {
+  ctx.fillStyle = "#0d1a12";
+  ctx.fillRect(0, 0, w, h);
+
+  const grd = ctx.createLinearGradient(0, h * 0.55, 0, h);
+  grd.addColorStop(0, "#1a3d28");
+  grd.addColorStop(1, "#0d2818");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, h * 0.55, w, h * 0.45);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    const y = h * 0.58 + i * (h * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,0.04)";
+  ctx.font = "11px system-ui";
+  ctx.fillText("SAMPLE MODE", 12, 20);
+}
+
+function drawSkeleton(landmarks, w, h) {
+  ctx.strokeStyle = "rgba(94, 184, 255, 0.85)";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+
+  for (const [a, b] of SKELETON) {
+    const p1 = landmarks[a];
+    const p2 = landmarks[b];
+    if (!p1 || !p2) continue;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+  }
+
+  for (const pt of landmarks) {
+    if (!pt) continue;
+    ctx.fillStyle = "#5eb8ff";
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawBatPath(path, w, h) {
+  if (path.length < 2) return;
+
+  ctx.strokeStyle = "rgba(245, 197, 66, 0.25)";
+  ctx.lineWidth = 12;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(path[0].x, path[0].y);
+  for (let i = 1; i < path.length; i++) {
+    ctx.lineTo(path[i].x, path[i].y);
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle = "#f5c542";
+  ctx.lineWidth = 3;
+  ctx.shadowColor = "rgba(245, 197, 66, 0.5)";
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(path[0].x, path[0].y);
+  for (let i = 1; i < path.length; i++) {
+    ctx.lineTo(path[i].x, path[i].y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawBat(handMid, batTip) {
+  ctx.strokeStyle = "#f5c542";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(245, 197, 66, 0.6)";
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.moveTo(handMid.x, handMid.y);
+  ctx.lineTo(batTip.x, batTip.y);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(batTip.x, batTip.y, 5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawContactMarker(pt) {
+  if (!pt) return;
+  ctx.strokeStyle = "#3ecf6e";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(pt.x, pt.y, 14, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(62, 207, 110, 0.3)";
+  ctx.fill();
+}
+
+function sampleMetrics(t, phase) {
+  const frame = Math.round(t * 60);
+  let plane = 28;
+  let batSpeed = 0;
+  let exitVelo = 0;
+
+  if (phase === "swing" || phase === "follow") {
+    const sp = phase === "swing" ? samplePhase(t).p : 1;
+    plane = 24 + sp * 8;
+    batSpeed = 45 + sp * 38;
+    exitVelo = batSpeed * 0.62;
+  } else if (phase === "load") {
+    plane = 32;
+    batSpeed = 12;
+    exitVelo = 0;
+  }
+
+  const contact = phase === "swing" && samplePhase(t).p > 0.55 ? frame : null;
+
+  return { frame, plane, batSpeed, exitVelo, contact };
+}
+
+function updateMetricUI(m) {
+  metrics.contact.textContent = m.contact != null ? `f${m.contact}` : m.frame != null ? `f${m.frame}` : "—";
+  metrics.plane.textContent = m.plane > 0 ? `${m.plane.toFixed(0)}°` : "—";
+  metrics.batspeed.textContent = m.batSpeed > 0 ? `${m.batSpeed.toFixed(0)} mph*` : "—";
+  metrics.exitvelo.textContent = m.exitVelo > 0 ? `${m.exitVelo.toFixed(0)} mph†` : "—";
+}
+
+function renderSample() {
+  const w = canvas.width;
+  const h = canvas.height;
+  const pose = samplePose(sampleT, w, h);
+
+  drawField(w, h);
+  drawSkeleton(pose.landmarks, w, h);
+
+  samplePath.push({ x: pose.batTip.x, y: pose.batTip.y });
+  if (samplePath.length > 40) samplePath.shift();
+  drawBatPath(samplePath, w, h);
+  drawBat(pose.handMid, pose.batTip);
+
+  const m = sampleMetrics(sampleT, pose.phase);
+  if (pose.phase === "swing" && samplePhase(sampleT).p > 0.55) {
+    drawContactMarker(pose.batTip);
+    m.contact = Math.round(sampleT * 60);
+  }
+  updateMetricUI(m);
+  scrubber.value = Math.round(sampleT * 100);
+
+  if (samplePlaying) {
+    sampleT += 0.008;
+    if (sampleT >= 1) {
+      sampleT = 0;
+      samplePath = [];
+      showSummary({
+        contactFrame: m.contact ?? 39,
+        plane: 31,
+        batSpeed: 72,
+        exitVelo: 45,
+        mode: "sample",
+      });
+    }
+  }
+}
+
+function sampleLoop() {
+  if (mode !== "sample") return;
+  renderSample();
+  animId = requestAnimationFrame(sampleLoop);
+}
+
+// ─── Video + MediaPipe mode ──────────────────────────────────────────
+
+async function initPose() {
+  if (poseLandmarker) return poseLandmarker;
+  const { PoseLandmarker, FilesetResolver } = await import(`${POSE_CDN}/vision_bundle.mjs`);
+  const vision = await FilesetResolver.forVisionTasks(`${POSE_CDN}/wasm`);
+  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: POSE_MODEL, delegate: "GPU" },
+    runningMode: "VIDEO",
+    numPoses: 1,
+  });
+  return poseLandmarker;
+}
+
+function normToCanvas(lm, w, h) {
+  return { x: lm.x * w, y: lm.y * h, z: lm.z, visibility: lm.visibility };
+}
+
+async function analyzeVideo() {
+  if (!video.src || analyzing) return;
+  analyzing = true;
+  loading.classList.remove("hidden");
+  frameData = [];
+  contactFrame = -1;
+
+  try {
+    const landmarker = await initPose();
+    video.currentTime = 0;
+    await new Promise((r) => {
+      if (video.readyState >= 2) r();
+      else video.addEventListener("loadeddata", r, { once: true });
+    });
+
+    const duration = video.duration;
+    const fps = 15;
+    const step = 1 / fps;
+    let t = 0;
+    let frameIdx = 0;
+
+    while (t < duration) {
+      video.currentTime = t;
+      await new Promise((r) => {
+        const onSeek = () => {
+          video.removeEventListener("seeked", onSeek);
+          r();
+        };
+        video.addEventListener("seeked", onSeek);
+      });
+
+      const result = landmarker.detectForVideo(video, performance.now());
+      const w = canvas.width;
+      const h = canvas.height;
+
+      if (result.landmarks && result.landmarks[0]) {
+        const raw = result.landmarks[0];
+        const landmarks = raw.map((lm) => normToCanvas(lm, w, h));
+        const lw = landmarks[L.L_WRIST];
+        const rw = landmarks[L.R_WRIST];
+        const handMid = { x: (lw.x + rw.x) / 2, y: (lw.y + rw.y) / 2 };
+        const batLen = Math.hypot(rw.x - lw.x, rw.y - lw.y) * 2.8;
+        const batAngle = Math.atan2(rw.y - lw.y, rw.x - lw.x);
+        const batTip = {
+          x: handMid.x + batLen * Math.cos(batAngle),
+          y: handMid.y + batLen * Math.sin(batAngle),
+        };
+
+        frameData.push({ t, frameIdx, landmarks, batTip, handMid });
+      }
+
+      t += step;
+      frameIdx++;
+    }
+
+    computeVideoMetrics();
+    scrubber.max = Math.max(frameData.length - 1, 0);
+    scrubber.value = 0;
+    renderVideoFrame(0);
+    playVideoLoop();
+    showSummary({
+      contactFrame,
+      plane: computedMetrics.plane,
+      batSpeed: computedMetrics.batSpeed,
+      exitVelo: computedMetrics.exitVelo,
+      mode: "upload",
+    });
+  } catch (err) {
+    console.error("Analysis failed:", err);
+    $("mode-label").textContent = "Analysis failed — try another clip or use sample mode.";
+  } finally {
+    analyzing = false;
+    loading.classList.add("hidden");
+  }
+}
+
+let computedMetrics = { plane: 0, batSpeed: 0, exitVelo: 0 };
+
+function computeVideoMetrics() {
+  if (frameData.length < 3) return;
+
+  let maxVel = 0;
+  let maxVelIdx = 0;
+  const batTips = frameData.map((f) => f.batTip);
+
+  for (let i = 1; i < batTips.length; i++) {
+    const dt = frameData[i].t - frameData[i - 1].t;
+    if (dt <= 0) continue;
+    const dx = batTips[i].x - batTips[i - 1].x;
+    const dy = batTips[i].y - batTips[i - 1].y;
+    const vel = Math.hypot(dx, dy) / dt;
+    if (vel > maxVel) {
+      maxVel = vel;
+      maxVelIdx = i;
+    }
+  }
+
+  contactFrame = frameData[maxVelIdx]?.frameIdx ?? -1;
+
+  const cf = frameData[Math.max(0, maxVelIdx - 2)];
+  const ct = frameData[maxVelIdx];
+  if (cf && ct) {
+    const dx = ct.batTip.x - cf.batTip.x;
+    const dy = ct.batTip.y - cf.batTip.y;
+    computedMetrics.plane = Math.abs(Math.atan2(dy, dx) * (180 / Math.PI));
+  }
+
+  const pxPerSec = maxVel;
+  const scaleFactor = 0.18;
+  computedMetrics.batSpeed = Math.min(pxPerSec * scaleFactor, 95);
+  computedMetrics.exitVelo = computedMetrics.batSpeed * 0.58;
+}
+
+function renderVideoFrame(idx) {
+  const frame = frameData[idx];
+  if (!frame) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  video.currentTime = frame.t;
+  ctx.drawImage(video, 0, 0, w, h);
+
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.fillRect(0, 0, w, 28);
+  ctx.fillStyle = "#fff";
+  ctx.font = "11px system-ui";
+  ctx.fillText("UPLOAD MODE", 12, 18);
+
+  drawSkeleton(frame.landmarks, w, h);
+
+  const pathStart = Math.max(0, idx - 25);
+  const path = frameData.slice(pathStart, idx + 1).map((f) => f.batTip);
+  drawBatPath(path, w, h);
+  drawBat(frame.handMid, frame.batTip);
+
+  if (frame.frameIdx === contactFrame) {
+    drawContactMarker(frame.batTip);
+  }
+
+  const progress = frameData.length > 1 ? idx / (frameData.length - 1) : 0;
+  let batSpeed = 0;
+  if (idx > 0) {
+    const prev = frameData[idx - 1];
+    const dt = frame.t - prev.t;
+    if (dt > 0) {
+      batSpeed = (Math.hypot(frame.batTip.x - prev.batTip.x, frame.batTip.y - prev.batTip.y) / dt) * 0.18;
+    }
+  }
+
+  updateMetricUI({
+    frame: frame.frameIdx,
+    contact: frame.frameIdx === contactFrame ? frame.frameIdx : null,
+    plane: computedMetrics.plane || 28,
+    batSpeed: Math.min(batSpeed, 95) || computedMetrics.batSpeed,
+    exitVelo: (Math.min(batSpeed, 95) || computedMetrics.batSpeed) * 0.58,
+  });
+}
+
+let videoPlayId = null;
+let videoFrameIdx = 0;
+
+function playVideoLoop() {
+  if (mode !== "video" || frameData.length === 0) return;
+  cancelAnimationFrame(videoPlayId);
+
+  const tick = () => {
+    renderVideoFrame(videoFrameIdx);
+    scrubber.value = videoFrameIdx;
+    videoFrameIdx++;
+    if (videoFrameIdx >= frameData.length) {
+      videoFrameIdx = 0;
+    }
+    videoPlayId = requestAnimationFrame(tick);
+  };
+  videoPlayId = requestAnimationFrame(tick);
+}
+
+function stopVideoLoop() {
+  if (videoPlayId) cancelAnimationFrame(videoPlayId);
+  videoPlayId = null;
+}
+
+// ─── Session summary ─────────────────────────────────────────────────
+
+function showSummary(data) {
+  summaryEl.classList.remove("hidden");
+  const items = [
+    `Contact detected near frame ${data.contactFrame} (${data.mode} mode).`,
+    `Swing plane angle: ~${data.plane.toFixed(0)}° from horizontal.`,
+    `Peak bat speed proxy: ~${data.batSpeed.toFixed(0)} mph (*uncalibrated).`,
+    `Estimated exit velocity: ~${data.exitVelo.toFixed(0)} mph (†model placeholder).`,
+    "Full bat/ball tracking with Roboflow RF-DETR is future work.",
+  ];
+  summaryList.innerHTML = items.map((t) => `<li>${t}</li>`).join("");
+}
+
+// ─── Mode switching ──────────────────────────────────────────────────
+
+function setSampleMode() {
+  mode = "sample";
+  sampleT = 0;
+  samplePath = [];
+  samplePlaying = true;
+  summaryEl.classList.add("hidden");
+  stopVideoLoop();
+  video.hidden = true;
+  video.pause();
+  if (videoUrl) {
+    URL.revokeObjectURL(videoUrl);
+    videoUrl = null;
+  }
+  video.removeAttribute("src");
+  $("btn-sample").setAttribute("aria-pressed", "true");
+  $("mode-label").textContent = "Sample mode — no upload needed";
+  scrubber.max = 100;
+  scrubber.value = 0;
+  cancelAnimationFrame(animId);
+  sampleLoop();
+}
+
+async function setVideoMode(file) {
+  mode = "video";
+  samplePlaying = false;
+  cancelAnimationFrame(animId);
+  stopVideoLoop();
+  summaryEl.classList.add("hidden");
+  $("btn-sample").setAttribute("aria-pressed", "false");
+  $("mode-label").textContent = `Analyzing: ${file.name}`;
+
+  if (videoUrl) URL.revokeObjectURL(videoUrl);
+  videoUrl = URL.createObjectURL(file);
+  video.src = videoUrl;
+  video.hidden = false;
+
+  video.onloadedmetadata = () => {
+    const aspect = video.videoWidth / video.videoHeight;
+    canvas.width = 640;
+    canvas.height = Math.round(640 / aspect);
+    analyzeVideo();
+  };
+}
+
+// ─── Event listeners ─────────────────────────────────────────────────
+
+$("btn-sample").addEventListener("click", setSampleMode);
+
+$("file-input").addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (file) setVideoMode(file);
+});
+
+scrubber.addEventListener("input", () => {
+  if (mode === "sample") {
+    sampleT = Number(scrubber.value) / 100;
+    samplePlaying = false;
+    samplePath = [];
+    for (let i = 0; i <= sampleT * 40; i++) {
+      const t = (i / 40);
+      const pose = samplePose(t, canvas.width, canvas.height);
+      samplePath.push({ x: pose.batTip.x, y: pose.batTip.y });
+    }
+    renderSample();
+  } else if (frameData.length) {
+    stopVideoLoop();
+    videoFrameIdx = Number(scrubber.value);
+    renderVideoFrame(videoFrameIdx);
+  }
+});
+
+$("btn-replay").addEventListener("click", () => {
+  summaryEl.classList.add("hidden");
+  if (mode === "sample") {
+    sampleT = 0;
+    samplePath = [];
+    samplePlaying = true;
+  } else if (frameData.length) {
+    videoFrameIdx = 0;
+    playVideoLoop();
+  }
+});
+
+// ─── Boot ────────────────────────────────────────────────────────────
+
 document.documentElement.dataset.ready = "true";
+setSampleMode();

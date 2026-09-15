@@ -1,29 +1,49 @@
 # bookmark-demo-lab
 
-Morning bookmark demos for Dan’s Demo Lab pipeline.
+Morning bookmark demos for Dan's Demo Lab pipeline.
 
-Each morning, Demo Lab picks one interesting X Bookmark, builds a minimal working demo on a branch, and ships a Cloudflare Pages preview so the tech can be tried in the browser.
+## Today's demo: Baseball Swing Lab
 
-## How it works
+**Branch:** `demo/2026-09-14-baseball-swing`
 
-1. **Source** — one buildable item from X Bookmarks (libs, UI tricks, APIs, tools).
-2. **Build** — Cursor cloud agent implements a small demo on a dated branch (`demo/YYYY-MM-DD-<slug>`).
-3. **Preview** — Cloudflare Pages deploys every branch/PR to a preview URL.
-4. **Deliver** — Demo Lab sends the preview link with a short note on what was bookmarked.
+Inspired by [tennis CV coaching via phone video](https://x.com/measure_plan/status/2097715692069859769) — this slice applies the same idea to **hitting a baseball**.
 
-## Local
+### What it demos
 
-Static site at the repo root. Open `index.html` or:
+- **Sample mode** — animated batter with bat-path overlay and live metrics (no upload needed)
+- **Upload mode** — drop an mp4/webm clip; MediaPipe Pose tracks body + approximates bat path from wrists
+- **Metrics panel** — contact frame estimate, swing plane angle, bat speed proxy, exit-velo placeholder (all labeled as demo estimates)
+- **Session summary** — short recap after each swing cycle
+
+All processing runs client-side in the browser. No backend, no API keys.
+
+### Try locally
 
 ```bash
 npx serve .
+# open http://localhost:3000
 ```
 
-## Cloudflare Pages
+Click **Sample swing** for the built-in demo, or **Upload video** for your own clip.
 
-- **Production:** `main` → production Pages URL
-- **Previews:** every other branch → `https://<branch-slug>.<project>.pages.dev`
-- Build: none (static assets)
-- Output directory: `/` (repo root)
+### Future work
 
-Do not create paid Cloudflare plans without explicit OK.
+- Roboflow RF-DETR bat/ball detection for real contact point
+- Calibrated exit velocity from tracked ball flight
+- Side-by-side comparison across swings
+
+---
+
+## How Demo Lab works
+
+1. **Source** — one buildable item from X Bookmarks (libs, UI tricks, APIs, tools).
+2. **Build** — Cursor cloud agent implements a small demo on a dated branch (`demo/YYYY-MM-DD-<slug>`).
+3. **Preview** — Vercel deploys every branch to a preview URL.
+4. **Deliver** — Demo Lab sends the preview link with a short note on what was bookmarked.
+
+## Deployment
+
+- **Production:** `main` → production URL
+- **Previews:** `demo/*` branches → `https://bookmark-demo-lab-git-<branch-slug>-dandisalvios-projects.vercel.app`
+
+Static site at repo root — no build step.
