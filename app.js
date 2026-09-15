@@ -47,13 +47,22 @@ const scrubber = $("scrubber");
 const loading = $("loading");
 const summaryEl = $("summary");
 const summaryList = $("summary-list");
+const stageEl = $("stage");
+const sampleBadge = $("sample-badge");
 
-const metrics = {
+const playheadEls = {
+  frame: $("metric-frame"),
+};
+
+const swingEls = {
   contact: $("metric-contact"),
   plane: $("metric-plane"),
   batspeed: $("metric-batspeed"),
   exitvelo: $("metric-exitvelo"),
 };
+
+/** @type {{ contactFrame: number, plane: number, batSpeed: number, exitVelo: number, mode: string } | null} */
+let swingTotals = null;
 
 let mode = "sample";
 let animId = null;
@@ -65,6 +74,90 @@ let contactFrame = -1;
 let poseLandmarker = null;
 let videoUrl = null;
 let analyzing = false;
+
+// ─── Swing totals (single source of truth) ───────────────────────────
+
+function setSwingTotals(data) {
+  swingTotals = {
+    contactFrame: data.contactFrame,
+    plane: data.plane,
+    batSpeed: data.batSpeed,
+    exitVelo: data.exitVelo,
+    mode: data.mode,
+  };
+  updateSwingTotalsUI();
+  showSummary();
+}
+
+function clearSwingTotals() {
+  swingTotals = null;
+  updateSwingTotalsUI();
+  summaryEl.classList.add("hidden");
+}
+
+function updatePlayheadUI(frame) {
+  playheadEls.frame.textContent = frame != null ? `f${frame}` : "—";
+}
+
+function updateSwingTotalsUI() {
+  if (!swingTotals) {
+    swingEls.contact.textContent = "—";
+    swingEls.plane.textContent = "—";
+    swingEls.batspeed.textContent = "—";
+    swingEls.exitvelo.textContent = "—";
+    return;
+  }
+
+  swingEls.contact.textContent = `f${swingTotals.contactFrame}`;
+  swingEls.plane.textContent = `${swingTotals.plane.toFixed(0)}°`;
+  swingEls.batspeed.textContent = `${swingTotals.batSpeed.toFixed(0)} mph*`;
+  swingEls.exitvelo.textContent = `${swingTotals.exitVelo.toFixed(0)} mph†`;
+}
+
+function showSummary() {
+  if (!swingTotals) return;
+
+  summaryEl.classList.remove("hidden");
+  const items = [
+    `Contact detected near frame ${swingTotals.contactFrame} (${swingTotals.mode} mode).`,
+    `Swing plane angle: ~${swingTotals.plane.toFixed(0)}° from horizontal.`,
+    `Peak bat speed proxy: ~${swingTotals.batSpeed.toFixed(0)} mph (*uncalibrated).`,
+    `Estimated exit velocity: ~${swingTotals.exitVelo.toFixed(0)} mph (†model placeholder).`,
+    "Full bat/ball tracking with Roboflow RF-DETR is future work.",
+  ];
+  summaryList.innerHTML = items.map((t) => `<li>${t}</li>`).join("");
+}
+
+function computeSampleSwingTotals() {
+  const steps = 120;
+  let contactFrame = -1;
+  let peakBatSpeed = 0;
+  let peakPlane = 0;
+  let peakExitVelo = 0;
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const { phase } = samplePhase(t);
+    const m = sampleMetrics(t, phase);
+
+    if (m.contact != null) {
+      contactFrame = m.contact;
+    }
+    if (m.batSpeed > peakBatSpeed) {
+      peakBatSpeed = m.batSpeed;
+      peakPlane = m.plane;
+      peakExitVelo = m.exitVelo;
+    }
+  }
+
+  return {
+    contactFrame: contactFrame >= 0 ? contactFrame : 39,
+    plane: peakPlane,
+    batSpeed: peakBatSpeed,
+    exitVelo: peakExitVelo,
+    mode: "sample",
+  };
+}
 
 // ─── Sample mode animation ───────────────────────────────────────────
 
@@ -283,16 +376,10 @@ function sampleMetrics(t, phase) {
     exitVelo = 0;
   }
 
-  const contact = phase === "swing" && samplePhase(t).p > 0.55 ? frame : null;
+  const contact =
+    phase === "swing" && samplePhase(t).p > 0.55 ? frame : null;
 
   return { frame, plane, batSpeed, exitVelo, contact };
-}
-
-function updateMetricUI(m) {
-  metrics.contact.textContent = m.contact != null ? `f${m.contact}` : m.frame != null ? `f${m.frame}` : "—";
-  metrics.plane.textContent = m.plane > 0 ? `${m.plane.toFixed(0)}°` : "—";
-  metrics.batspeed.textContent = m.batSpeed > 0 ? `${m.batSpeed.toFixed(0)} mph*` : "—";
-  metrics.exitvelo.textContent = m.exitVelo > 0 ? `${m.exitVelo.toFixed(0)} mph†` : "—";
 }
 
 function renderSample() {
@@ -308,12 +395,21 @@ function renderSample() {
   drawBatPath(samplePath, w, h);
   drawBat(pose.handMid, pose.batTip);
 
-  const m = sampleMetrics(sampleT, pose.phase);
-  if (pose.phase === "swing" && samplePhase(sampleT).p > 0.55) {
+  const contactTotalsFrame = swingTotals?.contactFrame;
+  if (
+    contactTotalsFrame != null &&
+    Math.round(sampleT * 60) === contactTotalsFrame
+  ) {
     drawContactMarker(pose.batTip);
-    m.contact = Math.round(sampleT * 60);
+  } else if (
+    pose.phase === "swing" &&
+    samplePhase(sampleT).p > 0.55 &&
+    !swingTotals
+  ) {
+    drawContactMarker(pose.batTip);
   }
-  updateMetricUI(m);
+
+  updatePlayheadUI(Math.round(sampleT * 60));
   scrubber.value = Math.round(sampleT * 100);
 
   if (samplePlaying) {
@@ -321,13 +417,7 @@ function renderSample() {
     if (sampleT >= 1) {
       sampleT = 0;
       samplePath = [];
-      showSummary({
-        contactFrame: m.contact ?? 39,
-        plane: 31,
-        batSpeed: 72,
-        exitVelo: 45,
-        mode: "sample",
-      });
+      setSwingTotals(computeSampleSwingTotals());
     }
   }
 }
@@ -362,6 +452,7 @@ async function analyzeVideo() {
   loading.classList.remove("hidden");
   frameData = [];
   contactFrame = -1;
+  clearSwingTotals();
 
   try {
     const landmarker = await initPose();
@@ -414,15 +505,15 @@ async function analyzeVideo() {
     computeVideoMetrics();
     scrubber.max = Math.max(frameData.length - 1, 0);
     scrubber.value = 0;
-    renderVideoFrame(0);
-    playVideoLoop();
-    showSummary({
+    setSwingTotals({
       contactFrame,
       plane: computedMetrics.plane,
       batSpeed: computedMetrics.batSpeed,
       exitVelo: computedMetrics.exitVelo,
       mode: "upload",
     });
+    renderVideoFrame(0);
+    playVideoLoop();
   } catch (err) {
     console.error("Analysis failed:", err);
     $("mode-label").textContent = "Analysis failed — try another clip or use sample mode.";
@@ -497,23 +588,7 @@ function renderVideoFrame(idx) {
     drawContactMarker(frame.batTip);
   }
 
-  const progress = frameData.length > 1 ? idx / (frameData.length - 1) : 0;
-  let batSpeed = 0;
-  if (idx > 0) {
-    const prev = frameData[idx - 1];
-    const dt = frame.t - prev.t;
-    if (dt > 0) {
-      batSpeed = (Math.hypot(frame.batTip.x - prev.batTip.x, frame.batTip.y - prev.batTip.y) / dt) * 0.18;
-    }
-  }
-
-  updateMetricUI({
-    frame: frame.frameIdx,
-    contact: frame.frameIdx === contactFrame ? frame.frameIdx : null,
-    plane: computedMetrics.plane || 28,
-    batSpeed: Math.min(batSpeed, 95) || computedMetrics.batSpeed,
-    exitVelo: (Math.min(batSpeed, 95) || computedMetrics.batSpeed) * 0.58,
-  });
+  updatePlayheadUI(frame.frameIdx);
 }
 
 let videoPlayId = null;
@@ -540,28 +615,22 @@ function stopVideoLoop() {
   videoPlayId = null;
 }
 
-// ─── Session summary ─────────────────────────────────────────────────
-
-function showSummary(data) {
-  summaryEl.classList.remove("hidden");
-  const items = [
-    `Contact detected near frame ${data.contactFrame} (${data.mode} mode).`,
-    `Swing plane angle: ~${data.plane.toFixed(0)}° from horizontal.`,
-    `Peak bat speed proxy: ~${data.batSpeed.toFixed(0)} mph (*uncalibrated).`,
-    `Estimated exit velocity: ~${data.exitVelo.toFixed(0)} mph (†model placeholder).`,
-    "Full bat/ball tracking with Roboflow RF-DETR is future work.",
-  ];
-  summaryList.innerHTML = items.map((t) => `<li>${t}</li>`).join("");
-}
-
 // ─── Mode switching ──────────────────────────────────────────────────
+
+function updateModeAffordance() {
+  const isSample = mode === "sample";
+  stageEl.classList.toggle("stage--sample", isSample);
+  stageEl.classList.toggle("stage--upload", !isSample);
+  sampleBadge.classList.toggle("hidden", !isSample);
+  $("btn-sample").setAttribute("aria-pressed", String(isSample));
+}
 
 function setSampleMode() {
   mode = "sample";
   sampleT = 0;
   samplePath = [];
   samplePlaying = true;
-  summaryEl.classList.add("hidden");
+  clearSwingTotals();
   stopVideoLoop();
   video.hidden = true;
   video.pause();
@@ -570,10 +639,10 @@ function setSampleMode() {
     videoUrl = null;
   }
   video.removeAttribute("src");
-  $("btn-sample").setAttribute("aria-pressed", "true");
   $("mode-label").textContent = "Sample mode — no upload needed";
   scrubber.max = 100;
   scrubber.value = 0;
+  updateModeAffordance();
   cancelAnimationFrame(animId);
   sampleLoop();
 }
@@ -583,9 +652,9 @@ async function setVideoMode(file) {
   samplePlaying = false;
   cancelAnimationFrame(animId);
   stopVideoLoop();
-  summaryEl.classList.add("hidden");
-  $("btn-sample").setAttribute("aria-pressed", "false");
+  clearSwingTotals();
   $("mode-label").textContent = `Analyzing: ${file.name}`;
+  updateModeAffordance();
 
   if (videoUrl) URL.revokeObjectURL(videoUrl);
   videoUrl = URL.createObjectURL(file);
@@ -600,6 +669,12 @@ async function setVideoMode(file) {
   };
 }
 
+// ─── Scrubber accent ─────────────────────────────────────────────────
+
+function setScrubberActive(active) {
+  scrubber.classList.toggle("scrubber-active", active);
+}
+
 // ─── Event listeners ─────────────────────────────────────────────────
 
 $("btn-sample").addEventListener("click", setSampleMode);
@@ -609,13 +684,15 @@ $("file-input").addEventListener("change", (e) => {
   if (file) setVideoMode(file);
 });
 
+scrubber.addEventListener("pointerdown", () => setScrubberActive(true));
+
 scrubber.addEventListener("input", () => {
   if (mode === "sample") {
     sampleT = Number(scrubber.value) / 100;
     samplePlaying = false;
     samplePath = [];
     for (let i = 0; i <= sampleT * 40; i++) {
-      const t = (i / 40);
+      const t = i / 40;
       const pose = samplePose(t, canvas.width, canvas.height);
       samplePath.push({ x: pose.batTip.x, y: pose.batTip.y });
     }
@@ -627,14 +704,24 @@ scrubber.addEventListener("input", () => {
   }
 });
 
+scrubber.addEventListener("pointerup", () => setScrubberActive(false));
+scrubber.addEventListener("change", () => setScrubberActive(false));
+
 $("btn-replay").addEventListener("click", () => {
-  summaryEl.classList.add("hidden");
+  clearSwingTotals();
   if (mode === "sample") {
     sampleT = 0;
     samplePath = [];
     samplePlaying = true;
   } else if (frameData.length) {
     videoFrameIdx = 0;
+    setSwingTotals({
+      contactFrame,
+      plane: computedMetrics.plane,
+      batSpeed: computedMetrics.batSpeed,
+      exitVelo: computedMetrics.exitVelo,
+      mode: "upload",
+    });
     playVideoLoop();
   }
 });
