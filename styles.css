@@ -940,3 +940,8 @@ h1 {
   color: #065f46;
   border-color: rgba(5, 150, 105, 0.25);
 }
+
+/* AL-C6: hide Vercel preview toolbar FAB (injected on preview deploys; not demo UI) */
+vercel-live-feedback {
+  display: none !important;
+}
