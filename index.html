@@ -2,26 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Baseball Swing Lab — Demo Lab</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Baseball Swing Lab</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app">
     <header class="header">
-      <p class="eyebrow">Demo Lab · Sep 15, 2026</p>
-      <h1>Baseball Swing Lab</h1>
+      <p class="eyebrow">Swing Lab</p>
+      <h1>Film your swing. Get instant feedback.</h1>
       <p class="lede">
-        A phone-camera swing coach slice — inspired by
-        <a href="https://x.com/measure_plan/status/2097715692069859769" target="_blank" rel="noopener">tennis CV coaching demos</a>.
-        Upload a clip or try the built-in sample to see bat path overlays and swing metrics, all in your browser.
+        Record or upload a short side-view clip (≤10 s). We overlay bat path, estimate contact, and surface swing metrics — right in your browser.
       </p>
     </header>
 
+    <aside id="roboflow-banner" class="status-banner hidden" role="status">
+      <span id="roboflow-banner-text"></span>
+    </aside>
+
     <aside id="first-run-cta" class="first-run-cta hidden" role="note">
       <div class="first-run-cta__body">
-        <p class="first-run-cta__title">New here?</p>
-        <p class="first-run-cta__text">Tap <strong>Sample swing</strong> to watch a demo cycle — no upload needed. Or drop a short side-view clip (≤10 s works best).</p>
+        <p class="first-run-cta__title">Quick start</p>
+        <p class="first-run-cta__text">Tap <strong>Try sample</strong> for a demo with no camera. Or record a real swing from the side.</p>
       </div>
       <div class="first-run-cta__actions">
         <button type="button" id="btn-first-run" class="btn btn-primary btn-sm">Try sample</button>
@@ -32,17 +35,37 @@
     <div id="error-banner" class="error-banner hidden" role="alert"></div>
 
     <section class="controls" aria-label="Input controls">
-      <div class="control-row">
-        <button type="button" id="btn-sample" class="btn btn-primary" aria-pressed="true">
-          ▶ Sample swing
+      <div class="control-row control-row--primary">
+        <button type="button" id="btn-record" class="btn btn-primary btn-record">
+          <span class="btn-record__dot" aria-hidden="true"></span>
+          Record swing
         </button>
         <label class="btn btn-secondary upload-label">
-          Upload video
-          <input type="file" id="file-input" accept="video/mp4,video/webm,video/quicktime" hidden />
+          Upload clip
+          <input type="file" id="file-input" accept="video/mp4,video/webm,video/quicktime,video/*" hidden />
         </label>
+      </div>
+      <div class="control-row control-row--secondary">
+        <button type="button" id="btn-sample" class="btn btn-ghost" aria-pressed="true">
+          Try sample
+        </button>
         <span id="sample-badge" class="mode-badge" aria-label="Sample mode active">Sample</span>
       </div>
-      <p id="mode-label" class="mode-label">Sample mode — no upload needed</p>
+      <p id="mode-label" class="mode-label">Sample mode — no camera needed</p>
+    </section>
+
+    <section id="camera-panel" class="camera-panel hidden" aria-label="Live camera">
+      <div class="camera-panel__preview">
+        <video id="camera-preview" playsinline muted autoplay></video>
+        <div id="record-timer" class="record-timer hidden" aria-live="polite">0:00</div>
+      </div>
+      <div class="camera-panel__actions">
+        <button type="button" id="btn-flip-camera" class="btn btn-ghost btn-sm" title="Switch camera">Flip</button>
+        <button type="button" id="btn-start-record" class="btn btn-primary btn-sm">Start</button>
+        <button type="button" id="btn-stop-record" class="btn btn-danger btn-sm hidden">Stop</button>
+        <button type="button" id="btn-cancel-camera" class="btn btn-ghost btn-sm">Cancel</button>
+      </div>
+      <p class="camera-hint">Side view works best. Recording stops automatically at 10 seconds.</p>
     </section>
 
     <section id="stage" class="stage stage--sample" aria-label="Swing analysis">
@@ -57,15 +80,15 @@
 
       <div class="scrubber-row">
         <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Frame scrubber" />
-        <button type="button" id="btn-replay" class="btn btn-ghost" title="Replay">↻</button>
+        <button type="button" id="btn-replay" class="btn btn-ghost btn-icon" title="Replay" aria-label="Replay">↻</button>
       </div>
     </section>
 
     <section class="metrics" aria-label="Swing metrics">
-      <h2>Live metrics</h2>
+      <h2>Metrics</h2>
       <p class="metrics-note">
-        <span class="demo-estimate-badge">Demo estimates</span>
-        — not calibrated radar or launch-monitor data.
+        <span class="demo-estimate-badge">Estimates</span>
+        for coaching feedback — not radar or launch-monitor data.
       </p>
 
       <div class="metrics-group">
@@ -75,11 +98,15 @@
             <span class="metric-label">Frame</span>
             <span class="metric-value" id="metric-frame">—</span>
           </div>
+          <div class="metric-card metric-card--detections hidden" id="metric-detections-card">
+            <span class="metric-label">Detections</span>
+            <span class="metric-value metric-value--sm" id="metric-detections">—</span>
+          </div>
         </div>
       </div>
 
       <div class="metrics-group">
-        <h3 class="metrics-subheading">This swing <span class="demo-estimate-badge demo-estimate-badge--sm">demo totals</span></h3>
+        <h3 class="metrics-subheading">This swing</h3>
         <div class="metric-grid">
           <div class="metric-card metric-card--contact">
             <span class="metric-label">Contact frame</span>
@@ -90,23 +117,23 @@
             <span class="metric-value" id="metric-plane">—</span>
           </div>
           <div class="metric-card metric-card--batspeed">
-            <span class="metric-label">Bat speed (proxy)</span>
+            <span class="metric-label">Bat speed</span>
             <span class="metric-value" id="metric-batspeed">—</span>
           </div>
           <div class="metric-card metric-card--exitvelo">
-            <span class="metric-label">Exit velo (est.)</span>
+            <span class="metric-label">Exit velo</span>
             <span class="metric-value" id="metric-exitvelo">—</span>
           </div>
         </div>
         <p class="metrics-footnotes">
-          <span>* Bat speed proxy — uncalibrated estimate from pose motion, not radar.</span>
-          <span>† Exit velocity — model placeholder, not measured ball speed.</span>
+          <span>* Bat speed — pose + bat-detection proxy, uncalibrated.</span>
+          <span>† Exit velocity — estimate from swing speed, not measured ball speed.</span>
         </p>
       </div>
     </section>
 
     <section id="summary" class="summary hidden" aria-label="Session summary">
-      <h2>Session summary</h2>
+      <h2>Coaching notes</h2>
       <ul id="summary-list"></ul>
     </section>
 
@@ -120,7 +147,7 @@
     </section>
 
     <footer class="footer">
-      <p>Client-side only · MediaPipe Pose · Future: Roboflow bat/ball detection</p>
+      <p>MediaPipe Pose + Roboflow bat/ball detection · Client-side video · <a href="https://github.com/DanDiSalvio/bookmark-demo-lab" target="_blank" rel="noopener">Source</a></p>
     </footer>
   </div>
 
