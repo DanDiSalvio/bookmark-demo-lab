@@ -102,7 +102,16 @@ let analysisCapNote = "";
 let sampleHistorySaved = false;
 
 /** Roboflow runtime config from /api/config */
-let roboflowConfig = { roboflowEnabled: false, modelId: "" };
+let roboflowConfig = {
+  roboflowConnected: false,
+  roboflowEnabled: false,
+  useProxy: true,
+  publishableKey: null,
+  modelId: "mlb-sbfxd/baseball-and-baseball-bat/1",
+  altModelId: "baseball-v1/baseball-and-bat/2",
+  poseModelId: "swingapi/baseball-pose-4y9w6/4",
+  poseEnabled: true,
+};
 let roboflowUsedInSession = false;
 
 /** Camera state */
@@ -121,7 +130,13 @@ async function loadRoboflowConfig() {
     if (!res.ok) throw new Error("config unavailable");
     roboflowConfig = await res.json();
   } catch {
-    roboflowConfig = { roboflowEnabled: false, modelId: "" };
+    roboflowConfig = {
+      roboflowConnected: false,
+      roboflowEnabled: false,
+      useProxy: true,
+      publishableKey: null,
+      modelId: "",
+    };
   }
   updateRoboflowBanner();
 }
@@ -129,16 +144,25 @@ async function loadRoboflowConfig() {
 function updateRoboflowBanner() {
   if (!roboflowBanner || !roboflowBannerText) return;
 
-  if (roboflowConfig.roboflowEnabled) {
+  const poseNote = roboflowConfig.poseEnabled ? " + pose" : "";
+
+  if (roboflowConfig.roboflowConnected) {
     roboflowBanner.classList.remove("hidden", "status-banner--warn");
     roboflowBanner.classList.add("status-banner--ok");
-    roboflowBannerText.textContent = `Roboflow AI connected (${roboflowConfig.modelId}) — bat & ball detection enabled on uploads.`;
-  } else {
-    roboflowBanner.classList.remove("hidden", "status-banner--ok");
-    roboflowBanner.classList.add("status-banner--warn");
-    roboflowBannerText.textContent =
-      "Roboflow not connected — sample mode & pose tracking still work. Add ROBOFLOW_API_KEY in Vercel for bat/ball detection.";
+    roboflowBannerText.textContent = `Roboflow AI connected — ${roboflowConfig.modelId} (bat/ball${poseNote}) on recorded & uploaded clips.`;
+    return;
   }
+
+  roboflowBanner.classList.remove("hidden", "status-banner--ok");
+  roboflowBanner.classList.add("status-banner--warn");
+
+  if (roboflowConfig.roboflowEnabled && roboflowConfig.publishableKey) {
+    roboflowBannerText.textContent = `Publishable key set — direct browser inference for ${roboflowConfig.modelId}. Add ROBOFLOW_API_KEY for server proxy.`;
+    return;
+  }
+
+  roboflowBannerText.textContent =
+    "Add ROBOFLOW_API_KEY to unlock AI detect — sample mode & MediaPipe pose still work without it.";
 }
 
 async function canvasToBase64(targetCanvas) {
@@ -160,30 +184,100 @@ async function canvasToBase64(targetCanvas) {
   });
 }
 
+function buildDetectEndpoint(modelId, apiKey, confidence = 0.35) {
+  const path = modelId.split("/").filter(Boolean).join("/");
+  return `https://detect.roboflow.com/${path}?api_key=${encodeURIComponent(apiKey)}&confidence=${confidence}`;
+}
+
+async function inferViaProxy(image, modelId) {
+  const res = await fetch("/api/roboflow", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image, modelId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.warn("Roboflow proxy failed:", err);
+    return [];
+  }
+  const data = await res.json();
+  return data.predictions ?? [];
+}
+
+async function inferDirect(imageDataUrl, modelId) {
+  const apiKey = roboflowConfig.publishableKey;
+  if (!apiKey) return [];
+
+  const blob = await fetch(imageDataUrl).then((r) => r.blob());
+  const form = new FormData();
+  form.append("file", blob, "frame.jpg");
+
+  const res = await fetch(buildDetectEndpoint(modelId, apiKey), {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    console.warn("Roboflow direct infer failed:", res.status);
+    return [];
+  }
+  const data = await res.json();
+  return data.predictions ?? [];
+}
+
+async function runRoboflowInference(image, modelId) {
+  if (roboflowConfig.useProxy) {
+    return inferViaProxy(image, modelId);
+  }
+  if (roboflowConfig.publishableKey) {
+    return inferDirect(image, modelId);
+  }
+  return [];
+}
+
+/** Run detection; fall back to alt model if primary returns nothing. */
 async function runRoboflowOnCanvas(targetCanvas) {
-  if (!roboflowConfig.roboflowEnabled) return [];
+  if (!roboflowConfig.roboflowEnabled) return { detections: [], keypoints: [] };
 
   try {
     const image = await canvasToBase64(targetCanvas);
-    const res = await fetch("/api/roboflow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image, modelId: roboflowConfig.modelId }),
-    });
+    let predictions = await runRoboflowInference(image, roboflowConfig.modelId);
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      console.warn("Roboflow inference failed:", err);
-      return [];
+    if (
+      predictions.length === 0 &&
+      roboflowConfig.altModelId &&
+      roboflowConfig.altModelId !== roboflowConfig.modelId
+    ) {
+      predictions = await runRoboflowInference(image, roboflowConfig.altModelId);
     }
 
-    const data = await res.json();
-    roboflowUsedInSession = true;
-    return data.predictions ?? [];
+    let keypoints = [];
+    if (roboflowConfig.poseEnabled && roboflowConfig.poseModelId) {
+      const posePreds = await runRoboflowInference(image, roboflowConfig.poseModelId);
+      keypoints = extractKeypoints(posePreds);
+    }
+
+    if (predictions.length > 0 || keypoints.length > 0) {
+      roboflowUsedInSession = true;
+    }
+
+    return { detections: predictions, keypoints };
   } catch (err) {
     console.warn("Roboflow request error:", err);
-    return [];
+    return { detections: [], keypoints: [] };
   }
+}
+
+function extractKeypoints(predictions) {
+  const points = [];
+  for (const pred of predictions) {
+    if (!pred.keypoints) continue;
+    for (const kp of pred.keypoints) {
+      if (kp.confidence > 0.3) {
+        points.push({ x: kp.x, y: kp.y, class: kp.class || pred.class });
+      }
+    }
+  }
+  return points;
 }
 
 function scaleDetection(det, scaleX, scaleY) {
@@ -214,12 +308,20 @@ function batTipFromDetection(det) {
 }
 
 function findBatDetection(detections) {
-  const bat = detections.find((d) => /bat/i.test(d.class));
-  return bat ?? detections[0];
+  return (
+    detections.find((d) => /baseballbat|^bat$/i.test(d.class)) ||
+    detections.find((d) => /bat/i.test(d.class)) ||
+    null
+  );
 }
 
 function findBallDetection(detections) {
-  return detections.find((d) => /ball/i.test(d.class));
+  return (
+    detections.find((d) => /^baseball$/i.test(d.class)) ||
+    detections.find((d) => /^ball$/i.test(d.class)) ||
+    detections.find((d) => /ball/i.test(d.class) && !/bat/i.test(d.class)) ||
+    null
+  );
 }
 
 // ─── Swing totals (single source of truth) ───────────────────────────
@@ -295,7 +397,7 @@ function showSummary() {
         : null,
     analysisCapNote || null,
     !roboflowConfig.roboflowEnabled
-      ? "Connect Roboflow (ROBOFLOW_API_KEY) for bat/ball bounding boxes on your clips."
+      ? "Add ROBOFLOW_API_KEY to unlock AI bat/ball detection on your clips."
       : null,
   ].filter(Boolean);
 
@@ -537,7 +639,7 @@ function drawDetections(detections) {
 
   for (const det of detections) {
     const isBat = /bat/i.test(det.class);
-    const isBall = /ball/i.test(det.class);
+    const isBall = /ball|baseball/i.test(det.class) && !isBat;
     const color = isBat ? "#d4a017" : isBall ? "#f0f0f0" : "#c45c26";
     const halfW = det.width / 2;
     const halfH = det.height / 2;
@@ -550,7 +652,18 @@ function drawDetections(detections) {
 
     ctx.fillStyle = color;
     ctx.font = "600 11px system-ui";
-    ctx.fillText(`${det.class} ${Math.round(det.confidence * 100)}%`, x, y - 4);
+    ctx.fillText(`${det.class} ${Math.round(det.confidence * 100)}%`, x, Math.max(12, y - 4));
+  }
+}
+
+function drawKeypoints(keypoints) {
+  if (!keypoints?.length) return;
+
+  ctx.fillStyle = "#c45c26";
+  for (const kp of keypoints) {
+    ctx.beginPath();
+    ctx.arc(kp.x, kp.y, 3, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -949,14 +1062,13 @@ async function analyzeVideo(sourceMode = "upload") {
         };
       }
 
+      let keypoints = [];
       if (roboflowConfig.roboflowEnabled && frameIdx % ROBOFLOW_SAMPLE_EVERY === 0) {
         inferCtx.drawImage(video, 0, 0, w, h);
-        const rawDets = await runRoboflowOnCanvas(inferCanvas);
-        if (rawDets.length > 0) {
+        const rf = await runRoboflowOnCanvas(inferCanvas);
+        if (rf.detections.length > 0) {
           roboflowHitCount++;
-          const imgW = inferCanvas.width;
-          const imgH = inferCanvas.height;
-          detections = rawDets.map((d) => scaleDetection(d, w / imgW, h / imgH));
+          detections = rf.detections.map((d) => scaleDetection(d, 1, 1));
 
           const batDet = findBatDetection(detections);
           if (batDet) {
@@ -965,10 +1077,13 @@ async function analyzeVideo(sourceMode = "upload") {
             batTip = refined.batTip;
           }
         }
+        if (rf.keypoints.length > 0) {
+          keypoints = rf.keypoints;
+        }
       }
 
       if (landmarks && batTip && handMid) {
-        frameData.push({ t, frameIdx, landmarks, batTip, handMid, detections });
+        frameData.push({ t, frameIdx, landmarks, batTip, handMid, detections, keypoints });
       }
 
       t += step;
@@ -1076,6 +1191,7 @@ function renderVideoFrame(idx) {
 
   drawModeLabel(mode === "record" ? "RECORDED" : "UPLOAD");
   drawDetections(frame.detections);
+  drawKeypoints(frame.keypoints);
   drawSkeleton(frame.landmarks);
 
   const pathStart = Math.max(0, idx - 25);

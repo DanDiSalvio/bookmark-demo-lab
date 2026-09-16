@@ -1,21 +1,9 @@
 /**
- * Serverless proxy for Roboflow Serverless Cloud API.
+ * Serverless proxy for Roboflow hosted detect API (detect.roboflow.com).
  * Keeps ROBOFLOW_API_KEY off the client.
  */
 
-const DEFAULT_MODEL =
-  process.env.ROBOFLOW_MODEL_ID || "baseball-detection/baseball-tracker-vp0ko/1";
-
-function buildRoboflowUrl(modelId) {
-  const parts = modelId.split("/").filter(Boolean);
-  if (parts.length >= 3) {
-    return `https://serverless.roboflow.com/${parts[0]}/${parts[1]}/${parts[2]}`;
-  }
-  if (parts.length === 2) {
-    return `https://serverless.roboflow.com/${parts[0]}/${parts[1]}`;
-  }
-  return `https://serverless.roboflow.com/${DEFAULT_MODEL}`;
-}
+import { buildDetectUrl, resolveModelIds } from "../lib/roboflow-models.js";
 
 function parseBody(req) {
   if (typeof req.body === "string") {
@@ -64,9 +52,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Could not decode image payload" });
   }
 
-  const modelId = body.modelId || DEFAULT_MODEL;
+  const models = resolveModelIds();
+  const modelId = body.modelId || models.detect;
   const confidence = body.confidence ?? 0.35;
-  const url = `${buildRoboflowUrl(modelId)}?api_key=${encodeURIComponent(apiKey)}&confidence=${confidence}`;
+  const url = buildDetectUrl(modelId, apiKey, { confidence });
 
   try {
     const form = new FormData();

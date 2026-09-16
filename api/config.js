@@ -1,12 +1,23 @@
-/** Public config — never exposes the Roboflow API key. */
+import { resolveModelIds } from "../lib/roboflow-models.js";
+
+/** Public config — never exposes the secret Roboflow API key. */
 export default function handler(_req, res) {
-  const modelId =
-    process.env.ROBOFLOW_MODEL_ID || "baseball-detection/baseball-tracker-vp0ko/1";
+  const models = resolveModelIds();
+  const secretKey = Boolean(process.env.ROBOFLOW_API_KEY);
+  const publishableKey = process.env.NEXT_PUBLIC_ROBOFLOW_PUBLISHABLE_KEY || "";
 
   res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
   res.status(200).json({
-    roboflowEnabled: Boolean(process.env.ROBOFLOW_API_KEY),
-    modelId,
+    /** Green banner — secret proxy is configured */
+    roboflowConnected: secretKey,
+    /** Inference can run (secret proxy or publishable direct path) */
+    roboflowEnabled: secretKey || Boolean(publishableKey),
+    useProxy: secretKey,
+    publishableKey: secretKey ? null : publishableKey || null,
+    modelId: models.detect,
+    altModelId: models.alt,
+    poseModelId: models.pose,
+    poseEnabled: models.poseEnabled,
     maxAnalysisSeconds: 10,
   });
 }
