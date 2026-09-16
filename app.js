@@ -103,6 +103,7 @@ let sampleHistorySaved = false;
 
 /** Roboflow runtime config from /api/config */
 let roboflowConfig = {
+  roboflowConnected: false,
   roboflowEnabled: false,
   useProxy: true,
   publishableKey: null,
@@ -129,7 +130,13 @@ async function loadRoboflowConfig() {
     if (!res.ok) throw new Error("config unavailable");
     roboflowConfig = await res.json();
   } catch {
-    roboflowConfig = { roboflowEnabled: false, useProxy: true, publishableKey: null, modelId: "" };
+    roboflowConfig = {
+      roboflowConnected: false,
+      roboflowEnabled: false,
+      useProxy: true,
+      publishableKey: null,
+      modelId: "",
+    };
   }
   updateRoboflowBanner();
 }
@@ -137,17 +144,25 @@ async function loadRoboflowConfig() {
 function updateRoboflowBanner() {
   if (!roboflowBanner || !roboflowBannerText) return;
 
-  if (roboflowConfig.roboflowEnabled) {
+  const poseNote = roboflowConfig.poseEnabled ? " + pose" : "";
+
+  if (roboflowConfig.roboflowConnected) {
     roboflowBanner.classList.remove("hidden", "status-banner--warn");
     roboflowBanner.classList.add("status-banner--ok");
-    const poseNote = roboflowConfig.poseEnabled ? " + pose" : "";
     roboflowBannerText.textContent = `Roboflow AI connected — ${roboflowConfig.modelId} (bat/ball${poseNote}) on recorded & uploaded clips.`;
-  } else {
-    roboflowBanner.classList.remove("hidden", "status-banner--ok");
-    roboflowBanner.classList.add("status-banner--warn");
-    roboflowBannerText.textContent =
-      "Add ROBOFLOW_API_KEY to unlock AI detect — sample mode & MediaPipe pose still work without it.";
+    return;
   }
+
+  roboflowBanner.classList.remove("hidden", "status-banner--ok");
+  roboflowBanner.classList.add("status-banner--warn");
+
+  if (roboflowConfig.roboflowEnabled && roboflowConfig.publishableKey) {
+    roboflowBannerText.textContent = `Publishable key set — direct browser inference for ${roboflowConfig.modelId}. Add ROBOFLOW_API_KEY for server proxy.`;
+    return;
+  }
+
+  roboflowBannerText.textContent =
+    "Add ROBOFLOW_API_KEY to unlock AI detect — sample mode & MediaPipe pose still work without it.";
 }
 
 async function canvasToBase64(targetCanvas) {
@@ -213,7 +228,10 @@ async function runRoboflowInference(image, modelId) {
   if (roboflowConfig.useProxy) {
     return inferViaProxy(image, modelId);
   }
-  return inferDirect(image, modelId);
+  if (roboflowConfig.publishableKey) {
+    return inferDirect(image, modelId);
+  }
+  return [];
 }
 
 /** Run detection; fall back to alt model if primary returns nothing. */
