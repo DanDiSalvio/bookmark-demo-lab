@@ -1,0 +1,9 @@
+{
+  "name": "bookmark-demo-lab",
+  "private": true,
+  "description": "Baseball Swing Lab demo — static site with Vercel serverless API",
+  "scripts": {
+    "dev": "vercel dev",
+    "serve": "npx serve ."
+  }
+}
