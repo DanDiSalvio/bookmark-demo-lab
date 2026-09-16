@@ -113,6 +113,31 @@ a:hover {
   letter-spacing: -0.02em;
 }
 
+.concept-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  border: 1px solid rgba(74, 155, 140, 0.2);
+  border-radius: 999px;
+}
+
+.concept-badge--subtle {
+  font-size: 0.625rem;
+  vertical-align: middle;
+  margin-left: 0.35rem;
+}
+
+.site-header__inner .concept-badge {
+  margin-right: auto;
+  margin-left: 0.75rem;
+}
+
 .header-cta {
   flex-shrink: 0;
 }

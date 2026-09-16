@@ -39,7 +39,7 @@
     if (!countEl) return;
     var count = getWaitlist().length;
     if (count > 0) {
-      countEl.textContent = count + ' ' + (count === 1 ? 'person' : 'people') + ' on the waitlist (this device).';
+      countEl.textContent = count + ' ' + (count === 1 ? 'person' : 'people') + ' on the prototype waitlist (this device).';
     }
   }
 
@@ -60,15 +60,15 @@
     input.value = '';
     showFeedback(
       form,
-      "You're on the list! We'll email you at " + email + ' when DryBand is ready.',
+      "You're on the prototype waitlist. If this concept moves, you'll hear at " + email + '.',
       false
     );
     updateCount();
 
     var mailto = 'mailto:hello@dryband.example?subject=' +
-      encodeURIComponent('DryBand waitlist') +
+      encodeURIComponent('DryBand prototype waitlist') +
       '&body=' +
-      encodeURIComponent('Please add me to the DryBand waitlist: ' + email);
+      encodeURIComponent('Please add me to the DryBand concept waitlist: ' + email);
     if (navigator.userAgent.indexOf('bot') === -1) {
       /* Optional: uncomment to open mail client on submit */
       /* window.location.href = mailto; */
