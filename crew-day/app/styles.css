@@ -479,6 +479,16 @@ h1 {
   color: var(--text-muted);
 }
 
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
 .hidden {
   display: none !important;
 }

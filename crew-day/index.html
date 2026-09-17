@@ -3,91 +3,131 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="description" content="Run today's cleaning crew from one board — not 40 Google Sheet tabs. Paste your spreadsheet, see jobs, toggle status and pay as the day runs." />
   <meta name="theme-color" content="#0f766e" />
-  <title>Crew Day Board</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Crew Day Board — Run today's crew from one screen</title>
+  <link rel="stylesheet" href="landing.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="header__top">
-        <p class="eyebrow">Sheet → Day Board</p>
-        <p class="header__date" id="today-date" aria-live="polite"></p>
+  <div class="landing">
+    <nav class="landing__nav" aria-label="Site">
+      <a class="landing__logo" href="/crew-day/">
+        <span class="landing__logo-mark" aria-hidden="true">CD</span>
+        Crew Day Board
+      </a>
+      <a class="landing__nav-link" href="/crew-day/app/">Open board</a>
+    </nav>
+
+    <header class="hero">
+      <p class="eyebrow">For owner-operators</p>
+      <h1>Run today's crew from one board — not 40 Sheet tabs</h1>
+      <p class="hero__sub">
+        Paste your Google Sheet or CSV. See cleaner, address, status, and pay. Toggle as the day runs.
+      </p>
+      <div class="hero__cta">
+        <a class="btn btn-primary" href="/crew-day/app/?sample=1">Try free sample board</a>
+        <a class="btn btn-secondary" href="/crew-day/app/">Paste your own sheet</a>
       </div>
-      <h1>Crew Day Board</h1>
-      <p class="lede">Paste or upload your spreadsheet export. Run today’s jobs from one screen.</p>
+      <p class="hero__note">No signup · Data stays in your browser</p>
     </header>
 
-    <section class="summary" id="summary" aria-label="Day summary" hidden>
-      <div class="summary__item">
-        <span class="summary__value" id="stat-total">0</span>
-        <span class="summary__label">Jobs</span>
-      </div>
-      <div class="summary__item summary__item--done">
-        <span class="summary__value" id="stat-done">0</span>
-        <span class="summary__label">Done</span>
-      </div>
-      <div class="summary__item summary__item--unpaid">
-        <span class="summary__value" id="stat-unpaid">0</span>
-        <span class="summary__label">Unpaid</span>
-      </div>
+    <aside class="icp">
+      <p>
+        <strong>Built for cleaning and home-service owners</strong> still dispatching crews from Excel or Google Sheets — when every job is a row and every tab is a different day.
+      </p>
+    </aside>
+
+    <section class="steps" aria-labelledby="how-heading">
+      <h2 id="how-heading">How it works</h2>
+      <ol class="steps__list">
+        <li class="step">
+          <span class="step__num" aria-hidden="true">1</span>
+          <div>
+            <p class="step__title">Paste your sheet</p>
+            <p class="step__desc">Copy rows from Google Sheets or upload a CSV export. We map cleaner, address, status, and pay columns automatically.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step__num" aria-hidden="true">2</span>
+          <div>
+            <p class="step__title">Run the board</p>
+            <p class="step__desc">One mobile-friendly screen for today's jobs. Filter by scheduled, in progress, or done. See unpaid at a glance.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step__num" aria-hidden="true">3</span>
+          <div>
+            <p class="step__title">Mark done &amp; paid</p>
+            <p class="step__desc">Tap to cycle job status. Toggle pay as you collect. Your board saves locally so you can pick up where you left off.</p>
+          </div>
+        </li>
+      </ol>
     </section>
 
-    <section class="import" id="import-panel" aria-label="Import spreadsheet">
-      <div class="import__tabs" role="tablist">
-        <button type="button" class="import__tab is-active" role="tab" aria-selected="true" data-tab="paste" id="tab-paste">Paste</button>
-        <button type="button" class="import__tab" role="tab" aria-selected="false" data-tab="upload" id="tab-upload">Upload</button>
-      </div>
-
-      <div class="import__panel is-active" id="panel-paste" role="tabpanel" aria-labelledby="tab-paste">
-        <label class="import__label" for="paste-input">Paste rows from Google Sheets or Excel (CSV / TSV)</label>
-        <textarea
-          id="paste-input"
-          class="import__textarea"
-          rows="6"
-          placeholder="cleaner,address,status,pay&#10;Maria Garcia,142 Oak St,scheduled,unpaid&#10;James Wilson,88 Park Ave,in progress,$85"
-          spellcheck="false"
-        ></textarea>
-        <button type="button" class="btn btn-primary" id="btn-parse-paste">Load pasted rows</button>
-      </div>
-
-      <div class="import__panel" id="panel-upload" role="tabpanel" aria-labelledby="tab-upload" hidden>
-        <label class="import__label" for="file-input">Upload a .csv or .tsv export</label>
-        <label class="btn btn-secondary file-label">
-          Choose file
-          <input type="file" id="file-input" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden />
-        </label>
-        <p class="import__hint" id="file-name">No file selected</p>
-      </div>
-
-      <div class="import__actions">
-        <button type="button" class="btn btn-ghost" id="btn-load-sample">Load sample day</button>
-        <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-import" hidden>Change import</button>
-      </div>
-
-      <p class="import__error hidden" id="import-error" role="alert"></p>
-    </section>
-
-    <section class="board" id="board" aria-label="Today’s jobs" hidden>
-      <div class="board__toolbar">
-        <h2 class="board__title">Today</h2>
-        <div class="board__filters" role="group" aria-label="Filter jobs">
-          <button type="button" class="chip is-active" data-filter="all">All</button>
-          <button type="button" class="chip" data-filter="scheduled">Scheduled</button>
-          <button type="button" class="chip" data-filter="in progress">In progress</button>
-          <button type="button" class="chip" data-filter="done">Done</button>
+    <section class="preview" aria-labelledby="preview-heading">
+      <h2 id="preview-heading">What you'll see</h2>
+      <div class="preview__card" role="img" aria-label="Example crew day board showing job cards with status and pay toggles">
+        <div class="preview__header">
+          <span>Crew Day Board</span>
+          <span>Thu, Sep 17</span>
+        </div>
+        <div class="preview__stats">
+          <div class="preview__stat">
+            <span class="preview__stat-value">8</span>
+            <span class="preview__stat-label">Jobs</span>
+          </div>
+          <div class="preview__stat">
+            <span class="preview__stat-value">2</span>
+            <span class="preview__stat-label">Done</span>
+          </div>
+          <div class="preview__stat">
+            <span class="preview__stat-value">5</span>
+            <span class="preview__stat-label">Unpaid</span>
+          </div>
+        </div>
+        <div class="preview__jobs">
+          <div class="preview__job">
+            <div class="preview__job-name">Maria Garcia</div>
+            <div class="preview__job-addr">142 Oak St — Deep clean</div>
+            <div class="preview__job-tags">
+              <span class="preview__tag preview__tag--progress">In progress</span>
+              <span class="preview__tag preview__tag--unpaid">Unpaid</span>
+            </div>
+          </div>
+          <div class="preview__job">
+            <div class="preview__job-name">Devon Brooks</div>
+            <div class="preview__job-addr">55 Cedar Ln — Weekly</div>
+            <div class="preview__job-tags">
+              <span class="preview__tag preview__tag--done">Done</span>
+              <span class="preview__tag preview__tag--done">Paid</span>
+            </div>
+          </div>
         </div>
       </div>
-      <ul class="job-list" id="job-list"></ul>
-      <p class="board__empty hidden" id="board-empty">No jobs match this filter.</p>
     </section>
 
-    <footer class="footer">
-      <p>Demo for cleaning owner-operators · Data stays in your browser</p>
+    <section class="pricing" aria-labelledby="pricing-heading">
+      <h2 id="pricing-heading">Pricing</h2>
+      <div class="pricing__tiers">
+        <div class="pricing__tier">
+          <span class="pricing__name">Free</span>
+          <span class="pricing__price">1 board / day</span>
+        </div>
+        <div class="pricing__tier">
+          <div class="pricing__tier-body">
+            <span class="pricing__name">Pro</span>
+            <span class="pricing__inclusion">Unlimited crews + pay export</span>
+          </div>
+          <span class="pricing__price">$29 / mo</span>
+        </div>
+      </div>
+      <p class="pricing__disclaimer">No checkout yet. Try the sample board free today.</p>
+    </section>
+
+    <footer class="landing__footer">
+      <a class="btn btn-primary" href="/crew-day/app/?sample=1">Try free sample board</a>
+      <p class="landing__fine">Demo for cleaning owner-operators · Part of Dan's Demo Lab</p>
     </footer>
   </div>
-
-  <script src="app.js"></script>
 </body>
 </html>
