@@ -409,9 +409,21 @@ body {
   padding-bottom: 0;
 }
 
+.pricing__tier-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
 .pricing__name {
   font-size: 0.9375rem;
   font-weight: 600;
+}
+
+.pricing__inclusion {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .pricing__price {
