@@ -437,6 +437,12 @@
 
     if (loadFromStorage()) {
       showBoard();
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sample') === '1') {
+      loadSample();
     }
   }
 
