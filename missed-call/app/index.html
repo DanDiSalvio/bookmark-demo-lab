@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Missed-Call Text-Back</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header__top">
+        <p class="eyebrow">Missed call → Text-back</p>
+        <p class="header__status" id="connection-status" aria-live="polite"></p>
+      </div>
+      <h1>Missed-Call Text-Back</h1>
+      <p class="lede">Simulate a missed inbound call. We'll look up the number, compose an SMS, and add a lead card to your inbox.</p>
+    </header>
+
+    <section class="simulate" id="simulate-panel" aria-label="Simulate missed call">
+      <h2 class="section-title">Simulate missed call</h2>
+      <label class="field-label" for="phone-input">Caller phone number</label>
+      <input
+        type="tel"
+        id="phone-input"
+        class="field-input"
+        placeholder="(555) 412-9087"
+        autocomplete="tel"
+        inputmode="tel"
+      />
+      <div class="sample-row">
+        <span class="sample-row__label">Quick samples:</span>
+        <div class="sample-row__buttons">
+          <button type="button" class="chip" data-sample="new">New lead</button>
+          <button type="button" class="chip" data-sample="known-mike">Known: Mike</button>
+          <button type="button" class="chip" data-sample="known-sarah">Known: Sarah</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary" id="btn-simulate">Simulate missed call</button>
+      <p class="simulate__note">Demo only — we never send SMS to real strangers without your explicit test setup.</p>
+    </section>
+
+    <section class="flow" id="flow-panel" hidden aria-label="Call flow">
+      <div class="missed-banner" id="missed-banner" role="status" aria-live="polite">
+        <span class="missed-banner__icon" aria-hidden="true">📵</span>
+        <span class="missed-banner__text" id="missed-banner-text">Missed call detected…</span>
+      </div>
+
+      <div class="panel lookup-panel" id="lookup-panel" hidden>
+        <h3 class="panel__title">Caller lookup</h3>
+        <div class="lookup-grid" id="lookup-grid"></div>
+        <p class="lookup-source" id="lookup-source"></p>
+      </div>
+
+      <div class="panel sms-panel" id="sms-panel" hidden>
+        <div class="sms-panel__header">
+          <h3 class="panel__title">Auto SMS</h3>
+          <span class="timer-badge" id="timer-badge" aria-live="polite">Auto-send in 1:00</span>
+        </div>
+        <div class="lead-type" id="lead-type"></div>
+        <div class="sms-preview" id="sms-preview"></div>
+        <div class="sms-actions">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-send-now">Send now</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-cancel-sms">Cancel</button>
+        </div>
+        <p class="sms-status hidden" id="sms-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="inbox" id="inbox-panel" aria-label="Lead inbox">
+      <div class="inbox__header">
+        <h2 class="section-title">Lead inbox</h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-clear-inbox" hidden>Clear all</button>
+      </div>
+      <ul class="lead-list" id="lead-list"></ul>
+      <p class="inbox__empty" id="inbox-empty">No leads yet. Simulate a missed call to see one appear here.</p>
+    </section>
+
+    <footer class="footer">
+      <p>Demo for home-service owners · Data stays in your browser · <a href="/missed-call/">About</a></p>
+      <p class="footer__honest">Production uses a forwarded business line + webhook — not your phone's call log.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
