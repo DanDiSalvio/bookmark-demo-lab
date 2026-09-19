@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>Driveway Review Grab — Owner App</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <nav class="app__nav" aria-label="App navigation">
+      <a class="app__logo" href="/driveway-review/">
+        <span class="app__logo-mark" aria-hidden="true">DR</span>
+        Driveway Review Grab
+      </a>
+      <a class="app__nav-link" href="/driveway-review/">Landing</a>
+    </nav>
+
+    <header class="header">
+      <p class="eyebrow">Owner app</p>
+      <h1>Review requests from the driveway</h1>
+      <p class="lede">Mark a job complete, send a review request, and collect Google-ready drafts in your inbox.</p>
+    </header>
+
+    <section class="panel" id="job-panel" aria-label="Job details">
+      <h2 class="section-title">Complete a job</h2>
+
+      <div id="job-form">
+        <div class="field">
+          <label class="field-label" for="customer-name">Customer name</label>
+          <input type="text" id="customer-name" class="field-input" placeholder="Sarah Mitchell" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="address">Address</label>
+          <input type="text" id="address" class="field-input" placeholder="142 Oak Lane, Denver, CO" autocomplete="street-address" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="service">Service completed</label>
+          <input type="text" id="service" class="field-input" placeholder="Spring lawn cleanup & mulch" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="phone">Customer phone</label>
+          <input type="tel" id="phone" class="field-input" placeholder="(555) 234-8891" autocomplete="tel" inputmode="tel" />
+        </div>
+
+        <div class="sample-row">
+          <span class="sample-row__label">Quick fill:</span>
+          <div class="sample-row__buttons">
+            <button type="button" class="chip" data-sample="lawn">Lawn cleanup</button>
+            <button type="button" class="chip" data-sample="pressure">Pressure wash</button>
+            <button type="button" class="chip" data-sample="clean">House clean</button>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-block" id="btn-complete-job">Mark job complete</button>
+        <p class="panel__note">Demo only — data stays in your browser via localStorage.</p>
+      </div>
+
+      <div id="active-job" class="hidden">
+        <div class="job-card" id="job-card"></div>
+        <button type="button" class="btn btn-primary btn-block" id="btn-send-request">Send review request</button>
+        <button type="button" class="btn btn-ghost btn-block" id="btn-new-job" style="margin-top: 8px;">Start new job</button>
+      </div>
+
+      <div id="sms-flow" class="hidden">
+        <div class="sms-panel">
+          <div class="sms-panel__header">
+            <p class="sms-panel__title">SMS preview</p>
+            <span class="sms-panel__to" id="sms-to"></span>
+          </div>
+          <div class="sms-preview" id="sms-preview"></div>
+          <div class="sms-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-confirm-send">Send SMS</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-cancel-sms">Cancel</button>
+          </div>
+          <p class="sms-status hidden" id="sms-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="link-panel hidden" id="link-panel">
+          <p class="link-panel__label">Customer capture link</p>
+          <code class="link-panel__url" id="capture-url"></code>
+          <div class="link-panel__actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-link">Copy link</button>
+            <a class="btn btn-primary btn-sm" id="btn-open-capture" href="#" target="_blank" rel="noopener">Open capture page</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="inbox" id="inbox-panel" aria-label="Review inbox">
+      <div class="inbox__header">
+        <h2 class="section-title" style="margin: 0;">Review inbox</h2>
+        <button type="button" class="btn btn-ghost btn-sm hidden" id="btn-clear-inbox">Clear all</button>
+      </div>
+      <ul class="response-list" id="response-list"></ul>
+      <p class="inbox__empty" id="inbox-empty">No reviews yet. Complete a job and send a request to see responses here.</p>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="../lib/storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
