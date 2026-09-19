@@ -541,7 +541,7 @@
       const data = await res.json();
       twilioLookupAvailable = Boolean(data.twilioLookupEnabled);
       if (data.twilioLookupEnabled || data.twilioSmsEnabled) {
-        els.connectionStatus.textContent = 'Twilio connected';
+        els.connectionStatus.textContent = 'Twilio live';
         els.connectionStatus.classList.add('is-live');
       }
     } catch (_) {
