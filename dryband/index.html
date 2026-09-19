@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="DryBand — a personal prototype concept for hands-free dual-ear drying after shower or swim. Not a product for sale. Concept waitlist only." />
+  <title>DryBand — Personal prototype concept</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="logo" href="#top" aria-label="DryBand concept home">DryBand</a>
+      <span class="concept-badge">Concept</span>
+      <a class="btn btn--sm btn--primary header-cta" href="#waitlist">Prototype waitlist</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- 1. Hero -->
+    <section id="top" class="hero" aria-labelledby="hero-heading">
+      <div class="container hero__grid">
+        <div class="hero__copy">
+          <p class="eyebrow">Personal prototype concept</p>
+          <h1 id="hero-heading">The ear dryer that doesn't need your hands.</h1>
+          <p class="hero__lede">
+            DryBand is an idea I'm exploring: a band that wraps like headphones and dries <strong>both ears at once</strong> — no wand, no switching sides after shower or swim. This isn't a company or a product you can buy.
+          </p>
+          <form class="waitlist-form waitlist-form--hero" data-waitlist-form aria-label="Join the prototype waitlist">
+            <label class="sr-only" for="email-hero">Email address</label>
+            <input
+              id="email-hero"
+              class="waitlist-form__input"
+              type="email"
+              name="email"
+              placeholder="you@email.com"
+              autocomplete="email"
+              required
+            />
+            <button class="btn btn--primary" type="submit">Join the prototype waitlist</button>
+          </form>
+          <p class="waitlist-form__note">Get updates on the concept · No spam · Not for sale</p>
+          <p class="form-feedback hidden" data-form-feedback role="status" aria-live="polite"></p>
+        </div>
+        <figure class="hero__visual">
+          <img
+            src="assets/mock-a-open-ear-hook.png"
+            alt="Concept mock A: man in a spa-like bathroom wearing the open-ear hook form factor, eyes closed in a calm post-shower moment"
+            width="1200"
+            height="675"
+            fetchpriority="high"
+          />
+          <figcaption class="hero__caption">Concept A — open-ear hook (render)</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 2. Job-to-be-done -->
+    <section class="section jtbd" aria-labelledby="jtbd-heading">
+      <div class="container">
+        <div class="section__intro">
+          <p class="eyebrow">The problem I'm solving</p>
+          <h2 id="jtbd-heading">After shower. After swim. Both ears. Hands free.</h2>
+          <p class="section__lede">
+            Water in the outer ear canal is annoying — and holding a handheld dryer one ear at a time gets old fast. This concept is for the moment you step out, towel in hand, and want both sides handled without gripping anything.
+          </p>
+        </div>
+        <ul class="jtbd__grid">
+          <li class="jtbd__card">
+            <span class="jtbd__icon" aria-hidden="true">🚿</span>
+            <h3>After shower</h3>
+            <p>Primary scenario: slip it on, run a short cycle, and finish getting ready while both canals dry.</p>
+          </li>
+          <li class="jtbd__card">
+            <span class="jtbd__icon" aria-hidden="true">🏊</span>
+            <h3>After swim</h3>
+            <p>Pool, lake, or ocean — one hands-free pass for both ears before you head out.</p>
+          </li>
+          <li class="jtbd__card">
+            <span class="jtbd__icon" aria-hidden="true">✋</span>
+            <h3>Hands free</h3>
+            <p>No wand to grip. No switching sides. Towel your hair, check your phone, or just stand there.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3. How it works -->
+    <section class="section how" aria-labelledby="how-heading">
+      <div class="container">
+        <div class="section__intro section__intro--center">
+          <p class="eyebrow">How the concept would work</p>
+          <h2 id="how-heading">Both ears. One cycle. Under 90 seconds.</h2>
+        </div>
+        <ol class="steps">
+          <li class="step">
+            <span class="step__num" aria-hidden="true">1</span>
+            <div class="step__body">
+              <h3>Place on both ears</h3>
+              <p>Soft tips sit at the outer ear canal opening. The band rests comfortably — nothing goes deep inside.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step__num" aria-hidden="true">2</span>
+            <div class="step__body">
+              <h3>Start the cycle</h3>
+              <p>Gentle warm airflow targets both ears at once. Hands stay on your towel or robe.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step__num" aria-hidden="true">3</span>
+            <div class="step__body">
+              <h3>Done in ~60–90 seconds</h3>
+              <p>Cycle ends on its own. Remove, set aside, move on — both sides covered.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 4. Vs wand comparison -->
+    <section class="section compare" aria-labelledby="compare-heading">
+      <div class="container compare__grid">
+        <figure class="compare__visual">
+          <img
+            src="assets/mock-c-over-ear-yoke.png"
+            alt="Concept mock C: dual-ear yoke prototype beside a traditional single-nozzle handheld ear-drying wand on a marble bathroom counter"
+            width="1200"
+            height="675"
+            loading="lazy"
+          />
+        </figure>
+        <div class="compare__copy">
+          <p class="eyebrow">Why explore this?</p>
+          <h2 id="compare-heading">Two ears. One device. Zero grip.</h2>
+          <p class="section__lede">
+            Handheld ear dryers like Mack's Ear Dryer PRO (~$60) do one ear at a time — hold, aim, wait, switch, repeat. The DryBand concept would be a hands-free dual-ear take. If it ever existed as a thing, ~$99 feels like a fair sketch vs. ~$60 for a wand — but that's napkin math, not a price list.
+          </p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th scope="col"></th>
+                <th scope="col">DryBand concept</th>
+                <th scope="col">Handheld wand</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Ears at once</th>
+                <td>Both</td>
+                <td>One at a time</td>
+              </tr>
+              <tr>
+                <th scope="row">Hands required</th>
+                <td>None</td>
+                <td>One hand, always</td>
+              </tr>
+              <tr>
+                <th scope="row">Typical cycle</th>
+                <td>~60–90 s total</td>
+                <td>~60 s × 2 ears</td>
+              </tr>
+              <tr>
+                <th scope="row">Concept price sketch</th>
+                <td>~$99 if built</td>
+                <td>~$60 (retail)</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="compare__note">Not headphones, not a hearing-aid dryer box, not ear drops, not a hair dryer — just a concept for outer-canal moisture after water.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Form-factor gallery -->
+    <section class="section gallery" aria-labelledby="gallery-heading">
+      <div class="container">
+        <div class="section__intro section__intro--center">
+          <p class="eyebrow">Form-factor directions</p>
+          <h2 id="gallery-heading">Three ways to wear the same idea</h2>
+          <p class="section__lede">Exploring fit and comfort in renders. All three share dual tips and a hands-free cycle — the band style is still open.</p>
+        </div>
+        <ul class="gallery__grid">
+          <li class="gallery__item">
+            <figure>
+              <img
+                src="assets/mock-a-open-ear-hook.png"
+                alt="Concept A: open-ear hook band worn like bone-conduction headphones"
+                width="1200"
+                height="675"
+                loading="lazy"
+              />
+              <figcaption>
+                <span class="gallery__label">A</span>
+                <strong>Open-ear hook</strong>
+                <span>Lightweight, Shokz-like wrap</span>
+              </figcaption>
+            </figure>
+          </li>
+          <li class="gallery__item">
+            <figure>
+              <img
+                src="assets/mock-b-soft-headband.png"
+                alt="Concept B: soft microfiber headband with integrated dual ear tips"
+                width="1200"
+                height="675"
+                loading="lazy"
+              />
+              <figcaption>
+                <span class="gallery__label">B</span>
+                <strong>Soft headband</strong>
+                <span>Plush, spa-ready comfort</span>
+              </figcaption>
+            </figure>
+          </li>
+          <li class="gallery__item">
+            <figure>
+              <img
+                src="assets/mock-c-over-ear-yoke.png"
+                alt="Concept C: rigid over-ear yoke with dual nozzles beside a handheld wand"
+                width="1200"
+                height="675"
+                loading="lazy"
+              />
+              <figcaption>
+                <span class="gallery__label">C</span>
+                <strong>Over-ear yoke</strong>
+                <span>Structured dual-nozzle frame</span>
+              </figcaption>
+            </figure>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 6. Tip / hygiene note -->
+    <section class="section hygiene" aria-labelledby="hygiene-heading">
+      <div class="container hygiene__inner">
+        <h2 id="hygiene-heading">Gentle drying, sensible care</h2>
+        <ul class="hygiene__list">
+          <li>The concept is about helping <strong>evaporate moisture in the outer ear canal</strong> with controlled warm airflow — not deep insertion, not medical treatment.</li>
+          <li><strong>Not a medical device.</strong> If you have ear pain, infection, tubes, or ongoing symptoms, follow your clinician's guidance.</li>
+          <li><strong>Replaceable soft tips</strong> would keep things hygienic in a real build. Swap on a sensible schedule; rinse and store the band between uses.</li>
+          <li>Never force tips into the canal. Outer-ear drying after water exposure only.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 7. Final CTA -->
+    <section id="waitlist" class="section cta-final" aria-labelledby="cta-heading">
+      <div class="container cta-final__inner">
+        <p class="eyebrow">Stay in the loop</p>
+        <h2 id="cta-heading">Get updates on the concept</h2>
+        <p class="section__lede">Curious if this ever becomes real? Join the prototype waitlist for occasional notes — renders, form-factor picks, maybe a build log. No shop, no preorder, no startup pitch.</p>
+        <form class="waitlist-form waitlist-form--footer" data-waitlist-form aria-label="Join the prototype waitlist">
+          <label class="sr-only" for="email-footer">Email address</label>
+          <input
+            id="email-footer"
+            class="waitlist-form__input"
+            type="email"
+            name="email"
+            placeholder="you@email.com"
+            autocomplete="email"
+            required
+          />
+          <button class="btn btn--primary" type="submit">Join the prototype waitlist</button>
+        </form>
+        <p class="waitlist-form__note" data-waitlist-count></p>
+        <p class="form-feedback hidden" data-form-feedback role="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <p class="site-footer__brand">DryBand <span class="concept-badge concept-badge--subtle">concept</span></p>
+      <p class="site-footer__legal">Personal prototype idea — not for sale, not a company, not a medical device.</p>
+      <p class="site-footer__demo"><a href="/">← Back to Demo Lab</a></p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
