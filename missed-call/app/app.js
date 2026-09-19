@@ -122,6 +122,9 @@
 
   const els = {
     connectionStatus: $('#connection-status'),
+    simulatePanel: $('#simulate-panel'),
+    simulateBody: $('#simulate-body'),
+    btnExpandSimulate: $('#btn-expand-simulate'),
     phoneInput: $('#phone-input'),
     btnSimulate: $('#btn-simulate'),
     flowPanel: $('#flow-panel'),
@@ -140,6 +143,16 @@
     inboxEmpty: $('#inbox-empty'),
     btnClearInbox: $('#btn-clear-inbox')
   };
+
+  function collapseSimulatePanel() {
+    els.simulatePanel.classList.add('is-collapsed');
+    els.btnExpandSimulate.classList.remove('hidden');
+  }
+
+  function expandSimulatePanel() {
+    els.simulatePanel.classList.remove('is-collapsed');
+    els.btnExpandSimulate.classList.add('hidden');
+  }
 
   function normalizePhone(raw) {
     const digits = String(raw || '').replace(/\D/g, '');
@@ -295,26 +308,34 @@
 
     for (const lead of sorted) {
       const li = document.createElement('li');
-      li.className = 'lead-card';
+      li.className = 'lead-row';
       li.dataset.id = lead.id;
 
       const badgeClass = lead.isKnown ? 'badge--known' : 'badge--new';
-      const badgeText = lead.isKnown ? 'Known contact' : 'New lead';
-      const smsClass = lead.smsStatus === 'sent' ? 'lead-card__sms' : 'lead-card__sms is-pending';
-      const smsLabel = lead.smsStatus === 'sent' ? 'SMS sent' : lead.smsStatus === 'cancelled' ? 'SMS cancelled' : 'SMS pending';
+      const badgeText = lead.isKnown ? 'Known' : 'New';
+      const statusClass = lead.smsStatus === 'sent'
+        ? 'lead-row__status'
+        : lead.smsStatus === 'cancelled'
+          ? 'lead-row__status is-cancelled'
+          : 'lead-row__status is-pending';
+      const smsLabel = lead.smsStatus === 'sent' ? 'Sent' : lead.smsStatus === 'cancelled' ? 'Cancelled' : 'Pending';
 
-      const namePart = lead.contactName ? escapeHtml(lead.contactName) + ' · ' : '';
+      const title = lead.contactName
+        ? escapeHtml(lead.contactName)
+        : escapeHtml(lead.phoneDisplay);
+      const subtitle = lead.contactName
+        ? escapeHtml(lead.phoneDisplay) + ' · ' + escapeHtml(lead.lookup.area)
+        : escapeHtml(lead.lookup.area) + ' · ' + escapeHtml(lead.lookup.carrier);
 
       li.innerHTML =
-        '<div class="lead-card__top">' +
-          '<span class="lead-card__phone">' + namePart + escapeHtml(lead.phoneDisplay) + '</span>' +
-          '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
+        '<div class="lead-row__main">' +
+          '<div class="lead-row__title">' + title + '</div>' +
+          '<div class="lead-row__meta">' + subtitle + '</div>' +
         '</div>' +
-        '<p class="lead-card__summary">' + escapeHtml(lead.lookup.area) + ' · ' + escapeHtml(lead.lookup.carrier) + '</p>' +
-        '<div class="lead-card__meta">' +
-          '<span class="' + smsClass + '">' + smsLabel + '</span>' +
-          '<span>·</span>' +
-          '<span>' + escapeHtml(formatTime(lead.timestamp)) + '</span>' +
+        '<div class="lead-row__aside">' +
+          '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
+          '<span class="' + statusClass + '">' + smsLabel + '</span>' +
+          '<span class="lead-row__time">' + escapeHtml(formatTime(lead.timestamp)) + '</span>' +
         '</div>';
 
       els.leadList.appendChild(li);
@@ -332,9 +353,9 @@
 
     els.lookupGrid.innerHTML = items.map(function (item) {
       return (
-        '<div class="lookup-item' + (item.wide ? ' lookup-item--wide' : '') + '">' +
-          '<span class="lookup-item__label">' + escapeHtml(item.label) + '</span>' +
-          '<span class="lookup-item__value">' + escapeHtml(item.value) + '</span>' +
+        '<div class="kv-row">' +
+          '<span class="kv-row__label">' + escapeHtml(item.label) + '</span>' +
+          '<span class="kv-row__value">' + escapeHtml(item.value) + '</span>' +
         '</div>'
       );
     }).join('');
@@ -452,6 +473,7 @@
 
     saveInbox();
     renderInbox();
+    collapseSimulatePanel();
   }
 
   function cancelSms() {
@@ -474,6 +496,7 @@
     }
 
     currentFlow = null;
+    collapseSimulatePanel();
   }
 
   async function runFlow(digits) {
@@ -484,10 +507,11 @@
 
     clearTimer();
     currentFlow = null;
+    expandSimulatePanel();
 
     const phoneDisplay = formatPhone(digits);
     els.flowPanel.hidden = false;
-    els.missedBannerText.textContent = 'Missed call from ' + phoneDisplay;
+    els.missedBannerText.textContent = 'Call from ' + phoneDisplay;
     els.lookupPanel.hidden = true;
     els.smsPanel.hidden = true;
 
@@ -541,7 +565,7 @@
       const data = await res.json();
       twilioLookupAvailable = Boolean(data.twilioLookupEnabled);
       if (data.twilioLookupEnabled || data.twilioSmsEnabled) {
-        els.connectionStatus.textContent = 'Twilio connected';
+        els.connectionStatus.textContent = 'Twilio live';
         els.connectionStatus.classList.add('is-live');
       }
     } catch (_) {
@@ -579,6 +603,11 @@
     });
 
     els.btnCancelSms.addEventListener('click', cancelSms);
+
+    els.btnExpandSimulate.addEventListener('click', function () {
+      expandSimulatePanel();
+      els.phoneInput.focus();
+    });
 
     els.btnClearInbox.addEventListener('click', function () {
       if (!leads.length) return;
