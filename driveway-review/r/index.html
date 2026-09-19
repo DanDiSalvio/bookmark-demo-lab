@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>Share your review — Driveway Review Grab</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="capture" id="capture-root">
+    <div class="capture__brand" aria-hidden="true">
+      <span class="capture__brand-mark">DR</span>
+      Review request
+    </div>
+
+    <div id="error-state" class="error-panel hidden">
+      <h1>Link not found</h1>
+      <p>This review link may have expired or is invalid. Ask your service provider to send a new one.</p>
+    </div>
+
+    <div id="form-state">
+      <header class="capture__header">
+        <h1>How did we do?</h1>
+        <p class="capture__sub">One sentence about today's work — takes 30 seconds. Optional photo of the finished job.</p>
+      </header>
+
+      <div class="capture__job" id="job-info" hidden>
+        <p class="capture__job-label">Today's service</p>
+        <p class="capture__job-service" id="job-service"></p>
+        <p class="capture__job-address" id="job-address"></p>
+      </div>
+
+      <form class="form-panel" id="review-form">
+        <div class="field">
+          <label class="field-label" for="review-text">Your review</label>
+          <textarea
+            id="review-text"
+            class="field-textarea"
+            placeholder="The crew was professional and the yard looks incredible."
+            maxlength="500"
+            required
+          ></textarea>
+          <span class="field-hint">One sentence is perfect — we'll polish it for Google.</span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="photo-input">Photo (optional)</label>
+          <div class="photo-upload">
+            <input type="file" id="photo-input" class="photo-upload__input" accept="image/*" capture="environment" />
+            <div class="photo-upload__zone" id="photo-zone" role="button" tabindex="0" aria-label="Add photo">
+              <span class="photo-upload__icon" aria-hidden="true">📷</span>
+              <span class="photo-upload__text">Tap to add a photo</span>
+              <span class="photo-upload__hint">Finished work, before/after, etc.</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btn-submit">Submit review</button>
+      </form>
+    </div>
+
+    <div id="thank-you-state" class="thank-you hidden">
+      <div class="thank-you__icon" aria-hidden="true">✓</div>
+      <h1>Thank you!</h1>
+      <p>Your feedback means a lot. The team will see it right away.</p>
+    </div>
+  </main>
+
+  <script src="../lib/storage.js"></script>
+  <script src="capture.js"></script>
+</body>
+</html>

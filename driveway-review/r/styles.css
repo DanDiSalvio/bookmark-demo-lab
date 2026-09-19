@@ -1,0 +1,359 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #0a0a0a;
+  --text-secondary: #404040;
+  --text-muted: #737373;
+  --border: #e5e5e5;
+  --border-strong: #d4d4d4;
+  --accent: #ea580c;
+  --accent-hover: #c2410c;
+  --accent-subtle: #fff7ed;
+  --success: #15803d;
+  --success-bg: #f0fdf4;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.04);
+  --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.capture {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px calc(32px + var(--safe-bottom));
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.capture__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.capture__brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.capture__header {
+  margin-bottom: 32px;
+}
+
+.capture__header h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.capture__sub {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.capture__job {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.capture__job-label {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.capture__job-service {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.capture__job-address {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.form-panel {
+  flex: 1;
+}
+
+.field {
+  margin-bottom: 24px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.field-textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field-textarea:focus {
+  outline: none;
+  border-color: var(--text);
+  box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.08);
+}
+
+.photo-upload {
+  position: relative;
+}
+
+.photo-upload__input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.photo-upload__zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 16px;
+  background: var(--surface);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+}
+
+.photo-upload__zone:hover {
+  border-color: var(--text-muted);
+  background: var(--bg);
+}
+
+.photo-upload__zone--has-photo {
+  padding: 0;
+  border-style: solid;
+  overflow: hidden;
+}
+
+.photo-upload__icon {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+.photo-upload__text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.photo-upload__hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.photo-preview {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+}
+
+.photo-remove {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: none;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.photo-remove:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 24px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #262626;
+}
+
+.error-panel {
+  padding: 24px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.error-panel h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.error-panel p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.thank-you {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 0;
+}
+
+.thank-you__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 24px;
+  font-size: 28px;
+  background: var(--success-bg);
+  border-radius: 50%;
+  color: var(--success);
+}
+
+.thank-you h1 {
+  margin: 0 0 12px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.thank-you p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 32ch;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (min-width: 480px) {
+  .capture {
+    padding: 40px 24px calc(48px + var(--safe-bottom));
+  }
+
+  .capture__header h1 {
+    font-size: 30px;
+  }
+}
