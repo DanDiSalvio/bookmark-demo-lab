@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#09090b" />
+  <meta name="theme-color" content="#0a0b0d" />
   <title>Missed-Call Text-Back</title>
   <link rel="stylesheet" href="../shared.css" />
   <link rel="stylesheet" href="styles.css" />
@@ -12,10 +12,7 @@
 <body>
   <div class="app">
     <nav class="shell-nav" aria-label="App navigation">
-      <a class="shell-nav__brand" href="/missed-call/">
-        <span class="shell-nav__mark" aria-hidden="true">MC</span>
-        Missed-Call Text-Back
-      </a>
+      <a class="shell-nav__brand" href="/missed-call/">Missed-Call Text-Back</a>
       <span class="app-status" id="connection-status" aria-live="polite"></span>
     </nav>
 
@@ -25,10 +22,11 @@
     </header>
 
     <section class="card" id="simulate-panel" aria-label="Simulate missed call">
-      <div class="card__header">
+      <div class="card__header card__header--split">
         <h2 class="card__title">Simulate missed call</h2>
+        <button type="button" class="btn-link hidden" id="btn-expand-simulate">New simulation</button>
       </div>
-      <div class="card__body">
+      <div class="card__body" id="simulate-body">
         <label class="field-label" for="phone-input">Caller phone number</label>
         <input
           type="tel"
@@ -39,7 +37,7 @@
           inputmode="tel"
         />
         <div class="samples">
-          <span class="samples__label">Quick samples</span>
+          <span class="samples__label meta">Quick samples</span>
           <div class="samples__chips">
             <button type="button" class="chip" data-sample="new">New lead</button>
             <button type="button" class="chip" data-sample="known-mike">Known: Mike</button>
@@ -47,17 +45,14 @@
           </div>
         </div>
         <button type="button" class="btn btn-primary btn-block" id="btn-simulate">Simulate missed call</button>
-        <p class="card__footnote">Demo only — we never send SMS to real strangers without your explicit test setup.</p>
+        <p class="card__footnote meta">Demo only — we never send SMS to real strangers without your explicit test setup.</p>
       </div>
     </section>
 
     <section class="flow" id="flow-panel" hidden aria-label="Call flow">
-      <div class="alert alert--missed" id="missed-banner" role="status" aria-live="polite">
-        <svg class="alert__icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M3.5 2.5 1 5v2.5a6 6 0 0 0 12 0V5l-2.5-2.5M8 10.5v1" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M6 1h4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-        </svg>
-        <span class="alert__text" id="missed-banner-text">Missed call detected…</span>
+      <div class="flow-status" id="missed-banner" role="status" aria-live="polite">
+        <span class="badge badge--missed">Missed</span>
+        <span class="flow-status__text" id="missed-banner-text">Call from …</span>
       </div>
 
       <div class="card" id="lookup-panel" hidden>
@@ -65,8 +60,8 @@
           <h3 class="card__title">Caller lookup</h3>
         </div>
         <div class="card__body card__body--flush">
-          <div class="data-grid" id="lookup-grid"></div>
-          <p class="data-source" id="lookup-source"></p>
+          <div class="kv-list" id="lookup-grid"></div>
+          <p class="data-source meta" id="lookup-source"></p>
         </div>
       </div>
 
@@ -95,13 +90,13 @@
       <ul class="lead-list" id="lead-list"></ul>
       <div class="inbox__empty" id="inbox-empty">
         <p>No leads yet</p>
-        <span>Simulate a missed call to see one appear here.</span>
+        <span class="meta">Simulate a missed call to see one appear here.</span>
       </div>
     </section>
 
     <footer class="app-footer">
-      <p>Demo for home-service owners · Data stays in your browser · <a href="/missed-call/">About</a></p>
-      <p class="app-footer__note">Production uses a forwarded business line + webhook — not your phone's call log.</p>
+      <p class="meta">Demo for home-service owners · Data stays in your browser · <a href="/missed-call/">About</a></p>
+      <p class="app-footer__note meta">Production uses a forwarded business line + webhook — not your phone's call log.</p>
     </footer>
   </div>
 

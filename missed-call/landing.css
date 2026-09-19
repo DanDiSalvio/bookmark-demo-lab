@@ -4,29 +4,26 @@
   padding: 0 var(--space-4) calc(var(--space-12) + var(--safe-bottom));
 }
 
-/* Hero */
+/* Hero — MC-S2 */
 .hero {
   margin-bottom: var(--space-10);
 }
 
-.hero .label {
-  margin-bottom: var(--space-3);
-}
-
 .hero__title {
   margin: 0 0 var(--space-4);
-  font-size: clamp(28px, 6vw, 36px);
+  font-size: clamp(36px, 6vw, 40px);
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.1;
   color: var(--color-text);
 }
 
 .hero__lede {
   margin: 0 0 var(--space-6);
-  font-size: 16px;
-  line-height: 1.55;
-  color: var(--color-text-secondary);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-muted);
   max-width: 52ch;
 }
 
@@ -45,24 +42,21 @@
 
 .hero__meta {
   margin: 0;
-  font-size: 13px;
-  color: var(--color-text-tertiary);
 }
 
-/* Audience callout */
+/* Audience */
 .audience {
   padding: var(--space-4);
-  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   margin-bottom: var(--space-10);
 }
 
 .audience__text {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.55;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 .audience__text strong {
@@ -78,46 +72,39 @@
 .section__title {
   margin: 0 0 var(--space-5);
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
+  font-weight: 400;
+  color: var(--color-text-muted);
 }
 
-/* Flow steps */
+/* Flow steps — MC-S5 */
 .flow-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .flow-item {
   display: grid;
-  grid-template-columns: 32px 1fr;
+  grid-template-columns: 40px 1fr;
   gap: var(--space-4);
   align-items: start;
   padding: var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.flow-item__step {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
+.flow-item:last-child {
+  border-bottom: none;
+}
+
+.flow-item__num {
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
 }
 
 .flow-item__title {
@@ -129,18 +116,16 @@
 
 .flow-item__desc {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 /* Product preview */
 .product-preview {
-  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
 }
 
 .product-preview__chrome {
@@ -148,11 +133,10 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 .product-preview__chrome-tab {
@@ -167,52 +151,40 @@
   gap: var(--space-3);
 }
 
-.product-preview__alert {
+.product-preview__status {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-danger-subtle);
-  border: 1px solid #fecaca;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-danger);
 }
 
-.product-preview__alert-icon {
-  flex-shrink: 0;
+.product-preview__status-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .product-preview__sms {
   padding: var(--space-3) var(--space-4);
-  background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
 }
 
 .product-preview__sms-label {
   display: block;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
   margin-bottom: var(--space-2);
 }
 
 .product-preview__sms p {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 .product-preview__lead {
   padding: var(--space-3) var(--space-4);
-  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
 }
 
 .product-preview__lead-row {
@@ -231,15 +203,12 @@
 
 .product-preview__lead-meta {
   margin: 0;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
 }
 
 /* Pricing */
 .pricing-table {
-  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -256,10 +225,6 @@
   border-bottom: none;
 }
 
-.pricing-row--featured {
-  background: var(--color-bg);
-}
-
 .pricing-row__info {
   display: flex;
   flex-direction: column;
@@ -272,8 +237,7 @@
 }
 
 .pricing-row__detail {
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  margin: 0;
 }
 
 .pricing-row__price {
@@ -285,8 +249,6 @@
 
 .pricing__note {
   margin: var(--space-3) 0 0;
-  font-size: 13px;
-  color: var(--color-text-tertiary);
 }
 
 /* Footer */
@@ -305,30 +267,24 @@
 
 .footer__credit {
   margin: 0 0 var(--space-6);
-  font-size: 12px;
-  color: var(--color-text-tertiary);
 }
 
 .footer__disclosure {
   text-align: left;
   padding: var(--space-4);
-  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
 }
 
 .footer__disclosure-title {
   margin: 0 0 var(--space-2);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
 }
 
-.footer__disclosure p:last-child {
-  margin: 0;
-  font-size: 12px;
+.footer__disclosure .meta {
   line-height: 1.55;
-  color: var(--color-text-secondary);
 }
 
 @media (min-width: 520px) {

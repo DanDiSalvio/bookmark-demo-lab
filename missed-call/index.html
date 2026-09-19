@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="Miss a call? Auto-text the caller with a booking link before they call your competitor. Built for plumbers, HVAC, and electricians." />
-  <meta name="theme-color" content="#09090b" />
+  <meta name="theme-color" content="#0a0b0d" />
   <title>Missed-Call Text-Back — Turn missed calls into booked jobs</title>
   <link rel="stylesheet" href="shared.css" />
   <link rel="stylesheet" href="landing.css" />
@@ -12,15 +12,11 @@
 <body>
   <div class="page">
     <nav class="shell-nav" aria-label="Site">
-      <a class="shell-nav__brand" href="/missed-call/">
-        <span class="shell-nav__mark" aria-hidden="true">MC</span>
-        Missed-Call Text-Back
-      </a>
+      <a class="shell-nav__brand" href="/missed-call/">Missed-Call Text-Back</a>
       <a class="shell-nav__link" href="/missed-call/app/">Open app</a>
     </nav>
 
     <header class="hero">
-      <p class="label">For home-service owners</p>
       <h1 class="hero__title">Miss a call? Text them back before they call your competitor.</h1>
       <p class="hero__lede">
         When you can't pick up, we look up who's calling, send a personalized text with your booking link, and drop a lead card in your inbox.
@@ -29,7 +25,7 @@
         <a class="btn btn-primary" href="/missed-call/app/?sample=1">Try sample missed call</a>
         <a class="btn btn-secondary" href="/missed-call/app/">Simulate your own</a>
       </div>
-      <p class="hero__meta">No signup · Demo runs in your browser</p>
+      <p class="hero__meta meta">No signup · Demo runs in your browser</p>
     </header>
 
     <section class="audience" aria-label="Who it's for">
@@ -42,21 +38,21 @@
       <h2 class="section__title" id="how-heading">How it works</h2>
       <ol class="flow-list">
         <li class="flow-item">
-          <span class="flow-item__step" aria-hidden="true">1</span>
+          <span class="flow-item__num meta" aria-hidden="true">01</span>
           <div class="flow-item__body">
             <h3 class="flow-item__title">Miss the call</h3>
             <p class="flow-item__desc">A customer rings your business line while you're under a sink or on a roof. No answer — they're already dialing the next name on Google.</p>
           </div>
         </li>
         <li class="flow-item">
-          <span class="flow-item__step" aria-hidden="true">2</span>
+          <span class="flow-item__num meta" aria-hidden="true">02</span>
           <div class="flow-item__body">
             <h3 class="flow-item__title">Lookup + auto-text</h3>
             <p class="flow-item__desc">We reverse-lookup the number (area, carrier, caller ID) and send a personalized SMS with your booking link — new leads get the pitch, returning customers get a shorter message.</p>
           </div>
         </li>
         <li class="flow-item">
-          <span class="flow-item__step" aria-hidden="true">3</span>
+          <span class="flow-item__num meta" aria-hidden="true">03</span>
           <div class="flow-item__body">
             <h3 class="flow-item__title">Lead card in your inbox</h3>
             <p class="flow-item__desc">You get a lead card with phone, lookup summary, known/new badge, and SMS status — so you can follow up when you're off the ladder.</p>
@@ -69,19 +65,16 @@
       <h2 class="section__title" id="preview-heading">What you'll see</h2>
       <div class="product-preview" role="img" aria-label="Example missed call flow showing SMS and lead card">
         <div class="product-preview__chrome">
-          <span class="product-preview__chrome-title">Missed-Call Text-Back</span>
+          <span>Missed-Call Text-Back</span>
           <span class="product-preview__chrome-tab">Lead inbox</span>
         </div>
         <div class="product-preview__content">
-          <div class="product-preview__alert">
-            <svg class="product-preview__alert-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z" stroke="currentColor" stroke-width="1.25"/>
-              <path d="M8 5v3.5M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            <span>Missed call from (555) 412-9087</span>
+          <div class="product-preview__status">
+            <span class="badge badge--missed">Missed</span>
+            <span class="product-preview__status-text">(555) 412-9087</span>
           </div>
           <div class="product-preview__sms">
-            <span class="product-preview__sms-label">Outgoing SMS</span>
+            <span class="product-preview__sms-label meta">Outgoing SMS</span>
             <p>"Hi there — sorry we missed your call! Book a visit in 30 seconds: book.yourbiz.com/schedule"</p>
           </div>
           <div class="product-preview__lead">
@@ -89,7 +82,7 @@
               <span class="product-preview__lead-phone">(555) 412-9087 · Denver, CO</span>
               <span class="badge badge--new">New lead</span>
             </div>
-            <p class="product-preview__lead-meta">SMS sent · Verizon Wireless · 2 min ago</p>
+            <p class="product-preview__lead-meta meta">SMS sent · Verizon Wireless · 2 min ago</p>
           </div>
         </div>
       </div>
@@ -99,27 +92,25 @@
       <h2 class="section__title" id="pricing-heading">Pricing</h2>
       <div class="pricing-table">
         <div class="pricing-row">
-          <div class="pricing-row__info">
-            <span class="pricing-row__name">Free trial</span>
-          </div>
+          <span class="pricing-row__name">Free trial</span>
           <span class="pricing-row__price">14 days</span>
         </div>
-        <div class="pricing-row pricing-row--featured">
+        <div class="pricing-row">
           <div class="pricing-row__info">
             <span class="pricing-row__name">Pro</span>
-            <span class="pricing-row__detail">$49/mo · forwarded line + SMS + lead inbox</span>
+            <span class="pricing-row__detail meta">$49/mo · forwarded line + SMS + lead inbox</span>
           </div>
         </div>
       </div>
-      <p class="pricing__note">Try the sample flow free today.</p>
+      <p class="pricing__note meta">Try the sample flow free today.</p>
     </section>
 
     <footer class="footer">
       <a class="btn btn-primary" href="/missed-call/app/?sample=1">Try sample missed call</a>
-      <p class="footer__credit">Demo for home-service owner-operators · Part of Dan's Demo Lab</p>
+      <p class="footer__credit meta">Demo for home-service owner-operators · Part of Dan's Demo Lab</p>
       <div class="footer__disclosure">
         <p class="footer__disclosure-title">How production works</p>
-        <p>Your business number forwards through a service like Twilio or OpenPhone. When a call is missed or goes unanswered, a webhook triggers the text-back — this demo simulates that flow. We never read your phone's call log; browsers can't access iOS or Android call history.</p>
+        <p class="meta">Your business number forwards through a service like Twilio or OpenPhone. When a call is missed or goes unanswered, a webhook triggers the text-back — this demo simulates that flow. We never read your phone's call log; browsers can't access iOS or Android call history.</p>
       </div>
     </footer>
   </div>
