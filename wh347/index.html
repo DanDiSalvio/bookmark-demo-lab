@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="Check subcontractor WH-347 certified payroll filings before you forward them. Pass/fail checklist and copy-ready kickback notes for Davis-Bacon jobs." />
   <meta name="theme-color" content="#0a0b0d" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/wh347/favicon.svg" type="image/svg+xml" />
   <title>WH-347 Sub Check — Catch bad payroll before you forward it</title>
   <link rel="stylesheet" href="shared.css" />
   <link rel="stylesheet" href="landing.css" />
@@ -28,55 +28,90 @@
       </div>
       <p class="hero__meta meta">No signup · Demo runs in your browser</p>
 
-      <div class="hero-preview" role="img" aria-label="Example project grid showing subcontractor payroll status by week">
+      <div class="hero-preview" aria-label="Example project grid showing subcontractor payroll status by week">
         <div class="hero-preview__summary">
-          <span><strong>2</strong> need fixes</span>
-          <span class="hero-preview__sep">/</span>
-          <span><strong>1</strong> ready</span>
-          <span class="hero-preview__sep">/</span>
-          <span><strong>9</strong> not received</span>
+          <span class="hero-preview__stat hero-preview__stat--issues"><strong>2</strong> need fixes</span>
+          <span class="hero-preview__sep" aria-hidden="true">/</span>
+          <span class="hero-preview__stat hero-preview__stat--ready"><strong>1</strong> ready</span>
+          <span class="hero-preview__sep" aria-hidden="true">/</span>
+          <span class="hero-preview__stat hero-preview__stat--pending"><strong>9</strong> not received</span>
         </div>
-        <table class="hero-preview__table">
-          <thead>
-            <tr>
-              <th scope="col">Subcontractor</th>
-              <th scope="col">Wk ending Sep 13, 2026</th>
-              <th scope="col">Wk ending Sep 20, 2026</th>
-              <th scope="col">Wk ending Sep 27, 2026</th>
-              <th scope="col">Wk ending Oct 4, 2026</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">Apex Mechanical LLC</th>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td><span class="status-pill status-pill--ready">Ready</span></td>
-              <td></td>
-            </tr>
-            <tr>
-              <th scope="row">Summit Electric Inc.</th>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td><span class="status-pill status-pill--issues">Issues</span></td>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td></td>
-            </tr>
-            <tr>
-              <th scope="row">Quick Drywall Co.</th>
-              <td><span class="status-pill status-pill--issues">Issues</span></td>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td></td>
-            </tr>
-            <tr>
-              <th scope="row">Pacific Steel Erectors</th>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td><span class="status-pill status-pill--pending">Not received</span></td>
-              <td></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="hero-preview__desktop">
+          <table class="hero-preview__table">
+            <thead>
+              <tr>
+                <th scope="col">Subcontractor</th>
+                <th scope="col">Wk ending Sep 13, 2026</th>
+                <th scope="col">Wk ending Sep 20, 2026</th>
+                <th scope="col">Wk ending Sep 27, 2026</th>
+                <th scope="col">Wk ending Oct 4, 2026</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Apex Mechanical LLC</th>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--ready">Ready</span></td>
+                <td><span class="status-pill status-pill--pending">Not due</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Summit Electric Inc.</th>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--issues">Issues</span></td>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--pending">Not due</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Quick Drywall Co.</th>
+                <td><span class="status-pill status-pill--issues">Issues</span></td>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--pending">Not due</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Pacific Steel Erectors</th>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--pending">Not due</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="hero-preview__mobile">
+          <div class="hero-preview__group">
+            <h3 class="hero-preview__group-title">Needs fixes (2)</h3>
+            <ul class="hero-preview__list">
+              <li class="hero-preview__row">
+                <span class="hero-preview__name">Quick Drywall Co.</span>
+                <span class="meta">Wk ending Sep 13, 2026</span>
+                <span class="status-pill status-pill--issues">Issues</span>
+              </li>
+              <li class="hero-preview__row">
+                <span class="hero-preview__name">Summit Electric Inc.</span>
+                <span class="meta">Wk ending Sep 20, 2026</span>
+                <span class="status-pill status-pill--issues">Issues</span>
+              </li>
+            </ul>
+          </div>
+          <div class="hero-preview__group">
+            <h3 class="hero-preview__group-title">Ready to forward (1)</h3>
+            <ul class="hero-preview__list">
+              <li class="hero-preview__row">
+                <span class="hero-preview__name">Apex Mechanical LLC</span>
+                <span class="meta">Wk ending Sep 27, 2026</span>
+                <span class="status-pill status-pill--ready">Ready</span>
+              </li>
+            </ul>
+          </div>
+          <details class="hero-preview__collapse">
+            <summary class="hero-preview__group-title">Not received (9)</summary>
+            <ul class="hero-preview__list hero-preview__list--muted">
+              <li class="hero-preview__row hero-preview__row--compact"><span class="meta">9 filings not yet submitted</span></li>
+            </ul>
+          </details>
+        </div>
       </div>
     </header>
 

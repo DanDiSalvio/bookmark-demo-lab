@@ -34,11 +34,14 @@
 
   const ICON_PASS = '<svg class="check-item__svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M6.5 11.2 3.3 8l-.9.9 4.1 4.1 8-8-.9-.9z"/></svg>';
   const ICON_FAIL = '<svg class="check-item__svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 6.9 11.8 3l.9.9L8.9 7.8l3.8 3.8-.9.9L8 8.7 4.2 12.5l-.9-.9L7.1 7.8 3.3 4l.9-.9z"/></svg>';
+  const ICON_CHEVRON = '<svg class="grid-list__chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M6 4l4 4-4 4V4z"/></svg>';
 
   /** @type {typeof DEFAULT_PROJECT} */
   let project = loadProject();
   /** @type {{ subId: string, weekId: string } | null} */
   let selectedCell = null;
+  /** @type {{ checks: CheckResult[], subName: string, weekLabel: string } | null} */
+  let currentResults = null;
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -56,10 +59,10 @@
   const resultsBadge = $('#results-badge');
   const resultsMeta = $('#results-meta');
   const composerPanel = $('#composer-panel');
-  const composerReady = $('#composer-ready');
   const composerTo = $('#composer-to');
   const composerSubject = $('#composer-subject');
   const composerBody = $('#composer-body');
+  const composerResubmit = $('#composer-resubmit');
   const composerSignature = $('#composer-signature');
   const gridDesktop = $('#project-grid-desktop');
   const gridMobile = $('#project-grid-mobile');
@@ -130,7 +133,44 @@
     if (status === 'ready') return 'Ready';
     if (status === 'issues') return 'Issues';
     if (status === 'pending') return 'Not received';
+    if (status === 'future') return 'Not due';
     return '';
+  }
+
+  function defaultResubmitDate() {
+    const d = new Date(DEMO_TODAY);
+    d.setDate(d.getDate() + 5);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function formatDemoAsOf() {
+    return DEMO_TODAY.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  /**
+   * @param {CheckResult} check
+   */
+  function subDirectedBullet(check) {
+    switch (check.id) {
+      case 'formRevision':
+        if (check.detail.includes('09/30/2026')) {
+          return 'Resubmit on the current WH-347 form (OMB 1235-0008, expires 01/31/2028).';
+        }
+        if (check.detail.includes('Could not find')) {
+          return 'Confirm you are using WH-347 and that the PDF has a readable text layer (not a flat scan).';
+        }
+        return 'Verify the form shows OMB 1235-0008 with expiry 01/31/2028.';
+      case 'wageDetermination':
+        return 'Enter the wage determination number(s) from the contract.';
+      case 'apprenticeRegistration':
+        return 'List each apprentice\'s registered program (OA or SAA) and complete Box 4 on the Statement of Compliance.';
+      case 'fringeBenefits':
+        return 'Complete the Hourly Credit for Fringe Benefits section on page 2, or show fringe paid as cash in column 6C.';
+      case 'statementOfCompliance':
+        return 'Sign and date the Statement of Compliance with the certifying official\'s name and title.';
+      default:
+        return check.detail;
+    }
   }
 
   function statusPillClass(status) {
@@ -315,17 +355,35 @@
    * @param {string} subName
    * @param {string} weekLabel
    */
-  function buildMessageBody(checks, subName, weekLabel) {
+  function assembleMessageBody(checks, subName, weekLabel) {
     const failures = checks.filter((c) => !c.pass);
     const signature = composerSignature.value.trim() || loadSignature();
+    const resubmitBy = composerResubmit.value.trim() || defaultResubmitDate();
     const signOff = signature ? `\n\n${signature}` : '';
 
     if (failures.length === 0) {
       return `${subName},\n\nYour WH-347 for week ending ${weekLabel}, ${PROJECT_YEAR} passed our pre-check. We will forward to the contracting agency.${signOff}`;
     }
 
-    const items = failures.map((f) => `• ${f.detail}`);
-    return `${subName},\n\nYour certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR} cannot be forwarded yet. Incomplete, wrong-revision, or defective filings are treated like missing filings — payment will be withheld until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n')}\n\nResubmit a corrected WH-347 (current form: OMB 1235-0008, expires 01/31/2028) at your earliest convenience.${signOff}`;
+    const items = failures.map((f) => `• ${subDirectedBullet(f)}`);
+    return `${subName},\n\nYour certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR} cannot be forwarded yet. Incomplete, wrong-revision, or defective filings are treated like missing filings — payment will be withheld until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n')}\n\nPlease resubmit by ${resubmitBy}.${signOff}`;
+  }
+
+  function refreshComposerBody() {
+    if (!currentResults) return;
+    const { checks, subName, weekLabel } = currentResults;
+    composerBody.value = assembleMessageBody(checks, subName, weekLabel);
+  }
+
+  function getOutboundMessageBody() {
+    if (currentResults) {
+      return assembleMessageBody(
+        currentResults.checks,
+        currentResults.subName,
+        currentResults.weekLabel
+      );
+    }
+    return composerBody.value;
   }
 
   function buildSubject(weekLabel, hasFailures) {
@@ -360,22 +418,53 @@
    * @param {string} fileName
    * @param {string} [subId]
    * @param {string} [weekId]
+   * @param {boolean} [shouldFocus]
    */
-  function showResults(checks, subName, weekLabel, fileName, subId, weekId) {
+  function showResults(checks, subName, weekLabel, fileName, subId, weekId, shouldFocus) {
     const failures = checks.filter((c) => !c.pass);
     const passes = checks.filter((c) => c.pass);
     const allPass = failures.length === 0;
 
+    currentResults = { checks, subName, weekLabel };
+
     resultsPanel.classList.remove('hidden');
-    resultsBadge.textContent = allPass ? 'Ready' : 'Issues';
-    resultsBadge.className = 'badge ' + (allPass ? 'badge--pass' : 'badge--fail');
 
     if (allPass) {
-      resultsIssues.hidden = true;
-      resultsIssues.textContent = '';
+      resultsBadge.hidden = true;
+      resultsIssues.hidden = false;
+      resultsIssues.textContent = 'Ready to forward';
+      resultsIssues.className = 'results-issues results-issues--ready';
+      checkList.innerHTML = '';
+      checkList.classList.add('hidden');
+      checkPasses.hidden = false;
+      checkListPasses.innerHTML = passes.map(renderCheckItem).join('');
+      checkPasses.querySelector('.check-passes__summary').textContent =
+        `${passes.length} check${passes.length === 1 ? '' : 's'} passed`;
+      composerPanel.hidden = true;
     } else {
+      resultsBadge.hidden = false;
+      resultsBadge.textContent = 'Issues';
+      resultsBadge.className = 'badge badge--fail';
       resultsIssues.hidden = false;
       resultsIssues.textContent = `${failures.length} issue${failures.length === 1 ? '' : 's'} to fix`;
+      resultsIssues.className = 'results-issues';
+      checkList.classList.remove('hidden');
+      checkList.innerHTML = failures.map(renderCheckItem).join('');
+      if (passes.length > 0) {
+        checkPasses.hidden = false;
+        checkListPasses.innerHTML = passes.map(renderCheckItem).join('');
+        checkPasses.querySelector('.check-passes__summary').textContent =
+          `${passes.length} check${passes.length === 1 ? '' : 's'} passed`;
+      } else {
+        checkPasses.hidden = true;
+        checkListPasses.innerHTML = '';
+      }
+      composerPanel.hidden = false;
+      composerSubject.value = buildSubject(weekLabel, true);
+      if (!composerResubmit.value.trim()) {
+        composerResubmit.value = defaultResubmitDate();
+      }
+      refreshComposerBody();
     }
 
     resultsMeta.innerHTML = `
@@ -383,32 +472,14 @@
       <span class="results-meta__file" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
     `;
 
-    checkList.innerHTML = failures.map(renderCheckItem).join('');
-
-    if (passes.length > 0) {
-      checkPasses.hidden = false;
-      checkListPasses.innerHTML = passes.map(renderCheckItem).join('');
-    } else {
-      checkPasses.hidden = true;
-      checkListPasses.innerHTML = '';
-    }
-
-    if (allPass) {
-      composerPanel.hidden = true;
-      composerReady.classList.remove('hidden');
-    } else {
-      composerPanel.hidden = false;
-      composerReady.classList.add('hidden');
-      composerSubject.value = buildSubject(weekLabel, true);
-      composerBody.value = buildMessageBody(checks, subName, weekLabel);
-    }
-
     if (subId && weekId) {
       selectedCell = { subId, weekId };
       renderGrid();
     }
 
-    resultsHeading.focus();
+    if (shouldFocus) {
+      resultsHeading.focus();
+    }
     resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -458,7 +529,9 @@
         const selectedClass = isSelected ? ' filing-table__cell--selected' : '';
 
         if (status === 'future') {
-          html += `<td class="filing-table__cell filing-table__cell--future${selectedClass}"></td>`;
+          html += `<td class="filing-table__cell filing-table__cell--future${selectedClass}">
+            <span class="status-pill status-pill--pending">Not due</span>
+          </td>`;
           continue;
         }
 
@@ -488,27 +561,36 @@
   }
 
   function renderMobileList() {
-    const groups = [
+    const groupDefs = [
       { key: 'issues', title: 'Needs fixes', status: 'issues' },
       { key: 'ready', title: 'Ready to forward', status: 'ready' },
       { key: 'pending', title: 'Not received', status: 'pending' }
     ];
 
-    let html = '';
-    for (const group of groups) {
+    const grouped = groupDefs.map((group) => {
       const items = [];
       for (const sub of project.subs) {
         for (const week of project.weeks) {
           const status = getCellStatus(sub.id, week.id);
           if (status === 'future' || status !== group.status) continue;
-          if (group.status === 'pending' && project.filings[filingKey(sub.id, week.id)]) continue;
           items.push({ sub, week, status });
         }
       }
-      if (items.length === 0) continue;
+      return { ...group, items };
+    });
 
-      html += `<div class="grid-list__group"><h3 class="grid-list__title">${group.title}</h3><ul class="grid-list__items">`;
-      for (const { sub, week, status } of items) {
+    let html = '';
+    for (const group of grouped) {
+      if (group.items.length === 0) continue;
+
+      const title = `${group.title} (${group.items.length})`;
+      if (group.key === 'pending') {
+        html += `<details class="grid-list__collapse"><summary class="grid-list__title">${title}</summary><ul class="grid-list__items">`;
+      } else {
+        html += `<div class="grid-list__group"><h3 class="grid-list__title">${title}</h3><ul class="grid-list__items">`;
+      }
+
+      for (const { sub, week, status } of group.items) {
         const isSelected = selectedCell?.subId === sub.id && selectedCell?.weekId === week.id;
         const clickable = status !== 'pending';
         const tag = clickable ? 'button' : 'div';
@@ -516,13 +598,19 @@
           ? ` type="button" class="grid-list__item grid-list__item--clickable${isSelected ? ' grid-list__item--selected' : ''}" data-sub="${sub.id}" data-week="${week.id}" aria-label="${escapeHtml(sub.name)}, week ending ${week.label}, ${PROJECT_YEAR}"${isSelected ? ' aria-current="true"' : ''}`
           : ` class="grid-list__item"`;
 
+        const chevron = clickable ? ICON_CHEVRON : '';
         html += `<li><${tag}${attrs}>
-          <span class="grid-list__name">${escapeHtml(sub.name)}</span>
-          <span class="grid-list__week meta">${escapeHtml(weekHeaderLabel(week))}</span>
-          <span class="status-pill ${statusPillClass(status)}">${statusLabel(status)}</span>
+          <span class="grid-list__text">
+            <span class="grid-list__name">${escapeHtml(sub.name)}</span>
+            <span class="grid-list__week meta">${escapeHtml(weekHeaderLabel(week))}</span>
+          </span>
+          <span class="grid-list__trail">
+            <span class="status-pill ${statusPillClass(status)}">${statusLabel(status)}</span>
+            ${chevron}
+          </span>
         </${tag}></li>`;
       }
-      html += '</ul></div>';
+      html += group.key === 'pending' ? '</ul></details>' : '</ul></div>';
     }
 
     gridMobile.innerHTML = html;
@@ -580,7 +668,7 @@
     const week = project.weeks.find((w) => w.id === weekId);
     subSelect.value = subId;
     weekSelect.value = weekId;
-    showResults(filing.checks, sub?.name || subId, week?.label || weekId, filing.fileName, subId, weekId);
+    showResults(filing.checks, sub?.name || subId, week?.label || weekId, filing.fileName, subId, weekId, true);
   }
 
   function populateSelects() {
@@ -642,7 +730,10 @@
       saveFiling(subId, weekId, checks, fileName, text);
     } catch (err) {
       console.error(err);
-      showUploadError('Failed to read PDF: ' + (err.message || 'Unknown error'));
+      const msg = (err.message || '').includes('Invalid PDF structure')
+        ? 'This file isn\'t a readable PDF. Export the WH-347 as PDF and try again.'
+        : 'This file isn\'t a readable PDF. Export the WH-347 as PDF and try again.';
+      showUploadError(msg);
     } finally {
       uploadZone.classList.remove('is-loading');
     }
@@ -699,7 +790,7 @@
   }
 
   async function copyMessage() {
-    const text = `Subject: ${composerSubject.value}\n\n${composerBody.value}`;
+    const text = getOutboundMessageBody();
     try {
       await navigator.clipboard.writeText(text);
     } catch (_) {
@@ -717,7 +808,7 @@
   function openInEmail() {
     const to = composerTo.value.trim();
     const subject = encodeURIComponent(composerSubject.value);
-    const body = encodeURIComponent(composerBody.value);
+    const body = encodeURIComponent(getOutboundMessageBody());
     const mailto = `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`;
     window.location.href = mailto;
   }
@@ -748,8 +839,12 @@
   btnOpenEmail.addEventListener('click', openInEmail);
 
   composerSignature.value = loadSignature();
-  composerSignature.addEventListener('change', () => saveSignature(composerSignature.value));
-  composerSignature.addEventListener('blur', () => saveSignature(composerSignature.value));
+  composerResubmit.value = defaultResubmitDate();
+  composerSignature.addEventListener('input', () => {
+    saveSignature(composerSignature.value);
+    refreshComposerBody();
+  });
+  composerResubmit.addEventListener('input', refreshComposerBody);
 
   btnResetDemo.addEventListener('click', () => {
     const snapshot = JSON.parse(JSON.stringify(project));
@@ -766,6 +861,7 @@
   });
 
   // Init
+  $('#grid-as-of').textContent = `As of ${formatDemoAsOf()}`;
   populateSelects();
   renderGrid();
 

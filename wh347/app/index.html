@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0a0b0d" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/wh347/favicon.svg" type="image/svg+xml" />
   <title>WH-347 Sub Check — Project Grid</title>
   <link rel="stylesheet" href="../shared.css" />
   <link rel="stylesheet" href="styles.css" />
@@ -27,6 +27,7 @@
         <h2 class="section-heading">Subs by week</h2>
         <button type="button" class="btn btn-ghost btn-sm" id="btn-reset-demo" hidden>Reset demo data</button>
       </div>
+      <p class="grid-as-of meta" id="grid-as-of">As of Sep 28, 2026</p>
       <div class="summary-strip" id="summary-strip" aria-live="polite"></div>
       <div class="grid-wrap grid-wrap--desktop" id="project-grid-desktop"></div>
       <div class="grid-list grid-list--mobile" id="project-grid-mobile"></div>
@@ -36,7 +37,7 @@
     <section class="card hidden" id="results-panel" aria-label="Check results">
       <div class="card__header card__header--split">
         <h2 class="section-heading" id="results-heading" tabindex="-1">Check results</h2>
-        <span id="results-badge" class="badge"></span>
+        <span id="results-badge" class="badge" hidden></span>
       </div>
       <div class="card__body">
         <p class="results-issues" id="results-issues" hidden></p>
@@ -62,6 +63,10 @@
             <textarea id="composer-body" class="field-input field-textarea" rows="10"></textarea>
           </div>
           <div class="composer__field">
+            <label class="field-label" for="composer-resubmit">Resubmit by</label>
+            <input type="text" id="composer-resubmit" class="field-input" placeholder="Oct 3, 2026" />
+          </div>
+          <div class="composer__field">
             <label class="field-label" for="composer-signature">Your sign-off</label>
             <input type="text" id="composer-signature" class="field-input" placeholder="Maria Lopez, Project Administrator" />
           </div>
@@ -70,7 +75,6 @@
             <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-message">Copy message</button>
           </div>
         </div>
-        <p class="composer-ready meta hidden" id="composer-ready">This filing passed pre-check. Ready to forward to the contracting agency.</p>
       </div>
     </section>
 

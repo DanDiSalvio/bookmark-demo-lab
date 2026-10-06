@@ -5,7 +5,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const outDir = join(__dirname, '../wh347/app/samples');
+const outDir = join(__dirname, '../app/samples');
 
 function writePdf(filename, lines) {
   return new Promise((resolve, reject) => {

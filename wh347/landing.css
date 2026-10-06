@@ -62,9 +62,23 @@
   color: var(--color-text-muted);
 }
 
-.hero-preview__summary strong {
+.hero-preview__stat strong {
+  font-size: 26px;
   font-weight: 600;
-  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hero-preview__stat--issues strong {
+  color: var(--color-danger);
+}
+
+.hero-preview__stat--ready strong {
+  color: var(--color-success);
+}
+
+.hero-preview__stat--pending strong {
+  color: var(--color-pending);
 }
 
 .hero-preview__sep {
@@ -120,6 +134,71 @@
   min-width: auto;
   font-size: 11px;
   padding: 2px 6px;
+}
+
+.hero-preview__mobile {
+  display: none;
+}
+
+.hero-preview__group {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hero-preview__group:last-child {
+  border-bottom: none;
+}
+
+.hero-preview__group-title {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.hero-preview__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hero-preview__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.hero-preview__row:last-child {
+  border-bottom: none;
+}
+
+.hero-preview__row .status-pill {
+  align-self: flex-start;
+}
+
+.hero-preview__name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hero-preview__collapse {
+  padding: var(--space-3) var(--space-4);
+}
+
+.hero-preview__collapse > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.hero-preview__collapse > summary::-webkit-details-marker {
+  display: none;
+}
+
+.hero-preview__row--compact {
+  padding-bottom: 0;
 }
 
 .section {
@@ -263,7 +342,7 @@
   text-decoration: underline;
 }
 
-@media (min-width: 520px) {
+@media (min-width: 521px) {
   .page {
     padding: 0 var(--space-6) calc(var(--space-16) + var(--safe-bottom));
   }
@@ -278,12 +357,12 @@
   }
 }
 
-@media (max-width: 640px) {
-  .hero-preview {
-    overflow-x: auto;
+@media (max-width: 520px) {
+  .hero-preview__desktop {
+    display: none;
   }
 
-  .hero-preview__table {
-    min-width: 560px;
+  .hero-preview__mobile {
+    display: block;
   }
 }
