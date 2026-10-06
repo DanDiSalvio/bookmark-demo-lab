@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0a0b0d" />
+  <title>WH-347 Sub Check — Project Grid</title>
+  <link rel="stylesheet" href="../shared.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <nav class="shell-nav" aria-label="App navigation">
+      <a class="shell-nav__brand" href="/wh347/">WH-347 Sub Check</a>
+      <a class="shell-nav__link" href="/wh347/">About</a>
+    </nav>
+
+    <header class="app-header">
+      <div class="app-header__row">
+        <div>
+          <h1 class="app-header__title" id="project-name">Riverside Federal Courthouse</h1>
+          <p class="app-header__lede">Weekly certified payroll check — subs by week. Upload a WH-347 PDF or try the bundled samples.</p>
+        </div>
+      </div>
+    </header>
+
+    <aside class="disclaimer" role="note">
+      <p class="disclaimer__text meta"><strong>Heuristic checks only.</strong> Incomplete, wrong-revision, or defective filings get rejected — and a rejected filing is treated like a missing one, so payments get withheld. These scans look for text markers in the PDF; they are not a substitute for manual review or legal advice.</p>
+    </aside>
+
+    <section class="card" id="upload-panel" aria-label="Upload certified payroll">
+      <div class="card__header card__header--split">
+        <h2 class="card__title">Check a filing</h2>
+        <button type="button" class="btn-link hidden" id="btn-new-upload">New upload</button>
+      </div>
+      <div class="card__body" id="upload-body">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="sub-select">Subcontractor</label>
+            <select id="sub-select" class="field-input"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="week-select">Pay week ending</label>
+            <select id="week-select" class="field-input"></select>
+          </div>
+        </div>
+        <label class="field-label" for="file-input">WH-347 PDF</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept=".pdf,application/pdf" class="upload-zone__input" />
+          <p class="upload-zone__text">Drop PDF here or <span class="upload-zone__link">browse</span></p>
+          <p class="upload-zone__hint meta">Client-side extraction only — your file never leaves this browser</p>
+        </div>
+        <div class="samples">
+          <span class="samples__label meta">Try sample filings</span>
+          <div class="samples__chips">
+            <button type="button" class="chip" data-sample="pass">Pass — Apex Mechanical</button>
+            <button type="button" class="chip" data-sample="revision">Fail — old revision</button>
+            <button type="button" class="chip" data-sample="missing">Fail — missing WD + unsigned</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card hidden" id="results-panel" aria-label="Check results">
+      <div class="card__header card__header--split">
+        <h2 class="card__title">Check results</h2>
+        <span id="results-badge" class="badge"></span>
+      </div>
+      <div class="card__body">
+        <p class="results-meta meta" id="results-meta"></p>
+        <ul class="check-list" id="check-list"></ul>
+        <div class="kickback" id="kickback-panel" hidden>
+          <div class="kickback__header">
+            <h3 class="kickback__title">Kickback note</h3>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-copy-kickback">Copy note</button>
+          </div>
+          <pre class="kickback__text" id="kickback-text"></pre>
+          <p class="kickback__copied hidden meta" id="kickback-copied" role="status">Copied to clipboard</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-section" id="grid-section" aria-label="Project grid">
+      <div class="grid-section__header">
+        <h2 class="grid-section__title">Subs by week</h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-reset-demo" hidden>Reset demo data</button>
+      </div>
+      <div class="grid-wrap" id="project-grid"></div>
+      <p class="grid-empty meta hidden" id="grid-empty">No filings yet. Upload a PDF or try the sample filings.</p>
+    </section>
+
+    <footer class="app-footer">
+      <p class="meta">Demo for federal construction primes · Data stays in your browser (localStorage) · <a href="/wh347/">About</a></p>
+      <p class="app-footer__note meta">Current WH-347: OMB 1235-0008, expires 01/31/2028 per <a href="https://www.dol.gov/agencies/whd/forms/wh347" target="_blank" rel="noopener">DOL</a></p>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
