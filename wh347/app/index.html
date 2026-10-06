@@ -35,9 +35,8 @@
     </section>
 
     <section class="card hidden" id="results-panel" aria-label="Check results">
-      <div class="card__header card__header--split">
+      <div class="card__header">
         <h2 class="section-heading" id="results-heading" tabindex="-1">Check results</h2>
-        <span id="results-badge" class="badge" hidden></span>
       </div>
       <div class="card__body">
         <p class="results-issues" id="results-issues" hidden></p>
@@ -64,7 +63,7 @@
           </div>
           <div class="composer__field">
             <label class="field-label" for="composer-resubmit">Resubmit by</label>
-            <input type="text" id="composer-resubmit" class="field-input" placeholder="Oct 3, 2026" />
+            <input type="date" id="composer-resubmit" class="field-input" />
           </div>
           <div class="composer__field">
             <label class="field-label" for="composer-signature">Your sign-off</label>

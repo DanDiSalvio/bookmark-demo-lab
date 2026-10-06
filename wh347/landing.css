@@ -197,6 +197,23 @@
   display: none;
 }
 
+.hero-preview__group-title--disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.hero-preview__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.15s ease;
+}
+
+.hero-preview__collapse[open] .hero-preview__chevron {
+  transform: rotate(90deg);
+}
+
 .hero-preview__row--compact {
   padding-bottom: 0;
 }
@@ -357,7 +374,7 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 768px) {
   .hero-preview__desktop {
     display: none;
   }

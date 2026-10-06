@@ -42,6 +42,9 @@
   let selectedCell = null;
   /** @type {{ checks: CheckResult[], subName: string, weekLabel: string } | null} */
   let currentResults = null;
+  let composerBodyEdited = false;
+  /** @type {string | null} */
+  let composerFilingKey = null;
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -56,7 +59,6 @@
   const checkList = $('#check-list');
   const checkListPasses = $('#check-list-passes');
   const checkPasses = $('#check-passes');
-  const resultsBadge = $('#results-badge');
   const resultsMeta = $('#results-meta');
   const composerPanel = $('#composer-panel');
   const composerTo = $('#composer-to');
@@ -139,8 +141,26 @@
 
   function defaultResubmitDate() {
     const d = new Date(DEMO_TODAY);
-    d.setDate(d.getDate() + 5);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    let businessDays = 0;
+    while (businessDays < 3) {
+      d.setDate(d.getDate() + 1);
+      const day = d.getDay();
+      if (day !== 0 && day !== 6) businessDays++;
+    }
+    return d.toISOString().slice(0, 10);
+  }
+
+  /**
+   * @param {string} isoDate
+   */
+  function formatResubmitDateForMessage(isoDate) {
+    const d = new Date(`${isoDate}T12:00:00`);
+    return d.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   }
 
   function formatDemoAsOf() {
@@ -355,10 +375,13 @@
    * @param {string} subName
    * @param {string} weekLabel
    */
+  const RESUBMIT_LINE_RE = /\n*Please resubmit by [^\n]+/g;
+
   function assembleMessageBody(checks, subName, weekLabel) {
     const failures = checks.filter((c) => !c.pass);
     const signature = composerSignature.value.trim() || loadSignature();
-    const resubmitBy = composerResubmit.value.trim() || defaultResubmitDate();
+    const resubmitIso = composerResubmit.value.trim() || defaultResubmitDate();
+    const resubmitBy = formatResubmitDateForMessage(resubmitIso);
     const signOff = signature ? `\n\n${signature}` : '';
 
     if (failures.length === 0) {
@@ -369,20 +392,36 @@
     return `${subName},\n\nYour certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR} cannot be forwarded yet. Incomplete, wrong-revision, or defective filings are treated like missing filings — payment will be withheld until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n')}\n\nPlease resubmit by ${resubmitBy}.${signOff}`;
   }
 
+  function stripComposerMeta(body) {
+    let text = body.replace(RESUBMIT_LINE_RE, '').trimEnd();
+    const sig = composerSignature.value.trim() || loadSignature();
+    if (sig && text.endsWith(sig)) {
+      text = text.slice(0, -sig.length).trimEnd();
+    }
+    return text;
+  }
+
+  function applyComposerMeta(core) {
+    const resubmitIso = composerResubmit.value.trim() || defaultResubmitDate();
+    const resubmitBy = formatResubmitDateForMessage(resubmitIso);
+    const sig = composerSignature.value.trim() || loadSignature();
+    let text = core.trimEnd();
+    text += `\n\nPlease resubmit by ${resubmitBy}.`;
+    if (sig) text += `\n\n${sig}`;
+    return text;
+  }
+
   function refreshComposerBody() {
     if (!currentResults) return;
+    if (composerBodyEdited) {
+      composerBody.value = applyComposerMeta(stripComposerMeta(composerBody.value));
+      return;
+    }
     const { checks, subName, weekLabel } = currentResults;
     composerBody.value = assembleMessageBody(checks, subName, weekLabel);
   }
 
   function getOutboundMessageBody() {
-    if (currentResults) {
-      return assembleMessageBody(
-        currentResults.checks,
-        currentResults.subName,
-        currentResults.weekLabel
-      );
-    }
     return composerBody.value;
   }
 
@@ -426,11 +465,13 @@
     const allPass = failures.length === 0;
 
     currentResults = { checks, subName, weekLabel };
+    const nextFilingKey = subId && weekId ? filingKey(subId, weekId) : null;
+    const isNewComposerContext = nextFilingKey !== composerFilingKey;
 
     resultsPanel.classList.remove('hidden');
 
     if (allPass) {
-      resultsBadge.hidden = true;
+      composerFilingKey = nextFilingKey;
       resultsIssues.hidden = false;
       resultsIssues.textContent = 'Ready to forward';
       resultsIssues.className = 'results-issues results-issues--ready';
@@ -442,9 +483,6 @@
         `${passes.length} check${passes.length === 1 ? '' : 's'} passed`;
       composerPanel.hidden = true;
     } else {
-      resultsBadge.hidden = false;
-      resultsBadge.textContent = 'Issues';
-      resultsBadge.className = 'badge badge--fail';
       resultsIssues.hidden = false;
       resultsIssues.textContent = `${failures.length} issue${failures.length === 1 ? '' : 's'} to fix`;
       resultsIssues.className = 'results-issues';
@@ -461,10 +499,14 @@
       }
       composerPanel.hidden = false;
       composerSubject.value = buildSubject(weekLabel, true);
-      if (!composerResubmit.value.trim()) {
+      if (isNewComposerContext) {
+        composerBodyEdited = false;
+        composerFilingKey = nextFilingKey;
         composerResubmit.value = defaultResubmitDate();
       }
-      refreshComposerBody();
+      if (!composerBodyEdited) {
+        refreshComposerBody();
+      }
     }
 
     resultsMeta.innerHTML = `
@@ -556,7 +598,7 @@
     gridDesktop.innerHTML = html;
 
     gridDesktop.querySelectorAll('.filing-table__btn').forEach((btn) => {
-      btn.addEventListener('click', () => openFiling(btn.dataset.sub, btn.dataset.week));
+      btn.addEventListener('click', () => openFiling(btn.dataset.sub, btn.dataset.week, true));
     });
   }
 
@@ -585,7 +627,7 @@
 
       const title = `${group.title} (${group.items.length})`;
       if (group.key === 'pending') {
-        html += `<details class="grid-list__collapse"><summary class="grid-list__title">${title}</summary><ul class="grid-list__items">`;
+        html += `<details class="grid-list__collapse"><summary class="grid-list__title"><span>${title}</span>${ICON_CHEVRON}</summary><ul class="grid-list__items">`;
       } else {
         html += `<div class="grid-list__group"><h3 class="grid-list__title">${title}</h3><ul class="grid-list__items">`;
       }
@@ -615,7 +657,7 @@
 
     gridMobile.innerHTML = html;
     gridMobile.querySelectorAll('.grid-list__item--clickable').forEach((btn) => {
-      btn.addEventListener('click', () => openFiling(btn.dataset.sub, btn.dataset.week));
+      btn.addEventListener('click', () => openFiling(btn.dataset.sub, btn.dataset.week, true));
     });
   }
 
@@ -651,6 +693,8 @@
       textPreview: extractedPreview.slice(0, 500)
     };
     saveProject();
+    composerBodyEdited = false;
+    composerFilingKey = key;
     showResults(
       checks,
       sub?.name || subId,
@@ -661,14 +705,27 @@
     );
   }
 
-  function openFiling(subId, weekId) {
+  /**
+   * @param {string} subId
+   * @param {string} weekId
+   * @param {boolean} [shouldFocus]
+   */
+  function openFiling(subId, weekId, shouldFocus) {
     const filing = project.filings[filingKey(subId, weekId)];
     if (!filing) return;
     const sub = project.subs.find((s) => s.id === subId);
     const week = project.weeks.find((w) => w.id === weekId);
     subSelect.value = subId;
     weekSelect.value = weekId;
-    showResults(filing.checks, sub?.name || subId, week?.label || weekId, filing.fileName, subId, weekId, true);
+    showResults(
+      filing.checks,
+      sub?.name || subId,
+      week?.label || weekId,
+      filing.fileName,
+      subId,
+      weekId,
+      shouldFocus
+    );
   }
 
   function populateSelects() {
@@ -840,6 +897,9 @@
 
   composerSignature.value = loadSignature();
   composerResubmit.value = defaultResubmitDate();
+  composerBody.addEventListener('input', () => {
+    composerBodyEdited = true;
+  });
   composerSignature.addEventListener('input', () => {
     saveSignature(composerSignature.value);
     refreshComposerBody();
