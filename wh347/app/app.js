@@ -9,11 +9,18 @@
   const CURRENT_OMB = '1235-0008';
   const CURRENT_EXPIRY = '01/31/2028';
 
+  const MIN_TEXT_CHARS = 80;
+
   const SAMPLE_FILES = {
     pass: { file: 'pass-apex-mechanical.pdf', subId: 'apex', weekId: '2026-w40' },
     revision: { file: 'fail-old-revision.pdf', subId: 'summit', weekId: '2026-w39' },
-    missing: { file: 'fail-missing-wd-unsigned.pdf', subId: 'quickdrywall', weekId: '2026-w38' }
+    missing: { file: 'fail-missing-wd-unsigned.pdf', subId: 'quickdrywall', weekId: '2026-w38' },
+    scanned: { file: 'fail-scanned-image.pdf', subId: 'pacific', weekId: '2026-w40' }
   };
+
+  const SAMPLE_FILING_KEYS = Object.values(SAMPLE_FILES).map((sample) =>
+    `${sample.subId}::${sample.weekId}`
+  );
 
   const DEFAULT_PROJECT = {
     name: 'Riverside Federal Courthouse',
@@ -56,6 +63,7 @@
   const resultsPanel = $('#results-panel');
   const resultsHeading = $('#results-heading');
   const resultsIssues = $('#results-issues');
+  const resultsScanned = $('#results-scanned');
   const checkList = $('#check-list');
   const checkListPasses = $('#check-list-passes');
   const checkPasses = $('#check-passes');
@@ -116,6 +124,34 @@
 
   function filingKey(subId, weekId) {
     return `${subId}::${weekId}`;
+  }
+
+  function samplesAlreadyLoaded() {
+    return SAMPLE_FILING_KEYS.every((key) => project.filings[key]);
+  }
+
+  function clearSampleUrlParam() {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('sample')) return;
+    url.searchParams.delete('sample');
+    const next = url.pathname + (url.search || '') + url.hash;
+    history.replaceState(null, '', next);
+  }
+
+  /**
+   * @param {string} text
+   */
+  function isScannedPdf(text) {
+    const stripped = (text || '').replace(/\s+/g, '').trim();
+    return stripped.length < MIN_TEXT_CHARS;
+  }
+
+  /**
+   * @param {string} subName
+   * @param {string} weekLabel
+   */
+  function scannedKickbackMessage(subName, weekLabel) {
+    return `${subName},\n\nWe received your certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR}, but the PDF looks like a scan or photo without a readable text layer. We can only pre-check WH-347 files exported as PDF from payroll software.\n\nPlease resend the official PDF export (not a scanned copy or photo).`;
   }
 
   function weekHeaderLabel(week) {
@@ -419,12 +455,11 @@
   function saveComposerDraft() {
     if (!composerFilingKey) return;
     const filing = project.filings[composerFilingKey];
-    if (!filing || filing.status !== 'fail') return;
+    if (!filing || (filing.status !== 'fail' && filing.status !== 'scanned')) return;
     if (!project.composerDrafts) project.composerDrafts = {};
     project.composerDrafts[composerFilingKey] = {
       body: composerBody.value,
       resubmit: composerResubmit.value,
-      signature: composerSignature.value,
       edited: composerBodyEdited
     };
     saveProject();
@@ -439,7 +474,7 @@
     if (!draft) return false;
     composerBody.value = draft.body;
     composerResubmit.value = draft.resubmit || defaultResubmitDate();
-    composerSignature.value = draft.signature ?? loadSignature();
+    composerSignature.value = loadSignature();
     composerBodyEdited = !!draft.edited;
     return true;
   }
@@ -499,6 +534,7 @@
     }
 
     resultsPanel.classList.remove('hidden');
+    resultsScanned.classList.add('hidden');
 
     if (allPass) {
       composerFilingKey = nextFilingKey;
@@ -554,6 +590,66 @@
       selectedCell = { subId, weekId };
       renderGrid();
     }
+
+    if (shouldFocus) {
+      resultsHeading.focus();
+    }
+    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /**
+   * @param {string} subName
+   * @param {string} weekLabel
+   * @param {string} fileName
+   * @param {string} subId
+   * @param {string} weekId
+   * @param {boolean} [shouldFocus]
+   */
+  function showScannedResults(subName, weekLabel, fileName, subId, weekId, shouldFocus) {
+    currentResults = { checks: [], subName, weekLabel, scanned: true };
+    const nextFilingKey = filingKey(subId, weekId);
+    const isNewComposerContext = nextFilingKey !== composerFilingKey;
+
+    if (isNewComposerContext && composerFilingKey) {
+      saveComposerDraft();
+    }
+
+    resultsPanel.classList.remove('hidden');
+    resultsScanned.classList.remove('hidden');
+    resultsIssues.hidden = false;
+    resultsIssues.textContent = 'Scanned PDF';
+    resultsIssues.className = 'results-issues results-issues--scanned';
+    checkList.classList.add('hidden');
+    checkList.innerHTML = '';
+    checkPasses.hidden = true;
+    checkListPasses.innerHTML = '';
+    composerPanel.hidden = false;
+    composerSubject.value = buildSubject(weekLabel, true);
+
+    if (isNewComposerContext) {
+      composerFilingKey = nextFilingKey;
+      if (loadComposerDraft(nextFilingKey)) {
+        updateComposerSendFooter();
+      } else {
+        composerBodyEdited = false;
+        composerResubmit.value = defaultResubmitDate();
+        composerBody.value = scannedKickbackMessage(subName, weekLabel);
+        updateComposerSendFooter();
+      }
+    } else if (!composerBodyEdited) {
+      composerBody.value = scannedKickbackMessage(subName, weekLabel);
+      updateComposerSendFooter();
+    } else {
+      updateComposerSendFooter();
+    }
+
+    resultsMeta.innerHTML = `
+      <span class="results-meta__sub">${escapeHtml(subName)} · Week ending ${escapeHtml(weekLabel)}, ${PROJECT_YEAR}</span>
+      <span class="results-meta__file" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
+    `;
+
+    selectedCell = { subId, weekId };
+    renderGrid();
 
     if (shouldFocus) {
       resultsHeading.focus();
@@ -714,6 +810,39 @@
    * @param {string} fileName
    * @param {string} extractedPreview
    */
+  /**
+   * @param {string} subId
+   * @param {string} weekId
+   * @param {string} fileName
+   * @param {string} extractedPreview
+   */
+  function saveScannedFiling(subId, weekId, fileName, extractedPreview) {
+    const sub = project.subs.find((s) => s.id === subId);
+    const week = project.weeks.find((w) => w.id === weekId);
+    const key = filingKey(subId, weekId);
+    project.filings[key] = {
+      subId,
+      weekId,
+      status: 'scanned',
+      checks: [],
+      fileName,
+      checkedAt: Date.now(),
+      textPreview: extractedPreview.slice(0, 500)
+    };
+    if (!project.composerDrafts) project.composerDrafts = {};
+    delete project.composerDrafts[key];
+    saveProject();
+    composerBodyEdited = false;
+    composerFilingKey = key;
+    showScannedResults(
+      sub?.name || subId,
+      week?.label || weekId,
+      fileName,
+      subId,
+      weekId
+    );
+  }
+
   function saveFiling(subId, weekId, checks, fileName, extractedPreview) {
     const allPass = checks.every((c) => c.pass);
     const sub = project.subs.find((s) => s.id === subId);
@@ -755,6 +884,18 @@
     const week = project.weeks.find((w) => w.id === weekId);
     subSelect.value = subId;
     weekSelect.value = weekId;
+    if (filing.status === 'scanned') {
+      currentResults = { checks: [], subName: sub?.name || subId, weekLabel: week?.label || weekId, scanned: true };
+      showScannedResults(
+        sub?.name || subId,
+        week?.label || weekId,
+        filing.fileName,
+        subId,
+        weekId,
+        shouldFocus
+      );
+      return;
+    }
     showResults(
       filing.checks,
       sub?.name || subId,
@@ -817,8 +958,8 @@
     uploadZone.classList.add('is-loading');
     try {
       const text = await extractPdfText(file);
-      if (!text || text.trim().length < 20) {
-        showUploadError('Could not extract enough text from this PDF. It may be a scanned image without a text layer.');
+      if (isScannedPdf(text)) {
+        saveScannedFiling(subId, weekId, fileName, text || '');
         return;
       }
       const checks = runChecks(text);
@@ -853,11 +994,23 @@
   }
 
   async function runAllSamples() {
-    for (const key of ['pass', 'revision', 'missing']) {
+    for (const key of ['pass', 'revision', 'missing', 'scanned']) {
       await loadSample(key);
       await new Promise((r) => setTimeout(r, 300));
     }
     openFiling('quickdrywall', '2026-w38');
+  }
+
+  async function maybeRunSamplesFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sample') !== '1') return;
+    if (samplesAlreadyLoaded()) {
+      clearSampleUrlParam();
+      openFiling('quickdrywall', '2026-w38');
+      return;
+    }
+    await runAllSamples();
+    clearSampleUrlParam();
   }
 
   let toastTimer = null;
@@ -970,8 +1123,5 @@
   populateSelects();
   renderGrid();
 
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('sample') === '1') {
-    runAllSamples();
-  }
+  maybeRunSamplesFromUrl();
 })();
