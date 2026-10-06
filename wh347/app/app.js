@@ -66,6 +66,7 @@
   const composerBody = $('#composer-body');
   const composerResubmit = $('#composer-resubmit');
   const composerSignature = $('#composer-signature');
+  const composerPreview = $('#composer-preview');
   const gridDesktop = $('#project-grid-desktop');
   const gridMobile = $('#project-grid-mobile');
   const summaryStrip = $('#summary-strip');
@@ -375,54 +376,38 @@
    * @param {string} subName
    * @param {string} weekLabel
    */
-  const RESUBMIT_LINE_RE = /\n*Please resubmit by [^\n]+/g;
-
   function assembleMessageBody(checks, subName, weekLabel) {
     const failures = checks.filter((c) => !c.pass);
-    const signature = composerSignature.value.trim() || loadSignature();
-    const resubmitIso = composerResubmit.value.trim() || defaultResubmitDate();
-    const resubmitBy = formatResubmitDateForMessage(resubmitIso);
-    const signOff = signature ? `\n\n${signature}` : '';
 
     if (failures.length === 0) {
-      return `${subName},\n\nYour WH-347 for week ending ${weekLabel}, ${PROJECT_YEAR} passed our pre-check. We will forward to the contracting agency.${signOff}`;
+      return `${subName},\n\nYour WH-347 for week ending ${weekLabel}, ${PROJECT_YEAR} passed our pre-check. We will forward to the contracting agency.`;
     }
 
     const items = failures.map((f) => `• ${subDirectedBullet(f)}`);
-    return `${subName},\n\nYour certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR} cannot be forwarded yet. Incomplete, wrong-revision, or defective filings are treated like missing filings — payment will be withheld until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n')}\n\nPlease resubmit by ${resubmitBy}.${signOff}`;
-  }
-
-  function stripComposerMeta(body) {
-    let text = body.replace(RESUBMIT_LINE_RE, '').trimEnd();
-    const sig = composerSignature.value.trim() || loadSignature();
-    if (sig && text.endsWith(sig)) {
-      text = text.slice(0, -sig.length).trimEnd();
-    }
-    return text;
-  }
-
-  function applyComposerMeta(core) {
-    const resubmitIso = composerResubmit.value.trim() || defaultResubmitDate();
-    const resubmitBy = formatResubmitDateForMessage(resubmitIso);
-    const sig = composerSignature.value.trim() || loadSignature();
-    let text = core.trimEnd();
-    text += `\n\nPlease resubmit by ${resubmitBy}.`;
-    if (sig) text += `\n\n${sig}`;
-    return text;
-  }
-
-  function refreshComposerBody() {
-    if (!currentResults) return;
-    if (composerBodyEdited) {
-      composerBody.value = applyComposerMeta(stripComposerMeta(composerBody.value));
-      return;
-    }
-    const { checks, subName, weekLabel } = currentResults;
-    composerBody.value = assembleMessageBody(checks, subName, weekLabel);
+    return `${subName},\n\nYour certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR} cannot be forwarded yet. Incomplete, wrong-revision, or defective filings are treated like missing filings — payment will be withheld until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n')}`;
   }
 
   function getOutboundMessageBody() {
-    return composerBody.value;
+    const body = composerBody.value.trimEnd();
+    const resubmitIso = composerResubmit.value.trim() || defaultResubmitDate();
+    const resubmitBy = formatResubmitDateForMessage(resubmitIso);
+    const signature = (composerSignature.value.trim() || loadSignature()).trim();
+    let text = body;
+    text += `\n\nPlease resubmit by ${resubmitBy}.`;
+    if (signature) text += `\n\n${signature}`;
+    return text;
+  }
+
+  function updateComposerPreview() {
+    if (!composerPreview) return;
+    composerPreview.textContent = getOutboundMessageBody();
+  }
+
+  function refreshComposerBody() {
+    if (!currentResults || composerBodyEdited) return;
+    const { checks, subName, weekLabel } = currentResults;
+    composerBody.value = assembleMessageBody(checks, subName, weekLabel);
+    updateComposerPreview();
   }
 
   function buildSubject(weekLabel, hasFailures) {
@@ -506,6 +491,8 @@
       }
       if (!composerBodyEdited) {
         refreshComposerBody();
+      } else {
+        updateComposerPreview();
       }
     }
 
@@ -899,12 +886,13 @@
   composerResubmit.value = defaultResubmitDate();
   composerBody.addEventListener('input', () => {
     composerBodyEdited = true;
+    updateComposerPreview();
   });
   composerSignature.addEventListener('input', () => {
     saveSignature(composerSignature.value);
-    refreshComposerBody();
+    updateComposerPreview();
   });
-  composerResubmit.addEventListener('input', refreshComposerBody);
+  composerResubmit.addEventListener('input', updateComposerPreview);
 
   btnResetDemo.addEventListener('click', () => {
     const snapshot = JSON.parse(JSON.stringify(project));

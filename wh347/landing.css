@@ -87,6 +87,7 @@
 
 .hero-preview__table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 12px;
 }
