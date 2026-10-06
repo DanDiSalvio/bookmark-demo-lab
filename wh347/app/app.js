@@ -66,7 +66,8 @@
   const composerBody = $('#composer-body');
   const composerResubmit = $('#composer-resubmit');
   const composerSignature = $('#composer-signature');
-  const composerPreview = $('#composer-preview');
+  const composerSendResubmit = $('#composer-send-resubmit');
+  const composerSendSignature = $('#composer-send-signature');
   const gridDesktop = $('#project-grid-desktop');
   const gridMobile = $('#project-grid-mobile');
   const summaryStrip = $('#summary-strip');
@@ -91,11 +92,14 @@
             ...w,
             endDate: w.endDate || DEFAULT_PROJECT.weeks.find((d) => d.id === w.id)?.endDate
           }));
+          if (!parsed.composerDrafts) parsed.composerDrafts = {};
           return parsed;
         }
       }
     } catch (_) { /* ignore */ }
-    return JSON.parse(JSON.stringify(DEFAULT_PROJECT));
+    const fresh = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
+    fresh.composerDrafts = {};
+    return fresh;
   }
 
   function saveProject() {
@@ -398,16 +402,53 @@
     return text;
   }
 
-  function updateComposerPreview() {
-    if (!composerPreview) return;
-    composerPreview.textContent = getOutboundMessageBody();
+  function updateComposerSendFooter() {
+    const resubmitIso = composerResubmit.value.trim() || defaultResubmitDate();
+    const resubmitBy = formatResubmitDateForMessage(resubmitIso);
+    const signature = (composerSignature.value.trim() || loadSignature()).trim();
+    composerSendResubmit.textContent = `Please resubmit by ${resubmitBy}.`;
+    if (signature) {
+      composerSendSignature.textContent = signature;
+      composerSendSignature.hidden = false;
+    } else {
+      composerSendSignature.textContent = '';
+      composerSendSignature.hidden = true;
+    }
+  }
+
+  function saveComposerDraft() {
+    if (!composerFilingKey) return;
+    const filing = project.filings[composerFilingKey];
+    if (!filing || filing.status !== 'fail') return;
+    if (!project.composerDrafts) project.composerDrafts = {};
+    project.composerDrafts[composerFilingKey] = {
+      body: composerBody.value,
+      resubmit: composerResubmit.value,
+      signature: composerSignature.value,
+      edited: composerBodyEdited
+    };
+    saveProject();
+  }
+
+  /**
+   * @param {string} key
+   * @returns {boolean}
+   */
+  function loadComposerDraft(key) {
+    const draft = project.composerDrafts?.[key];
+    if (!draft) return false;
+    composerBody.value = draft.body;
+    composerResubmit.value = draft.resubmit || defaultResubmitDate();
+    composerSignature.value = draft.signature ?? loadSignature();
+    composerBodyEdited = !!draft.edited;
+    return true;
   }
 
   function refreshComposerBody() {
     if (!currentResults || composerBodyEdited) return;
     const { checks, subName, weekLabel } = currentResults;
     composerBody.value = assembleMessageBody(checks, subName, weekLabel);
-    updateComposerPreview();
+    updateComposerSendFooter();
   }
 
   function buildSubject(weekLabel, hasFailures) {
@@ -453,6 +494,10 @@
     const nextFilingKey = subId && weekId ? filingKey(subId, weekId) : null;
     const isNewComposerContext = nextFilingKey !== composerFilingKey;
 
+    if (isNewComposerContext && composerFilingKey) {
+      saveComposerDraft();
+    }
+
     resultsPanel.classList.remove('hidden');
 
     if (allPass) {
@@ -485,14 +530,18 @@
       composerPanel.hidden = false;
       composerSubject.value = buildSubject(weekLabel, true);
       if (isNewComposerContext) {
-        composerBodyEdited = false;
         composerFilingKey = nextFilingKey;
-        composerResubmit.value = defaultResubmitDate();
-      }
-      if (!composerBodyEdited) {
+        if (nextFilingKey && loadComposerDraft(nextFilingKey)) {
+          updateComposerSendFooter();
+        } else {
+          composerBodyEdited = false;
+          composerResubmit.value = defaultResubmitDate();
+          refreshComposerBody();
+        }
+      } else if (!composerBodyEdited) {
         refreshComposerBody();
       } else {
-        updateComposerPreview();
+        updateComposerSendFooter();
       }
     }
 
@@ -624,7 +673,7 @@
         const clickable = status !== 'pending';
         const tag = clickable ? 'button' : 'div';
         const attrs = clickable
-          ? ` type="button" class="grid-list__item grid-list__item--clickable${isSelected ? ' grid-list__item--selected' : ''}" data-sub="${sub.id}" data-week="${week.id}" aria-label="${escapeHtml(sub.name)}, week ending ${week.label}, ${PROJECT_YEAR}"${isSelected ? ' aria-current="true"' : ''}`
+          ? ` type="button" class="grid-list__item grid-list__item--clickable${isSelected ? ' grid-list__item--selected' : ''}" data-sub="${sub.id}" data-week="${week.id}" aria-label="${escapeHtml(sub.name)}, week ending ${week.label}, ${PROJECT_YEAR}: ${statusLabel(status)}"${isSelected ? ' aria-current="true"' : ''}`
           : ` class="grid-list__item"`;
 
         const chevron = clickable ? ICON_CHEVRON : '';
@@ -679,6 +728,8 @@
       checkedAt: Date.now(),
       textPreview: extractedPreview.slice(0, 500)
     };
+    if (!project.composerDrafts) project.composerDrafts = {};
+    delete project.composerDrafts[key];
     saveProject();
     composerBodyEdited = false;
     composerFilingKey = key;
@@ -886,17 +937,23 @@
   composerResubmit.value = defaultResubmitDate();
   composerBody.addEventListener('input', () => {
     composerBodyEdited = true;
-    updateComposerPreview();
+    updateComposerSendFooter();
+    saveComposerDraft();
   });
   composerSignature.addEventListener('input', () => {
     saveSignature(composerSignature.value);
-    updateComposerPreview();
+    updateComposerSendFooter();
+    saveComposerDraft();
   });
-  composerResubmit.addEventListener('input', updateComposerPreview);
+  composerResubmit.addEventListener('input', () => {
+    updateComposerSendFooter();
+    saveComposerDraft();
+  });
 
   btnResetDemo.addEventListener('click', () => {
     const snapshot = JSON.parse(JSON.stringify(project));
     project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
+    project.composerDrafts = {};
     saveProject();
     selectedCell = null;
     resultsPanel.classList.add('hidden');

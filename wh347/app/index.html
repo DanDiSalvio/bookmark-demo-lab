@@ -60,6 +60,11 @@
           <div class="composer__field">
             <label class="field-label" for="composer-body">Message</label>
             <textarea id="composer-body" class="field-input field-textarea" rows="10"></textarea>
+            <div class="composer-send-footer" aria-live="polite">
+              <p class="composer-send-footer__label meta">Added when you send</p>
+              <p class="composer-send-footer__line" id="composer-send-resubmit"></p>
+              <p class="composer-send-footer__line" id="composer-send-signature" hidden></p>
+            </div>
           </div>
           <div class="composer__field">
             <label class="field-label" for="composer-resubmit">Resubmit by</label>
@@ -68,10 +73,6 @@
           <div class="composer__field">
             <label class="field-label" for="composer-signature">Your sign-off</label>
             <input type="text" id="composer-signature" class="field-input" placeholder="Maria Lopez, Project Administrator" />
-          </div>
-          <div class="composer__field">
-            <span class="field-label" id="composer-preview-label">Full message preview</span>
-            <pre class="composer-preview" id="composer-preview" aria-labelledby="composer-preview-label" aria-readonly="true"></pre>
           </div>
           <div class="composer__actions">
             <button type="button" class="btn btn-primary btn-sm" id="btn-open-email">Open in email</button>
