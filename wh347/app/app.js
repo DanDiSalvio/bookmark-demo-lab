@@ -2,6 +2,9 @@
   'use strict';
 
   const STORAGE_KEY = 'wh347-sub-check-v1';
+  const SIGNATURE_KEY = 'wh347-user-signature-v1';
+  const PROJECT_YEAR = 2026;
+  const DEMO_TODAY = new Date('2026-09-28T12:00:00');
 
   const CURRENT_OMB = '1235-0008';
   const CURRENT_EXPIRY = '01/31/2028';
@@ -15,10 +18,10 @@
   const DEFAULT_PROJECT = {
     name: 'Riverside Federal Courthouse',
     weeks: [
-      { id: '2026-w38', label: 'Sep 13' },
-      { id: '2026-w39', label: 'Sep 20' },
-      { id: '2026-w40', label: 'Sep 27' },
-      { id: '2026-w41', label: 'Oct 4' }
+      { id: '2026-w38', label: 'Sep 13', endDate: '2026-09-13' },
+      { id: '2026-w39', label: 'Sep 20', endDate: '2026-09-20' },
+      { id: '2026-w40', label: 'Sep 27', endDate: '2026-09-27' },
+      { id: '2026-w41', label: 'Oct 4', endDate: '2026-10-04' }
     ],
     subs: [
       { id: 'apex', name: 'Apex Mechanical LLC' },
@@ -29,8 +32,13 @@
     filings: {}
   };
 
+  const ICON_PASS = '<svg class="check-item__svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M6.5 11.2 3.3 8l-.9.9 4.1 4.1 8-8-.9-.9z"/></svg>';
+  const ICON_FAIL = '<svg class="check-item__svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 6.9 11.8 3l.9.9L8.9 7.8l3.8 3.8-.9.9L8 8.7 4.2 12.5l-.9-.9L7.1 7.8 3.3 4l.9-.9z"/></svg>';
+
   /** @type {typeof DEFAULT_PROJECT} */
   let project = loadProject();
+  /** @type {{ subId: string, weekId: string } | null} */
+  let selectedCell = null;
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -38,33 +46,47 @@
   const weekSelect = $('#week-select');
   const fileInput = $('#file-input');
   const uploadZone = $('#upload-zone');
+  const uploadError = $('#upload-error');
   const resultsPanel = $('#results-panel');
+  const resultsHeading = $('#results-heading');
+  const resultsIssues = $('#results-issues');
   const checkList = $('#check-list');
+  const checkListPasses = $('#check-list-passes');
+  const checkPasses = $('#check-passes');
   const resultsBadge = $('#results-badge');
   const resultsMeta = $('#results-meta');
-  const kickbackPanel = $('#kickback-panel');
-  const kickbackText = $('#kickback-text');
-  const kickbackCopied = $('#kickback-copied');
-  const projectGrid = $('#project-grid');
+  const composerPanel = $('#composer-panel');
+  const composerReady = $('#composer-ready');
+  const composerTo = $('#composer-to');
+  const composerSubject = $('#composer-subject');
+  const composerBody = $('#composer-body');
+  const composerSignature = $('#composer-signature');
+  const gridDesktop = $('#project-grid-desktop');
+  const gridMobile = $('#project-grid-mobile');
+  const summaryStrip = $('#summary-strip');
   const gridEmpty = $('#grid-empty');
-  const btnCopyKickback = $('#btn-copy-kickback');
+  const btnCopyMessage = $('#btn-copy-message');
+  const btnOpenEmail = $('#btn-open-email');
   const btnResetDemo = $('#btn-reset-demo');
+  const btnLoadSamples = $('#btn-load-samples');
+  const toast = $('#toast');
+  const toastText = $('#toast-text');
+  const toastAction = $('#toast-action');
 
-  /**
-   * @typedef {{
-   *   id: string,
-   *   label: string,
-   *   pass: boolean,
-   *   detail: string
-   * }} CheckResult
-   */
+  /** @typedef {{ id: string, label: string, pass: boolean, detail: string }} CheckResult */
 
   function loadProject() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && parsed.subs && parsed.weeks) return parsed;
+        if (parsed && parsed.subs && parsed.weeks) {
+          parsed.weeks = parsed.weeks.map((w) => ({
+            ...w,
+            endDate: w.endDate || DEFAULT_PROJECT.weeks.find((d) => d.id === w.id)?.endDate
+          }));
+          return parsed;
+        }
       }
     } catch (_) { /* ignore */ }
     return JSON.parse(JSON.stringify(DEFAULT_PROJECT));
@@ -74,8 +96,47 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
   }
 
+  function loadSignature() {
+    return localStorage.getItem(SIGNATURE_KEY) || '';
+  }
+
+  function saveSignature(value) {
+    localStorage.setItem(SIGNATURE_KEY, value);
+  }
+
   function filingKey(subId, weekId) {
     return `${subId}::${weekId}`;
+  }
+
+  function weekHeaderLabel(week) {
+    return `Wk ending ${week.label}, ${PROJECT_YEAR}`;
+  }
+
+  function isFutureWeek(week) {
+    if (!week.endDate) return false;
+    const end = new Date(week.endDate + 'T23:59:59');
+    return end > DEMO_TODAY;
+  }
+
+  function getCellStatus(subId, weekId) {
+    const week = project.weeks.find((w) => w.id === weekId);
+    if (week && isFutureWeek(week)) return 'future';
+    const filing = project.filings[filingKey(subId, weekId)];
+    if (!filing) return 'pending';
+    return filing.status === 'pass' ? 'ready' : 'issues';
+  }
+
+  function statusLabel(status) {
+    if (status === 'ready') return 'Ready';
+    if (status === 'issues') return 'Issues';
+    if (status === 'pending') return 'Not received';
+    return '';
+  }
+
+  function statusPillClass(status) {
+    if (status === 'ready') return 'status-pill--ready';
+    if (status === 'issues') return 'status-pill--issues';
+    return 'status-pill--pending';
   }
 
   /**
@@ -85,10 +146,8 @@
   function runChecks(text) {
     const normalized = text.replace(/\s+/g, ' ');
     const lower = normalized.toLowerCase();
-
     const checks = [];
 
-    // Form revision / OMB markers
     const hasCurrentOmb = normalized.includes(CURRENT_OMB);
     const hasCurrentExpiry = normalized.includes(CURRENT_EXPIRY);
     const hasOldExpiry = /expires\s+09\/30\/2026/i.test(normalized) ||
@@ -98,36 +157,35 @@
     if (hasCurrentOmb && hasCurrentExpiry && !hasOldExpiry) {
       checks.push({
         id: 'formRevision',
-        label: 'Form revision (OMB markers)',
+        label: 'Current form version',
         pass: true,
         detail: `Found OMB ${CURRENT_OMB} with expiry ${CURRENT_EXPIRY} — matches current WH-347 per DOL.`
       });
     } else if (hasOldExpiry || (hasOmbBlock && !hasCurrentExpiry)) {
       checks.push({
         id: 'formRevision',
-        label: 'Form revision (OMB markers)',
+        label: 'Current form version',
         pass: false,
         detail: hasOldExpiry
-          ? 'PDF shows expired OMB expiry date (09/30/2026). Resubmit on current WH-347 (OMB 1235-0008, expires 01/31/2028).'
+          ? 'PDF shows an outdated OMB expiry date (09/30/2026). Resubmit on current WH-347 (OMB 1235-0008, expires 01/31/2028).'
           : 'OMB block found but current expiry 01/31/2028 not detected — may be wrong revision or scanned image without text.'
       });
     } else if (!hasOmbBlock) {
       checks.push({
         id: 'formRevision',
-        label: 'Form revision (OMB markers)',
+        label: 'Current form version',
         pass: false,
         detail: 'Could not find OMB 1235-0008 markers in extracted text. Confirm this is WH-347 and not a flat scan.'
       });
     } else {
       checks.push({
         id: 'formRevision',
-        label: 'Form revision (OMB markers)',
+        label: 'Current form version',
         pass: false,
         detail: 'OMB markers incomplete — verify form matches current WH-347 (expires 01/31/2028).'
       });
     }
 
-    // Wage determination number
     const wdPatterns = [
       /wage\s+determination\s+no\.?\s*:?\s*([A-Z]{0,3}\d{4,}[\w-]*)/i,
       /wd\s+no\.?\s*:?\s*([A-Z]{0,3}\d{4,}[\w-]*)/i,
@@ -160,7 +218,6 @@
       });
     }
 
-    // Apprentice registration
     const hasApprentice = /\bRA\b/.test(normalized) ||
       /registered\s+apprentice/i.test(lower) ||
       /apprentice\s+level/i.test(lower);
@@ -191,7 +248,6 @@
       });
     }
 
-    // Fringe benefit breakdown
     const hasFringeSection = /hourly\s+credit\s+for\s+fringe\s+benefits/i.test(lower) ||
       /fringe\s+benefit/i.test(lower);
     const hasFringeDetail = /health\s*&\s*welfare|pension\s+plan|training\s+fund|funded|unfunded|\$\d+\.\d+\/hr/i.test(normalized);
@@ -222,7 +278,6 @@
       });
     }
 
-    // Statement of Compliance signature
     const hasStatement = /statement\s+of\s+compliance/i.test(lower);
     const hasSigned = /\/s\/|signature\s*:\s*[^_\s]{2,}/i.test(normalized) &&
       !/signature\s*:\s*_{3,}/i.test(normalized) &&
@@ -260,63 +315,22 @@
    * @param {string} subName
    * @param {string} weekLabel
    */
-  function buildKickbackNote(checks, subName, weekLabel) {
+  function buildMessageBody(checks, subName, weekLabel) {
     const failures = checks.filter((c) => !c.pass);
+    const signature = composerSignature.value.trim() || loadSignature();
+    const signOff = signature ? `\n\n${signature}` : '';
+
     if (failures.length === 0) {
-      return `Re: Certified Payroll — Week ending ${weekLabel}\n\n${subName},\n\nYour WH-347 for week ending ${weekLabel} passed our pre-check. We will forward to the contracting agency.\n\nThank you,\nProject Office`;
+      return `${subName},\n\nYour WH-347 for week ending ${weekLabel}, ${PROJECT_YEAR} passed our pre-check. We will forward to the contracting agency.${signOff}`;
     }
 
-    const items = failures.map((f, i) => `${i + 1}. ${f.label}: ${f.detail}`);
-    return `Re: Certified Payroll REJECTED — Week ending ${weekLabel}\n\n${subName},\n\nYour certified payroll for week ending ${weekLabel} cannot be forwarded. Incomplete, wrong-revision, or defective filings are treated like missing filings — payment will be withheld until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n\n')}\n\nResubmit a corrected WH-347 (current form: OMB 1235-0008, expires 01/31/2028) at your earliest convenience.\n\nThank you,\nProject Office`;
+    const items = failures.map((f) => `• ${f.detail}`);
+    return `${subName},\n\nYour certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR} cannot be forwarded yet. Incomplete, wrong-revision, or defective filings are treated like missing filings — payment will be withheld until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n')}\n\nResubmit a corrected WH-347 (current form: OMB 1235-0008, expires 01/31/2028) at your earliest convenience.${signOff}`;
   }
 
-  /**
-   * @param {File | Blob} file
-   * @returns {Promise<string>}
-   */
-  async function extractPdfText(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const parts = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = content.items.map((item) => item.str).join(' ');
-      parts.push(pageText);
-    }
-    return parts.join('\n');
-  }
-
-  /**
-   * @param {CheckResult[]} checks
-   * @param {string} subName
-   * @param {string} weekLabel
-   * @param {string} fileName
-   */
-  function showResults(checks, subName, weekLabel, fileName) {
-    const allPass = checks.every((c) => c.pass);
-    resultsPanel.classList.remove('hidden');
-    resultsBadge.textContent = allPass ? 'Pass' : 'Fail';
-    resultsBadge.className = 'badge ' + (allPass ? 'badge--pass' : 'badge--fail');
-    resultsMeta.textContent = `${subName} · Week ending ${weekLabel} · ${fileName}`;
-
-    checkList.innerHTML = checks.map((c) => {
-      const cls = c.pass ? 'check-item--pass' : 'check-item--fail';
-      const icon = c.pass ? '✓' : '✕';
-      return `<li class="check-item ${cls}">
-        <span class="check-item__icon" aria-hidden="true">${icon}</span>
-        <div class="check-item__body">
-          <p class="check-item__label">${escapeHtml(c.label)}</p>
-          <p class="check-item__detail">${escapeHtml(c.detail)}</p>
-        </div>
-      </li>`;
-    }).join('');
-
-    const note = buildKickbackNote(checks, subName, weekLabel);
-    kickbackText.textContent = note;
-    kickbackPanel.hidden = false;
-    kickbackCopied.classList.add('hidden');
-    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  function buildSubject(weekLabel, hasFailures) {
+    const prefix = hasFailures ? 'Certified payroll corrections' : 'Certified payroll';
+    return `${prefix} — ${project.name} — week ending ${weekLabel}, ${PROJECT_YEAR}`;
   }
 
   function escapeHtml(str) {
@@ -325,6 +339,206 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function renderCheckItem(c) {
+    const cls = c.pass ? 'check-item--pass' : 'check-item--fail';
+    const icon = c.pass ? ICON_PASS : ICON_FAIL;
+    return `<li class="check-item ${cls}">
+      <span class="check-item__icon" aria-hidden="true">${icon}</span>
+      <div class="check-item__body">
+        <p class="check-item__label">${escapeHtml(c.label)}</p>
+        <p class="check-item__detail">${escapeHtml(c.detail)}</p>
+      </div>
+    </li>`;
+  }
+
+  /**
+   * @param {CheckResult[]} checks
+   * @param {string} subName
+   * @param {string} weekLabel
+   * @param {string} fileName
+   * @param {string} [subId]
+   * @param {string} [weekId]
+   */
+  function showResults(checks, subName, weekLabel, fileName, subId, weekId) {
+    const failures = checks.filter((c) => !c.pass);
+    const passes = checks.filter((c) => c.pass);
+    const allPass = failures.length === 0;
+
+    resultsPanel.classList.remove('hidden');
+    resultsBadge.textContent = allPass ? 'Ready' : 'Issues';
+    resultsBadge.className = 'badge ' + (allPass ? 'badge--pass' : 'badge--fail');
+
+    if (allPass) {
+      resultsIssues.hidden = true;
+      resultsIssues.textContent = '';
+    } else {
+      resultsIssues.hidden = false;
+      resultsIssues.textContent = `${failures.length} issue${failures.length === 1 ? '' : 's'} to fix`;
+    }
+
+    resultsMeta.innerHTML = `
+      <span class="results-meta__sub">${escapeHtml(subName)} · Week ending ${escapeHtml(weekLabel)}, ${PROJECT_YEAR}</span>
+      <span class="results-meta__file" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
+    `;
+
+    checkList.innerHTML = failures.map(renderCheckItem).join('');
+
+    if (passes.length > 0) {
+      checkPasses.hidden = false;
+      checkListPasses.innerHTML = passes.map(renderCheckItem).join('');
+    } else {
+      checkPasses.hidden = true;
+      checkListPasses.innerHTML = '';
+    }
+
+    if (allPass) {
+      composerPanel.hidden = true;
+      composerReady.classList.remove('hidden');
+    } else {
+      composerPanel.hidden = false;
+      composerReady.classList.add('hidden');
+      composerSubject.value = buildSubject(weekLabel, true);
+      composerBody.value = buildMessageBody(checks, subName, weekLabel);
+    }
+
+    if (subId && weekId) {
+      selectedCell = { subId, weekId };
+      renderGrid();
+    }
+
+    resultsHeading.focus();
+    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function computeSummary() {
+    let issues = 0;
+    let ready = 0;
+    let pending = 0;
+
+    for (const sub of project.subs) {
+      for (const week of project.weeks) {
+        const status = getCellStatus(sub.id, week.id);
+        if (status === 'future') continue;
+        if (status === 'issues') issues++;
+        else if (status === 'ready') ready++;
+        else pending++;
+      }
+    }
+
+    return { issues, ready, pending };
+  }
+
+  function renderSummary() {
+    const { issues, ready, pending } = computeSummary();
+    summaryStrip.innerHTML = `
+      <span class="summary-strip__item summary-strip__item--issues"><strong>${issues}</strong> need fixes</span>
+      <span class="summary-strip__sep" aria-hidden="true">/</span>
+      <span class="summary-strip__item summary-strip__item--ready"><strong>${ready}</strong> ready</span>
+      <span class="summary-strip__sep" aria-hidden="true">/</span>
+      <span class="summary-strip__item summary-strip__item--pending"><strong>${pending}</strong> not received</span>
+    `;
+  }
+
+  function renderDesktopGrid() {
+    let html = '<table class="filing-table"><thead><tr>';
+    html += '<th class="filing-table__sub" scope="col">Subcontractor</th>';
+    for (const week of project.weeks) {
+      html += `<th class="filing-table__week" scope="col">${escapeHtml(weekHeaderLabel(week))}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    for (const sub of project.subs) {
+      html += '<tr>';
+      html += `<th class="filing-table__sub" scope="row">${escapeHtml(sub.name)}</th>`;
+      for (const week of project.weeks) {
+        const status = getCellStatus(sub.id, week.id);
+        const isSelected = selectedCell?.subId === sub.id && selectedCell?.weekId === week.id;
+        const selectedClass = isSelected ? ' filing-table__cell--selected' : '';
+
+        if (status === 'future') {
+          html += `<td class="filing-table__cell filing-table__cell--future${selectedClass}"></td>`;
+          continue;
+        }
+
+        const filing = project.filings[filingKey(sub.id, week.id)];
+        if (filing) {
+          const ariaLabel = `${sub.name}, week ending ${week.label}, ${PROJECT_YEAR}: ${statusLabel(status)}`;
+          html += `<td class="filing-table__cell${selectedClass}">
+            <button type="button" class="filing-table__btn" data-sub="${sub.id}" data-week="${week.id}"
+              aria-label="${escapeHtml(ariaLabel)}"${isSelected ? ' aria-current="true"' : ''}>
+              <span class="status-pill ${statusPillClass(status)}">${statusLabel(status)}</span>
+            </button>
+          </td>`;
+        } else {
+          html += `<td class="filing-table__cell${selectedClass}">
+            <span class="status-pill status-pill--pending">Not received</span>
+          </td>`;
+        }
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    gridDesktop.innerHTML = html;
+
+    gridDesktop.querySelectorAll('.filing-table__btn').forEach((btn) => {
+      btn.addEventListener('click', () => openFiling(btn.dataset.sub, btn.dataset.week));
+    });
+  }
+
+  function renderMobileList() {
+    const groups = [
+      { key: 'issues', title: 'Needs fixes', status: 'issues' },
+      { key: 'ready', title: 'Ready to forward', status: 'ready' },
+      { key: 'pending', title: 'Not received', status: 'pending' }
+    ];
+
+    let html = '';
+    for (const group of groups) {
+      const items = [];
+      for (const sub of project.subs) {
+        for (const week of project.weeks) {
+          const status = getCellStatus(sub.id, week.id);
+          if (status === 'future' || status !== group.status) continue;
+          if (group.status === 'pending' && project.filings[filingKey(sub.id, week.id)]) continue;
+          items.push({ sub, week, status });
+        }
+      }
+      if (items.length === 0) continue;
+
+      html += `<div class="grid-list__group"><h3 class="grid-list__title">${group.title}</h3><ul class="grid-list__items">`;
+      for (const { sub, week, status } of items) {
+        const isSelected = selectedCell?.subId === sub.id && selectedCell?.weekId === week.id;
+        const clickable = status !== 'pending';
+        const tag = clickable ? 'button' : 'div';
+        const attrs = clickable
+          ? ` type="button" class="grid-list__item grid-list__item--clickable${isSelected ? ' grid-list__item--selected' : ''}" data-sub="${sub.id}" data-week="${week.id}" aria-label="${escapeHtml(sub.name)}, week ending ${week.label}, ${PROJECT_YEAR}"${isSelected ? ' aria-current="true"' : ''}`
+          : ` class="grid-list__item"`;
+
+        html += `<li><${tag}${attrs}>
+          <span class="grid-list__name">${escapeHtml(sub.name)}</span>
+          <span class="grid-list__week meta">${escapeHtml(weekHeaderLabel(week))}</span>
+          <span class="status-pill ${statusPillClass(status)}">${statusLabel(status)}</span>
+        </${tag}></li>`;
+      }
+      html += '</ul></div>';
+    }
+
+    gridMobile.innerHTML = html;
+    gridMobile.querySelectorAll('.grid-list__item--clickable').forEach((btn) => {
+      btn.addEventListener('click', () => openFiling(btn.dataset.sub, btn.dataset.week));
+    });
+  }
+
+  function renderGrid() {
+    renderSummary();
+    renderDesktopGrid();
+    renderMobileList();
+
+    const hasFilings = Object.keys(project.filings).length > 0;
+    gridEmpty.classList.toggle('hidden', hasFilings);
+    btnResetDemo.classList.toggle('hidden', !hasFilings);
   }
 
   /**
@@ -345,57 +559,18 @@
       status: allPass ? 'pass' : 'fail',
       checks,
       fileName,
-      kickbackNote: buildKickbackNote(checks, sub?.name || subId, week?.label || weekId),
       checkedAt: Date.now(),
       textPreview: extractedPreview.slice(0, 500)
     };
     saveProject();
-    renderGrid();
-  }
-
-  function renderGrid() {
-    const cols = project.weeks.length + 1;
-    projectGrid.style.gridTemplateColumns = `minmax(140px, 1.4fr) repeat(${project.weeks.length}, minmax(72px, 1fr))`;
-
-    let html = '<div class="project-grid" style="display:contents">';
-    html += `<div class="project-grid__cell project-grid__cell--corner project-grid__cell--head">Subcontractor</div>`;
-    for (const week of project.weeks) {
-      html += `<div class="project-grid__cell project-grid__cell--head">${escapeHtml(week.label)}</div>`;
-    }
-
-    for (const sub of project.subs) {
-      html += `<div class="project-grid__row" style="display:contents">`;
-      html += `<div class="project-grid__cell project-grid__cell--sub">${escapeHtml(sub.name)}</div>`;
-      for (const week of project.weeks) {
-        const key = filingKey(sub.id, week.id);
-        const filing = project.filings[key];
-        let cellClass = 'project-grid__cell--pending';
-        let label = '—';
-        if (filing) {
-          cellClass = filing.status === 'pass' ? 'project-grid__cell--pass' : 'project-grid__cell--fail';
-          label = filing.status === 'pass' ? 'Pass' : 'Fail';
-        }
-        const clickable = filing ? ' project-grid__cell--clickable' : '';
-        html += `<div class="project-grid__cell ${cellClass}${clickable}" data-sub="${sub.id}" data-week="${week.id}" role="${filing ? 'button' : 'cell'}" tabindex="${filing ? '0' : '-1'}">${label}</div>`;
-      }
-      html += `</div>`;
-    }
-    html += '</div>';
-    projectGrid.innerHTML = html;
-
-    const hasFilings = Object.keys(project.filings).length > 0;
-    gridEmpty.classList.toggle('hidden', hasFilings);
-    btnResetDemo.classList.toggle('hidden', !hasFilings);
-
-    projectGrid.querySelectorAll('.project-grid__cell--clickable').forEach((cell) => {
-      cell.addEventListener('click', () => openFiling(cell.dataset.sub, cell.dataset.week));
-      cell.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openFiling(cell.dataset.sub, cell.dataset.week);
-        }
-      });
-    });
+    showResults(
+      checks,
+      sub?.name || subId,
+      week?.label || weekId,
+      fileName,
+      subId,
+      weekId
+    );
   }
 
   function openFiling(subId, weekId) {
@@ -405,16 +580,44 @@
     const week = project.weeks.find((w) => w.id === weekId);
     subSelect.value = subId;
     weekSelect.value = weekId;
-    showResults(filing.checks, sub?.name || subId, week?.label || weekId, filing.fileName);
+    showResults(filing.checks, sub?.name || subId, week?.label || weekId, filing.fileName, subId, weekId);
   }
 
   function populateSelects() {
     subSelect.innerHTML = project.subs.map((s) =>
       `<option value="${s.id}">${escapeHtml(s.name)}</option>`
     ).join('');
-    weekSelect.innerHTML = project.weeks.map((w) =>
-      `<option value="${w.id}">${escapeHtml(w.label)}</option>`
-    ).join('');
+    weekSelect.innerHTML = project.weeks
+      .filter((w) => !isFutureWeek(w))
+      .map((w) =>
+        `<option value="${w.id}">Week ending ${escapeHtml(w.label)}, ${PROJECT_YEAR}</option>`
+      ).join('');
+  }
+
+  function showUploadError(message) {
+    uploadError.textContent = message;
+    uploadError.classList.remove('hidden');
+  }
+
+  function clearUploadError() {
+    uploadError.textContent = '';
+    uploadError.classList.add('hidden');
+  }
+
+  /**
+   * @param {File | Blob} file
+   * @returns {Promise<string>}
+   */
+  async function extractPdfText(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const parts = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      parts.push(content.items.map((item) => item.str).join(' '));
+    }
+    return parts.join('\n');
   }
 
   /**
@@ -427,19 +630,19 @@
     const sub = project.subs.find((s) => s.id === subId);
     const week = project.weeks.find((w) => w.id === weekId);
 
+    clearUploadError();
     uploadZone.classList.add('is-loading');
     try {
       const text = await extractPdfText(file);
       if (!text || text.trim().length < 20) {
-        alert('Could not extract enough text from this PDF. It may be a scanned image without a text layer.');
+        showUploadError('Could not extract enough text from this PDF. It may be a scanned image without a text layer.');
         return;
       }
       const checks = runChecks(text);
-      showResults(checks, sub?.name || subId, week?.label || weekId, fileName);
       saveFiling(subId, weekId, checks, fileName, text);
     } catch (err) {
       console.error(err);
-      alert('Failed to read PDF: ' + (err.message || 'Unknown error'));
+      showUploadError('Failed to read PDF: ' + (err.message || 'Unknown error'));
     } finally {
       uploadZone.classList.remove('is-loading');
     }
@@ -450,15 +653,16 @@
     if (!sample) return;
     subSelect.value = sample.subId;
     weekSelect.value = sample.weekId;
-    const chips = document.querySelectorAll('.chip');
-    chips.forEach((c) => c.classList.add('is-loading'));
+    btnLoadSamples.classList.add('is-loading');
+    btnLoadSamples.disabled = true;
     try {
       const resp = await fetch(`samples/${sample.file}`);
       if (!resp.ok) throw new Error('Sample file not found');
       const blob = await resp.blob();
       await processFile(blob, sample.file);
     } finally {
-      chips.forEach((c) => c.classList.remove('is-loading'));
+      btnLoadSamples.classList.remove('is-loading');
+      btnLoadSamples.disabled = false;
     }
   }
 
@@ -467,10 +671,55 @@
       await loadSample(key);
       await new Promise((r) => setTimeout(r, 300));
     }
-    const passFiling = project.filings[filingKey('apex', '2026-w40')];
-    if (passFiling) {
-      openFiling('apex', '2026-w40');
+    openFiling('quickdrywall', '2026-w38');
+  }
+
+  let toastTimer = null;
+
+  function showToast(message, undoFn) {
+    toastText.textContent = message;
+    if (undoFn) {
+      toastAction.hidden = false;
+      toastAction.onclick = () => {
+        undoFn();
+        hideToast();
+      };
+    } else {
+      toastAction.hidden = true;
+      toastAction.onclick = null;
     }
+    toast.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+
+  function hideToast() {
+    toast.classList.add('hidden');
+    clearTimeout(toastTimer);
+  }
+
+  async function copyMessage() {
+    const text = `Subject: ${composerSubject.value}\n\n${composerBody.value}`;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    btnCopyMessage.textContent = 'Copied';
+    setTimeout(() => { btnCopyMessage.textContent = 'Copy message'; }, 2000);
+  }
+
+  function openInEmail() {
+    const to = composerTo.value.trim();
+    const subject = encodeURIComponent(composerSubject.value);
+    const body = encodeURIComponent(composerBody.value);
+    const mailto = `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`;
+    window.location.href = mailto;
   }
 
   // Event listeners
@@ -490,34 +739,30 @@
     uploadZone.classList.remove('is-dragover');
     const file = e.dataTransfer?.files?.[0];
     if (file && file.type === 'application/pdf') processFile(file, file.name);
+    else if (file) showUploadError('Please upload a PDF file.');
   });
 
-  document.querySelectorAll('.chip[data-sample]').forEach((btn) => {
-    btn.addEventListener('click', () => loadSample(btn.dataset.sample));
-  });
+  btnLoadSamples.addEventListener('click', runAllSamples);
 
-  btnCopyKickback.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(kickbackText.textContent);
-      kickbackCopied.classList.remove('hidden');
-      setTimeout(() => kickbackCopied.classList.add('hidden'), 2000);
-    } catch (_) {
-      const range = document.createRange();
-      range.selectNode(kickbackText);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
-      document.execCommand('copy');
-      kickbackCopied.classList.remove('hidden');
-    }
-  });
+  btnCopyMessage.addEventListener('click', copyMessage);
+  btnOpenEmail.addEventListener('click', openInEmail);
+
+  composerSignature.value = loadSignature();
+  composerSignature.addEventListener('change', () => saveSignature(composerSignature.value));
+  composerSignature.addEventListener('blur', () => saveSignature(composerSignature.value));
 
   btnResetDemo.addEventListener('click', () => {
-    if (confirm('Clear all filings and reset demo data?')) {
-      project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
+    const snapshot = JSON.parse(JSON.stringify(project));
+    project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
+    saveProject();
+    selectedCell = null;
+    resultsPanel.classList.add('hidden');
+    renderGrid();
+    showToast('Demo data reset', () => {
+      project = snapshot;
       saveProject();
-      resultsPanel.classList.add('hidden');
       renderGrid();
-    }
+    });
   });
 
   // Init
