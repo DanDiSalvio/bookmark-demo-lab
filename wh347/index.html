@@ -144,7 +144,7 @@
           <span class="flow-item__num meta" aria-hidden="true">02</span>
           <div class="flow-item__body">
             <h3 class="flow-item__title">See status on your project grid</h3>
-            <p class="flow-item__desc">Your project view is a grid of subs by week. Ready means forward; issues means kick it back before a rejected filing holds up your progress payment.</p>
+            <p class="flow-item__desc">Your project view is a grid of subs by week. Ready means forward; issues means kick it back before a rejected filing can hold up your progress payment.</p>
           </div>
         </li>
         <li class="flow-item">
@@ -158,35 +158,53 @@
     </section>
 
     <section class="section pricing" aria-labelledby="pricing-heading">
-      <h2 class="section__title" id="pricing-heading">Who pays</h2>
+      <h2 class="section__title" id="pricing-heading">Pricing</h2>
+      <p class="pricing__tagline">One rejected payroll week can hold your progress payment — <a href="https://www.ecfr.gov/current/title-29/subtitle-A/part-5/section-5.5" target="_blank" rel="noopener">per 29 CFR 5.5</a>.</p>
       <div class="pricing-tiers">
         <div class="pricing-tier">
-          <div class="pricing-tier__header">
-            <span class="pricing-tier__name">Free</span>
+          <span class="pricing-tier__name">Free</span>
+          <span class="pricing-tier__label meta">Free forever</span>
+          <div class="pricing-tier__price-block">
             <span class="pricing-tier__price">$0</span>
+            <span class="pricing-tier__unit meta">free · 1 project</span>
           </div>
-          <p class="pricing-tier__detail meta">1 project · Up to 3 subs · No card required</p>
-          <a class="btn btn-secondary btn-sm btn-block" href="/wh347/app/?sample=1">Try sample filings</a>
+          <ul class="pricing-tier__features">
+            <li><span class="pricing-tier__feature-label">Projects</span> 1</li>
+            <li><span class="pricing-tier__feature-label">Subs</span> Up to 3</li>
+            <li><span class="pricing-tier__feature-label">Weekly checks + messages</span> Included</li>
+          </ul>
+          <a class="btn btn-secondary btn-sm btn-block pricing-tier__cta" href="/wh347/app/">Start free</a>
+          <p class="pricing-tier__micro meta">No card required</p>
         </div>
         <div class="pricing-tier pricing-tier--featured">
-          <span class="pricing-tier__badge">Most popular</span>
-          <div class="pricing-tier__header">
-            <span class="pricing-tier__name">Per project</span>
+          <span class="pricing-tier__badge">Recommended</span>
+          <span class="pricing-tier__name">Project</span>
+          <div class="pricing-tier__price-block">
             <span class="pricing-tier__price">$49<span class="pricing-tier__period">/mo</span></span>
+            <span class="pricing-tier__unit meta">per project / month</span>
           </div>
-          <p class="pricing-tier__detail meta">Unlimited subs · Weekly filing checks · Correction messages</p>
-          <a class="btn btn-primary btn-sm btn-block" href="/wh347/app/">Open project grid</a>
+          <ul class="pricing-tier__features">
+            <li><span class="pricing-tier__feature-label">Projects</span> 1</li>
+            <li><span class="pricing-tier__feature-label">Subs</span> Unlimited</li>
+            <li><span class="pricing-tier__feature-label">Weekly checks + messages</span> Included</li>
+          </ul>
+          <a class="btn btn-primary btn-sm btn-block pricing-tier__cta" href="/wh347/app/">Start a project</a>
         </div>
-        <div class="pricing-tier pricing-tier--upgrade">
-          <div class="pricing-tier__header">
-            <span class="pricing-tier__name">Multi-project</span>
+        <div class="pricing-tier">
+          <span class="pricing-tier__name">Multi-project</span>
+          <div class="pricing-tier__price-block">
             <span class="pricing-tier__price">$99<span class="pricing-tier__period">/mo</span></span>
+            <span class="pricing-tier__unit meta">per month · up to 3 projects (about $33 each)</span>
           </div>
-          <p class="pricing-tier__detail meta">Up to 3 active projects · Unlimited subs per project</p>
-          <a class="btn btn-secondary btn-sm btn-block" href="/wh347/app/">Open project grid</a>
+          <ul class="pricing-tier__features">
+            <li><span class="pricing-tier__feature-label">Projects</span> Up to 3</li>
+            <li><span class="pricing-tier__feature-label">Subs</span> Unlimited</li>
+            <li><span class="pricing-tier__feature-label">Weekly checks + messages</span> Included</li>
+          </ul>
+          <a class="btn btn-secondary btn-sm btn-block pricing-tier__cta" href="/wh347/app/">Set up 3 projects</a>
         </div>
       </div>
-      <p class="pricing__tagline">One rejected payroll week can hold your progress payment.</p>
+      <p class="pricing__footnote meta">More than 3 projects? Contact us.</p>
       <p class="pricing__note meta">Built for office managers at small prime contractors on Davis-Bacon / federally funded jobs.</p>
     </section>
 

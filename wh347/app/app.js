@@ -408,7 +408,7 @@
         id: 'statementOfCompliance',
         label: 'Signed Statement of Compliance',
         pass: false,
-        detail: `Incomplete: missing ${missing.join(', ')}. Unsigned statements will be rejected.`
+        detail: `Incomplete: missing ${missing.join(', ')}. The Statement of Compliance must be signed by the certifying official.`
       });
     }
 
@@ -428,7 +428,7 @@
     }
 
     const items = failures.map((f) => `• ${subDirectedBullet(f)}`);
-    return `${subName},\n\nYour certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR} cannot be forwarded yet. Incomplete, wrong-revision, or defective filings are treated like missing filings — payment will be withheld until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n')}`;
+    return `${subName},\n\nYour certified payroll for week ending ${weekLabel}, ${PROJECT_YEAR} cannot be forwarded yet. Incomplete, wrong-revision, or defective filings can be treated like missing filings, which can hold up payment until corrected.\n\nPlease fix and resubmit:\n\n${items.join('\n')}`;
   }
 
   function getOutboundMessageBody() {
