@@ -34,7 +34,9 @@
           <span class="hero-preview__sep" aria-hidden="true">/</span>
           <span class="hero-preview__stat hero-preview__stat--ready"><strong>1</strong> ready</span>
           <span class="hero-preview__sep" aria-hidden="true">/</span>
-          <span class="hero-preview__stat hero-preview__stat--pending"><strong>9</strong> not received</span>
+          <span class="hero-preview__stat hero-preview__stat--scanned"><strong>1</strong> scanned</span>
+          <span class="hero-preview__sep" aria-hidden="true">/</span>
+          <span class="hero-preview__stat hero-preview__stat--pending"><strong>8</strong> not received</span>
         </div>
         <div class="hero-preview__desktop">
           <table class="hero-preview__table">
@@ -73,7 +75,7 @@
                 <th scope="row">Pacific Steel Erectors</th>
                 <td><span class="status-pill status-pill--pending">Not received</span></td>
                 <td><span class="status-pill status-pill--pending">Not received</span></td>
-                <td><span class="status-pill status-pill--pending">Not received</span></td>
+                <td><span class="status-pill status-pill--scanned">Scanned</span></td>
                 <td><span class="status-pill status-pill--pending">Not due</span></td>
               </tr>
             </tbody>
@@ -105,13 +107,23 @@
               </li>
             </ul>
           </div>
+          <div class="hero-preview__group">
+            <h3 class="hero-preview__group-title">Scanned (1)</h3>
+            <ul class="hero-preview__list">
+              <li class="hero-preview__row">
+                <span class="hero-preview__name">Pacific Steel Erectors</span>
+                <span class="meta">Wk ending Sep 27, 2026</span>
+                <span class="status-pill status-pill--scanned">Scanned</span>
+              </li>
+            </ul>
+          </div>
           <details class="hero-preview__collapse">
             <summary class="hero-preview__group-title hero-preview__group-title--disclosure">
-              <span>Not received (9)</span>
+              <span>Not received (8)</span>
               <svg class="hero-preview__chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M6 4l4 4-4 4V4z"/></svg>
             </summary>
             <ul class="hero-preview__list hero-preview__list--muted">
-              <li class="hero-preview__row hero-preview__row--compact"><span class="meta">9 filings not yet submitted</span></li>
+              <li class="hero-preview__row hero-preview__row--compact"><span class="meta">8 filings not yet submitted</span></li>
             </ul>
           </details>
         </div>
@@ -132,7 +144,7 @@
           <span class="flow-item__num meta" aria-hidden="true">02</span>
           <div class="flow-item__body">
             <h3 class="flow-item__title">See status on your project grid</h3>
-            <p class="flow-item__desc">Your project view is a grid of subs by week. Ready means forward; issues means kick it back before the agency rejects it and treats it like a missing filing.</p>
+            <p class="flow-item__desc">Your project view is a grid of subs by week. Ready means forward; issues means kick it back before a rejected filing holds up your progress payment.</p>
           </div>
         </li>
         <li class="flow-item">
@@ -147,22 +159,41 @@
 
     <section class="section pricing" aria-labelledby="pricing-heading">
       <h2 class="section__title" id="pricing-heading">Who pays</h2>
-      <div class="pricing-table">
-        <div class="pricing-row">
-          <div class="pricing-row__info">
-            <span class="pricing-row__name">Per active project</span>
-            <span class="pricing-row__detail meta">Unlimited subs · Weekly filing checks · Correction messages</span>
+      <div class="pricing-tiers">
+        <div class="pricing-tier">
+          <div class="pricing-tier__header">
+            <span class="pricing-tier__name">Free</span>
+            <span class="pricing-tier__price">$0</span>
           </div>
-          <span class="pricing-row__price">$49/mo</span>
+          <p class="pricing-tier__detail meta">1 project · Up to 3 subs · No card required</p>
+          <a class="btn btn-secondary btn-sm btn-block" href="/wh347/app/?sample=1">Try sample filings</a>
+        </div>
+        <div class="pricing-tier pricing-tier--featured">
+          <span class="pricing-tier__badge">Most popular</span>
+          <div class="pricing-tier__header">
+            <span class="pricing-tier__name">Per project</span>
+            <span class="pricing-tier__price">$49<span class="pricing-tier__period">/mo</span></span>
+          </div>
+          <p class="pricing-tier__detail meta">Unlimited subs · Weekly filing checks · Correction messages</p>
+          <a class="btn btn-primary btn-sm btn-block" href="/wh347/app/">Open project grid</a>
+        </div>
+        <div class="pricing-tier pricing-tier--upgrade">
+          <div class="pricing-tier__header">
+            <span class="pricing-tier__name">Multi-project</span>
+            <span class="pricing-tier__price">$99<span class="pricing-tier__period">/mo</span></span>
+          </div>
+          <p class="pricing-tier__detail meta">Up to 3 active projects · Unlimited subs per project</p>
+          <a class="btn btn-secondary btn-sm btn-block" href="/wh347/app/">Open project grid</a>
         </div>
       </div>
-      <p class="pricing__note meta">Built for office managers at small prime contractors on Davis-Bacon / federally funded jobs. <a href="https://www.ecfr.gov/current/title-29/subtitle-A/part-5/section-5.5" target="_blank" rel="noopener">Agencies treat rejected payroll like missing payroll</a> — payment gets withheld until it's fixed.</p>
+      <p class="pricing__tagline">One rejected payroll week can hold your progress payment.</p>
+      <p class="pricing__note meta">Built for office managers at small prime contractors on Davis-Bacon / federally funded jobs.</p>
     </section>
 
     <footer class="footer">
       <p class="footer__cta"><a href="/wh347/app/?sample=1">Try sample filings</a> · <a href="/wh347/app/">Open project grid</a></p>
       <p class="footer__credit meta">Demo for federal construction primes · Part of Dan's Demo Lab</p>
-      <p class="footer__disclosure meta">Checks scan PDF text for markers like OMB 1235-0008 (current WH-347 expires 01/31/2028 per <a href="https://www.dol.gov/agencies/whd/forms/wh347" target="_blank" rel="noopener">DOL</a>). Results are heuristic — always verify before withholding payment or rejecting a filing.</p>
+      <p class="footer__disclosure meta">Checks scan PDF text for markers like OMB 1235-0008 (valid through 01/31/2028 per <a href="https://www.dol.gov/agencies/whd/forms/wh347" target="_blank" rel="noopener">DOL</a>). Results are heuristic — always verify before withholding payment or rejecting a filing.</p>
     </footer>
   </div>
 </body>

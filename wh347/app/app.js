@@ -169,12 +169,15 @@
     if (week && isFutureWeek(week)) return 'future';
     const filing = project.filings[filingKey(subId, weekId)];
     if (!filing) return 'pending';
-    return filing.status === 'pass' ? 'ready' : 'issues';
+    if (filing.status === 'pass') return 'ready';
+    if (filing.status === 'scanned') return 'scanned';
+    return 'issues';
   }
 
   function statusLabel(status) {
     if (status === 'ready') return 'Ready';
     if (status === 'issues') return 'Issues';
+    if (status === 'scanned') return 'Scanned';
     if (status === 'pending') return 'Not received';
     if (status === 'future') return 'Not due';
     return '';
@@ -215,12 +218,12 @@
     switch (check.id) {
       case 'formRevision':
         if (check.detail.includes('09/30/2026')) {
-          return 'Resubmit on the current WH-347 form (OMB 1235-0008, expires 01/31/2028).';
+          return 'Resubmit on the current WH-347 form (OMB 1235-0008, valid through 01/31/2028).';
         }
         if (check.detail.includes('Could not find')) {
           return 'Confirm you are using WH-347 and that the PDF has a readable text layer (not a flat scan).';
         }
-        return 'Verify the form shows OMB 1235-0008 with expiry 01/31/2028.';
+        return 'Verify the form shows OMB 1235-0008, valid through 01/31/2028.';
       case 'wageDetermination':
         return 'Enter the wage determination number(s) from the contract.';
       case 'apprenticeRegistration':
@@ -237,6 +240,7 @@
   function statusPillClass(status) {
     if (status === 'ready') return 'status-pill--ready';
     if (status === 'issues') return 'status-pill--issues';
+    if (status === 'scanned') return 'status-pill--scanned';
     return 'status-pill--pending';
   }
 
@@ -260,7 +264,7 @@
         id: 'formRevision',
         label: 'Current form version',
         pass: true,
-        detail: `Found OMB ${CURRENT_OMB} with expiry ${CURRENT_EXPIRY} — matches current WH-347 per DOL.`
+        detail: `Found OMB ${CURRENT_OMB}, valid through ${CURRENT_EXPIRY} — matches current WH-347 per DOL.`
       });
     } else if (hasOldExpiry || (hasOmbBlock && !hasCurrentExpiry)) {
       checks.push({
@@ -268,8 +272,8 @@
         label: 'Current form version',
         pass: false,
         detail: hasOldExpiry
-          ? 'PDF shows an outdated OMB expiry date (09/30/2026). Resubmit on current WH-347 (OMB 1235-0008, expires 01/31/2028).'
-          : 'OMB block found but current expiry 01/31/2028 not detected — may be wrong revision or scanned image without text.'
+          ? 'PDF shows an outdated OMB date (09/30/2026). Resubmit on current WH-347 (OMB 1235-0008, valid through 01/31/2028).'
+          : 'OMB block found but valid-through date 01/31/2028 not detected — may be wrong revision or scanned image without text.'
       });
     } else if (!hasOmbBlock) {
       checks.push({
@@ -283,7 +287,7 @@
         id: 'formRevision',
         label: 'Current form version',
         pass: false,
-        detail: 'OMB markers incomplete — verify form matches current WH-347 (expires 01/31/2028).'
+        detail: 'OMB markers incomplete — verify form matches current WH-347 (valid through 01/31/2028).'
       });
     }
 
@@ -420,7 +424,7 @@
     const failures = checks.filter((c) => !c.pass);
 
     if (failures.length === 0) {
-      return `${subName},\n\nYour WH-347 for week ending ${weekLabel}, ${PROJECT_YEAR} passed our pre-check. We will forward to the contracting agency.`;
+      return `${subName},\n\nYour WH-347 for week ending ${weekLabel}, ${PROJECT_YEAR} passed our pre-check and is ready to forward from our office.`;
     }
 
     const items = failures.map((f) => `• ${subDirectedBullet(f)}`);
@@ -660,6 +664,7 @@
   function computeSummary() {
     let issues = 0;
     let ready = 0;
+    let scanned = 0;
     let pending = 0;
 
     for (const sub of project.subs) {
@@ -668,19 +673,25 @@
         if (status === 'future') continue;
         if (status === 'issues') issues++;
         else if (status === 'ready') ready++;
+        else if (status === 'scanned') scanned++;
         else pending++;
       }
     }
 
-    return { issues, ready, pending };
+    return { issues, ready, scanned, pending };
   }
 
   function renderSummary() {
-    const { issues, ready, pending } = computeSummary();
+    const { issues, ready, scanned, pending } = computeSummary();
+    const scannedPart = scanned > 0
+      ? `<span class="summary-strip__sep" aria-hidden="true">/</span>
+      <span class="summary-strip__item summary-strip__item--scanned"><strong>${scanned}</strong> scanned</span>`
+      : '';
     summaryStrip.innerHTML = `
       <span class="summary-strip__item summary-strip__item--issues"><strong>${issues}</strong> need fixes</span>
       <span class="summary-strip__sep" aria-hidden="true">/</span>
       <span class="summary-strip__item summary-strip__item--ready"><strong>${ready}</strong> ready</span>
+      ${scannedPart}
       <span class="summary-strip__sep" aria-hidden="true">/</span>
       <span class="summary-strip__item summary-strip__item--pending"><strong>${pending}</strong> not received</span>
     `;
@@ -738,6 +749,7 @@
     const groupDefs = [
       { key: 'issues', title: 'Needs fixes', status: 'issues' },
       { key: 'ready', title: 'Ready to forward', status: 'ready' },
+      { key: 'scanned', title: 'Scanned', status: 'scanned' },
       { key: 'pending', title: 'Not received', status: 'pending' }
     ];
 

@@ -192,6 +192,10 @@
   color: var(--color-success);
 }
 
+.summary-strip__item--scanned strong {
+  color: #6b7280;
+}
+
 .summary-strip__sep {
   color: var(--color-border);
 }
