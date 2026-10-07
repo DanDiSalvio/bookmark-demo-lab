@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0a0b0d" />
+  <link rel="icon" href="/wh347/favicon.svg" type="image/svg+xml" />
+  <title>WH-347 Sub Check — Project Grid</title>
+  <link rel="stylesheet" href="../shared.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <nav class="shell-nav" aria-label="App navigation">
+      <a class="shell-nav__brand" href="/wh347/">WH-347 Sub Check</a>
+      <a class="shell-nav__link" href="/wh347/">About</a>
+    </nav>
+
+    <header class="app-header">
+      <h1 class="app-header__title" id="project-name">Riverside Federal Courthouse</h1>
+      <p class="app-header__lede">Review subcontractor certified payroll by week before you forward to the agency.</p>
+    </header>
+
+    <section class="grid-section" id="grid-section" aria-label="Project grid">
+      <div class="grid-section__header">
+        <h2 class="section-heading">Subs by week</h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-reset-demo" hidden>Reset demo data</button>
+      </div>
+      <p class="grid-as-of meta" id="grid-as-of">As of Sep 28, 2026</p>
+      <div class="summary-strip" id="summary-strip" aria-live="polite"></div>
+      <div class="grid-wrap grid-wrap--desktop" id="project-grid-desktop"></div>
+      <div class="grid-list grid-list--mobile" id="project-grid-mobile"></div>
+      <p class="grid-empty meta hidden" id="grid-empty">No filings yet. Upload a PDF or load the sample week.</p>
+    </section>
+
+    <section class="card hidden" id="results-panel" aria-label="Check results">
+      <div class="card__header">
+        <h2 class="section-heading" id="results-heading" tabindex="-1">Check results</h2>
+      </div>
+      <div class="card__body">
+        <p class="results-issues" id="results-issues" hidden></p>
+        <div class="results-scanned hidden" id="results-scanned">
+          <p class="results-scanned__title">Scanned PDF — can’t check yet</p>
+          <p class="results-scanned__body">This looks like a scanned WH-347. We can only check PDFs exported from payroll software right now. Ask the sub for the exported PDF.</p>
+        </div>
+        <div class="results-meta" id="results-meta"></div>
+        <ul class="check-list" id="check-list"></ul>
+        <details class="check-passes" id="check-passes" hidden>
+          <summary class="check-passes__summary meta">Passed checks</summary>
+          <ul class="check-list check-list--nested" id="check-list-passes"></ul>
+        </details>
+        <p class="results-disclaimer meta" id="results-disclaimer">Heuristic scan only — verify before withholding payment or rejecting a filing.</p>
+        <div class="composer" id="composer-panel" hidden>
+          <h3 class="composer__title">Message to sub</h3>
+          <div class="composer__field">
+            <label class="field-label" for="composer-to">To</label>
+            <input type="email" id="composer-to" class="field-input" placeholder="payroll@subcontractor.com" />
+          </div>
+          <div class="composer__field">
+            <label class="field-label" for="composer-subject">Subject</label>
+            <input type="text" id="composer-subject" class="field-input" />
+          </div>
+          <div class="composer__field">
+            <label class="field-label" for="composer-body">Message</label>
+            <textarea id="composer-body" class="field-input field-textarea" rows="10"></textarea>
+            <div class="composer-send-footer" aria-live="polite">
+              <p class="composer-send-footer__label meta">Added when you send</p>
+              <p class="composer-send-footer__line" id="composer-send-resubmit"></p>
+              <p class="composer-send-footer__line" id="composer-send-signature" hidden></p>
+            </div>
+          </div>
+          <div class="composer__field">
+            <label class="field-label" for="composer-resubmit">Resubmit by</label>
+            <input type="date" id="composer-resubmit" class="field-input" />
+          </div>
+          <div class="composer__field">
+            <label class="field-label" for="composer-signature">Your sign-off</label>
+            <input type="text" id="composer-signature" class="field-input" placeholder="Maria Lopez, Project Administrator" />
+          </div>
+          <div class="composer__actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-open-email">Open in email</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-message">Copy message</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card card--secondary" id="upload-panel" aria-label="Upload certified payroll">
+      <div class="card__header card__header--split">
+        <h2 class="section-heading">Check a filing</h2>
+      </div>
+      <div class="card__body" id="upload-body">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="sub-select">Subcontractor</label>
+            <select id="sub-select" class="field-input"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="week-select">Pay week ending</label>
+            <select id="week-select" class="field-input"></select>
+          </div>
+        </div>
+        <label class="field-label" for="file-input">WH-347 PDF</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept=".pdf,application/pdf" class="upload-zone__input" aria-describedby="upload-error" />
+          <p class="upload-zone__text">Drop PDF here or <span class="upload-zone__link">browse</span></p>
+          <p class="upload-zone__hint meta">Client-side extraction — your file never leaves this browser</p>
+        </div>
+        <p class="upload-error hidden" id="upload-error" role="alert"></p>
+        <div class="samples">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-load-samples">Load sample week</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <p class="meta">Demo for federal construction primes · Data stays in your browser · <a href="/wh347/">About</a></p>
+      <p class="app-footer__note meta">Current WH-347: OMB 1235-0008, valid through 01/31/2028 per <a href="https://www.dol.gov/agencies/whd/forms/wh347" target="_blank" rel="noopener">DOL</a></p>
+    </footer>
+  </div>
+
+  <div class="toast hidden" id="toast" role="status" aria-live="polite">
+    <span class="toast__text" id="toast-text"></span>
+    <button type="button" class="toast__action" id="toast-action" hidden>Undo</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
