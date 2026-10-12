@@ -293,7 +293,6 @@
 }
 
 .pricing-tier--featured {
-  padding-top: calc(var(--space-4) + 4px);
   border-color: var(--color-text);
   box-shadow: 0 0 0 1px var(--color-text);
 }
@@ -316,10 +315,6 @@
   font-weight: 600;
 }
 
-.pricing-tier__label {
-  margin-top: calc(var(--space-1) * -1);
-}
-
 .pricing-tier__price-block {
   display: flex;
   flex-direction: column;
@@ -334,15 +329,15 @@
   line-height: 1.1;
 }
 
-.pricing-tier__period {
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-
 .pricing-tier__unit {
   margin: 0;
   line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+  .pricing-tier__unit {
+    white-space: nowrap;
+  }
 }
 
 .pricing-tier__features {
@@ -375,8 +370,13 @@
 }
 
 .pricing-tier__micro {
-  margin: calc(var(--space-2) * -1) 0 0;
+  margin: 0;
+  min-height: 1.4em;
   text-align: center;
+}
+
+.pricing-tier__micro--empty {
+  visibility: hidden;
 }
 
 .pricing__tagline {
@@ -480,8 +480,24 @@
   .pricing-tiers {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(5, auto);
     gap: 16px;
     align-items: stretch;
+  }
+
+  .pricing-tier {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 5;
+    gap: var(--space-3);
+  }
+
+  .pricing-tier__cta {
+    margin-top: 0;
+  }
+
+  .pricing-tier__features {
+    align-self: start;
   }
 }
 
