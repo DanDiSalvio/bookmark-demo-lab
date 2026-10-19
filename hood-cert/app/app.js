@@ -2,6 +2,7 @@
   'use strict';
 
   const STORAGE_KEY = 'hood-cert-pack-v1';
+  const FREE_RECORDS_PER_MONTH = 3;
 
   const CHECKLIST_AREAS = [
     { id: 'hood', label: 'Hood' },
@@ -13,12 +14,7 @@
     { id: 'fireSuppressionNozzles', label: 'Fire-suppression nozzles visible/unobstructed' }
   ];
 
-  const VOLUME_MONTHS = {
-    high: 1,
-    medium: 3,
-    low: 6,
-    minimal: 12
-  };
+  const VOLUME_MONTHS = { high: 1, medium: 3, low: 6, minimal: 12 };
 
   const VOLUME_LABELS = {
     high: 'High volume (monthly)',
@@ -27,23 +23,28 @@
     minimal: 'Minimal / seasonal (annual)'
   };
 
-  /** @typedef {{ id: string, name: string, address: string, email: string, volume: string, lastServiceDate: string | null, jobs: string[] }} Account */
-  /** @typedef {{ id: string, accountId: string, serviceDate: string, techName: string, checklist: ChecklistItem[], createdAt: number }} Job */
-  /** @typedef {{ id: string, status: 'pass' | 'deficiency', note: string, beforePhoto: string | null, afterPhoto: string | null }} ChecklistItem */
+  const CAMERA_SVG =
+    '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>';
 
-  /** @type {{ companyName: string, techName: string, accounts: Account[], jobs: Job[] }} */
+  /** @type {{ companyName: string, techName: string, plan: string, demoPro: boolean, recordsMonth: { key: string, count: number }, accounts: any[], jobs: any[] }} */
   let state = {
     companyName: 'Summit Hood Services',
     techName: 'Maria Lopez',
+    plan: 'free',
+    demoPro: false,
+    recordsMonth: { key: '', count: 0 },
     accounts: [],
     jobs: []
   };
 
   let selectedAccountId = '';
-  /** @type {Record<string, ChecklistItem>} */
+  /** @type {Record<string, any>} */
   let draftChecklist = {};
   let jobStep = 0;
+  /** @type {any | null} */
   let lastCompletedJob = null;
+  let isSavingJob = false;
+  let jobCommitted = false;
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -55,26 +56,42 @@
     newAddress: $('#new-address'),
     newEmail: $('#new-email'),
     newVolume: $('#new-volume'),
+    errNewName: $('#err-new-name'),
+    errNewAddress: $('#err-new-address'),
     btnSaveAccount: $('#btn-save-account'),
     btnToChecklist: $('#btn-to-checklist'),
     jobStepAccount: $('#job-step-account'),
     jobStepChecklist: $('#job-step-checklist'),
-    jobStepFinish: $('#job-step-finish'),
+    jobStepReview: $('#job-step-review'),
+    jobStepRecord: $('#job-step-record'),
     checklistRoot: $('#checklist-root'),
     checklistAccountName: $('#checklist-account-name'),
-    btnToFinish: $('#btn-to-finish'),
+    checklistProgress: $('#checklist-progress'),
+    checklistError: $('#checklist-error'),
+    btnMarkPass: $('#btn-mark-pass'),
+    btnToReview: $('#btn-to-review'),
     btnBackAccount: $('#btn-back-account'),
+    btnBackChecklist: $('#btn-back-checklist'),
     techName: $('#tech-name'),
     companyName: $('#company-name'),
     finishSummary: $('#finish-summary'),
-    btnGeneratePdf: $('#btn-generate-pdf'),
+    completeError: $('#complete-error'),
+    btnCompleteJob: $('#btn-complete-job'),
+    recordMeta: $('#record-meta'),
+    pdfError: $('#pdf-error'),
+    btnDownloadPdf: $('#btn-download-pdf'),
+    btnSharePdf: $('#btn-share-pdf'),
     btnEmailSummary: $('#btn-email-summary'),
     btnNewJob: $('#btn-new-job'),
-    finishBanner: $('#finish-banner'),
-    boardList: $('#board-list'),
+    boardLocked: $('#board-locked'),
+    boardPro: $('#board-pro'),
+    boardSections: $('#board-sections'),
     boardEmpty: $('#board-empty'),
+    btnDemoUnlock: $('#btn-demo-unlock-board'),
     settingsCompany: $('#settings-company'),
     settingsTech: $('#settings-tech'),
+    settingsDemoPro: $('#settings-demo-pro'),
+    planLabel: $('#plan-label'),
     btnSaveSettings: $('#btn-save-settings'),
     btnClearData: $('#btn-clear-data'),
     btnLoadSamples: $('#btn-load-samples'),
@@ -84,6 +101,9 @@
     panelJob: $('#panel-job'),
     panelBoard: $('#panel-board'),
     panelSettings: $('#panel-settings'),
+    recordDialog: $('#record-dialog'),
+    recordDialogBody: $('#record-dialog-body'),
+    btnCloseRecordDialog: $('#btn-close-record-dialog'),
     toast: $('#toast'),
     tabButtons: document.querySelectorAll('.tab-bar__btn')
   };
@@ -92,19 +112,40 @@
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
   }
 
+  function localDateIso() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function monthKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function isProPlan() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sample') === '1') return true;
+    return state.plan === 'pro' || state.demoPro;
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') {
-        state = {
-          companyName: parsed.companyName || state.companyName,
-          techName: parsed.techName || state.techName,
-          accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
-          jobs: Array.isArray(parsed.jobs) ? parsed.jobs : []
-        };
-      }
+      if (!parsed || typeof parsed !== 'object') return;
+      state = {
+        companyName: parsed.companyName || state.companyName,
+        techName: parsed.techName || state.techName,
+        plan: parsed.plan || 'free',
+        demoPro: !!parsed.demoPro,
+        recordsMonth: parsed.recordsMonth || { key: monthKey(), count: 0 },
+        accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
+        jobs: Array.isArray(parsed.jobs) ? parsed.jobs : []
+      };
     } catch (e) {
       console.error('Failed to load state', e);
     }
@@ -120,16 +161,30 @@
     window.setTimeout(() => els.toast.classList.remove('is-visible'), 2800);
   }
 
+  function showFieldError(el, message) {
+    if (!el) return;
+    if (!message) {
+      el.textContent = '';
+      el.classList.add('hidden');
+      return;
+    }
+    el.textContent = message;
+    el.classList.remove('hidden');
+  }
+
   function formatDate(iso) {
     if (!iso) return 'Never';
     const d = new Date(iso + 'T12:00:00');
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  function addMonths(iso, months) {
+  function addMonthsLocal(iso, months) {
     const d = new Date(iso + 'T12:00:00');
     d.setMonth(d.getMonth() + months);
-    return d.toISOString().slice(0, 10);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   function daysUntil(iso) {
@@ -141,24 +196,50 @@
 
   function accountNextDue(account) {
     if (!account.lastServiceDate) return null;
-    const months = VOLUME_MONTHS[account.volume] || 3;
-    return addMonths(account.lastServiceDate, months);
+    return addMonthsLocal(account.lastServiceDate, VOLUME_MONTHS[account.volume] || 3);
   }
 
-  function accountStatus(account) {
+  function accountBoardBucket(account) {
     const next = accountNextDue(account);
-    if (!next) return { key: 'due', label: 'Due in 30 days', badge: 'badge--due' };
+    if (!account.lastServiceDate || !next) {
+      return { key: 'due', label: 'Due in 30 days', badge: 'badge--due', section: 'due' };
+    }
     const days = daysUntil(next);
-    if (days < 0) return { key: 'overdue', label: 'Overdue', badge: 'badge--overdue' };
-    if (days <= 30) return { key: 'due', label: 'Due in 30 days', badge: 'badge--due' };
-    return { key: 'ok', label: 'OK', badge: 'badge--ok' };
+    if (days < 0) {
+      const overdue = Math.abs(days);
+      return {
+        key: 'overdue',
+        label: 'Overdue',
+        badge: 'badge--overdue',
+        section: 'overdue',
+        overdueText: `${overdue} day${overdue === 1 ? '' : 's'} overdue`
+      };
+    }
+    if (days <= 30) {
+      return { key: 'due', label: 'Due in 30 days', badge: 'badge--due', section: 'due' };
+    }
+    return { key: 'later', label: 'Later', badge: 'badge--ok', section: 'later' };
   }
 
-  function statusSortWeight(account) {
-    const s = accountStatus(account).key;
-    if (s === 'overdue') return 0;
-    if (s === 'due') return 1;
-    return 2;
+  function recordsUsedThisMonth() {
+    const key = monthKey();
+    if (state.recordsMonth.key !== key) {
+      state.recordsMonth = { key, count: 0 };
+    }
+    return state.recordsMonth.count;
+  }
+
+  function bumpRecordCount() {
+    const key = monthKey();
+    if (state.recordsMonth.key !== key) {
+      state.recordsMonth = { key, count: 0 };
+    }
+    state.recordsMonth.count += 1;
+  }
+
+  function canCompleteAnotherRecord() {
+    if (isProPlan()) return true;
+    return recordsUsedThisMonth() < FREE_RECORDS_PER_MONTH;
   }
 
   function initDraftChecklist() {
@@ -166,12 +247,16 @@
     CHECKLIST_AREAS.forEach((area) => {
       draftChecklist[area.id] = {
         id: area.id,
-        status: 'pass',
+        status: null,
         note: '',
         beforePhoto: null,
-        afterPhoto: null
+        afterPhoto: null,
+        beforeAt: null,
+        afterAt: null,
+        noAccessReason: ''
       };
     });
+    jobCommitted = false;
   }
 
   function compressImage(file) {
@@ -214,6 +299,22 @@
     });
   }
 
+  function checklistProgressStats() {
+    const answered = CHECKLIST_AREAS.filter((a) => draftChecklist[a.id].status).length;
+    let photos = 0;
+    CHECKLIST_AREAS.forEach((a) => {
+      const item = draftChecklist[a.id];
+      if (item.beforePhoto) photos += 1;
+      if (item.afterPhoto) photos += 1;
+    });
+    return { answered, photos, total: CHECKLIST_AREAS.length };
+  }
+
+  function updateChecklistProgress() {
+    const { answered, photos, total } = checklistProgressStats();
+    els.checklistProgress.textContent = `${answered} of ${total} areas · ${photos} photos`;
+  }
+
   function renderAccountSelect() {
     const prev = els.accountSelect.value;
     els.accountSelect.innerHTML = '<option value="">Choose a restaurant…</option>';
@@ -228,6 +329,56 @@
     }
     selectedAccountId = els.accountSelect.value;
     els.btnToChecklist.disabled = !selectedAccountId;
+  }
+
+  function createPhotoTile(areaId, kind, item) {
+    const inputId = `photo-${areaId}-${kind}`;
+    const label = document.createElement('label');
+    label.className = 'photo-tile';
+    label.setAttribute('for', inputId);
+    const data = kind === 'before' ? item.beforePhoto : item.afterPhoto;
+    if (data) {
+      label.classList.add('photo-tile--filled');
+      const img = document.createElement('img');
+      img.src = data;
+      img.alt = `${kind} photo`;
+      label.appendChild(img);
+    } else {
+      label.innerHTML = CAMERA_SVG;
+      const span = document.createElement('span');
+      span.className = 'photo-tile__text';
+      span.textContent = kind === 'before' ? 'Before' : 'After';
+      label.appendChild(span);
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.id = inputId;
+    input.className = 'photo-tile__input';
+    input.setAttribute('aria-label', `${kind} photo for ${areaId}`);
+    label.appendChild(input);
+    input.addEventListener('change', async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      try {
+        const dataUrl = await compressImage(file);
+        const stamp = new Date().toISOString();
+        if (kind === 'before') {
+          item.beforePhoto = dataUrl;
+          item.beforeAt = stamp;
+        } else {
+          item.afterPhoto = dataUrl;
+          item.afterAt = stamp;
+          item.noAccessReason = '';
+        }
+        renderChecklist();
+      } catch (err) {
+        showToast('Could not process photo');
+        console.error(err);
+      }
+    });
+    return label;
   }
 
   function renderChecklist() {
@@ -245,12 +396,13 @@
       head.className = 'checklist-item__head';
       const name = document.createElement('span');
       name.className = 'checklist-item__name';
+      name.id = `area-label-${area.id}`;
       name.textContent = area.label;
 
       const toggle = document.createElement('div');
       toggle.className = 'status-toggle';
       toggle.setAttribute('role', 'group');
-      toggle.setAttribute('aria-label', `${area.label} status`);
+      toggle.setAttribute('aria-labelledby', `area-label-${area.id}`);
 
       const btnPass = document.createElement('button');
       btnPass.type = 'button';
@@ -264,93 +416,78 @@
       btnDef.textContent = 'Deficiency';
       btnDef.dataset.status = 'deficiency';
 
-      toggle.appendChild(btnPass);
-      toggle.appendChild(btnDef);
-      head.appendChild(name);
-      head.appendChild(toggle);
+      toggle.append(btnPass, btnDef);
+      head.append(name, toggle);
 
       const noteField = document.createElement('div');
       noteField.className = 'field';
-      const noteLabel = document.createElement('label');
-      noteLabel.className = 'field-label';
-      noteLabel.textContent = 'Deficiency note (if any)';
-      const noteInput = document.createElement('textarea');
-      noteInput.className = 'field-textarea';
-      noteInput.rows = 2;
-      noteInput.value = item.note || '';
-      noteField.appendChild(noteLabel);
-      noteField.appendChild(noteInput);
+      if (item.status === 'deficiency') {
+        const noteLabel = document.createElement('label');
+        noteLabel.className = 'field-label';
+        noteLabel.setAttribute('for', `note-${area.id}`);
+        noteLabel.textContent = 'Deficiency note';
+        const noteInput = document.createElement('textarea');
+        noteInput.className = 'field-textarea';
+        noteInput.id = `note-${area.id}`;
+        noteInput.rows = 2;
+        noteInput.value = item.note || '';
+        noteInput.addEventListener('input', () => {
+          item.note = noteInput.value;
+        });
+        noteField.append(noteLabel, noteInput);
+      }
 
-      const photos = document.createElement('div');
-      photos.className = 'photo-pair';
+      const photoGrid = document.createElement('div');
+      photoGrid.className = 'photo-grid';
+      photoGrid.append(createPhotoTile(area.id, 'before', item), createPhotoTile(area.id, 'after', item));
 
-      ['before', 'after'].forEach((kind) => {
-        const slot = document.createElement('div');
-        slot.className = 'photo-slot';
-        const label = document.createElement('span');
-        label.className = 'photo-slot__label';
-        label.textContent = kind === 'before' ? 'Before photo' : 'After photo';
-        const preview = document.createElement('div');
-        preview.className = 'photo-slot__preview';
-        const data = kind === 'before' ? item.beforePhoto : item.afterPhoto;
-        if (data) {
-          const img = document.createElement('img');
-          img.src = data;
-          img.alt = `${area.label} ${kind}`;
-          preview.appendChild(img);
-        } else {
-          const empty = document.createElement('span');
-          empty.className = 'photo-slot__empty';
-          empty.textContent = 'No photo';
-          preview.appendChild(empty);
-        }
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.capture = 'environment';
-        input.dataset.kind = kind;
-        slot.appendChild(label);
-        slot.appendChild(preview);
-        slot.appendChild(input);
-        photos.appendChild(slot);
+      const accessField = document.createElement('div');
+      accessField.className = 'field field--compact';
+      const accessLabel = document.createElement('label');
+      accessLabel.className = 'field-label';
+      accessLabel.setAttribute('for', `no-access-${area.id}`);
+      accessLabel.textContent = 'No access (if no after photo)';
+      const accessInput = document.createElement('input');
+      accessInput.className = 'field-input';
+      accessInput.id = `no-access-${area.id}`;
+      accessInput.type = 'text';
+      accessInput.value = item.noAccessReason || '';
+      accessInput.disabled = !!item.afterPhoto;
+      accessInput.addEventListener('input', () => {
+        item.noAccessReason = accessInput.value;
       });
+      accessField.append(accessLabel, accessInput);
 
-      wrap.appendChild(head);
-      wrap.appendChild(noteField);
-      wrap.appendChild(photos);
+      wrap.append(head, noteField, photoGrid, accessField);
       els.checklistRoot.appendChild(wrap);
 
       toggle.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-status]');
         if (!btn) return;
         item.status = btn.dataset.status === 'deficiency' ? 'deficiency' : 'pass';
-        btnPass.classList.toggle('is-pass', item.status === 'pass');
-        btnDef.classList.toggle('is-def', item.status === 'deficiency');
-      });
-
-      noteInput.addEventListener('input', () => {
-        item.note = noteInput.value;
-      });
-
-      wrap.querySelectorAll('input[type="file"]').forEach((input) => {
-        input.addEventListener('change', async () => {
-          const file = input.files && input.files[0];
-          if (!file) return;
-          try {
-            const dataUrl = await compressImage(file);
-            if (input.dataset.kind === 'before') {
-              item.beforePhoto = dataUrl;
-            } else {
-              item.afterPhoto = dataUrl;
-            }
-            renderChecklist();
-          } catch (err) {
-            showToast('Could not process photo');
-            console.error(err);
-          }
-        });
+        renderChecklist();
       });
     });
+
+    updateChecklistProgress();
+  }
+
+  function validateChecklist() {
+    for (const area of CHECKLIST_AREAS) {
+      const item = draftChecklist[area.id];
+      if (!item.status) {
+        return `Choose Pass or Deficiency for ${area.label}.`;
+      }
+      const hasAfter = !!item.afterPhoto;
+      const noAccess = (item.noAccessReason || '').trim();
+      if (!hasAfter && !noAccess) {
+        return `Add an after photo or a no access reason for ${area.label}.`;
+      }
+      if (item.status === 'deficiency' && !(item.note || '').trim()) {
+        return `Add a deficiency note for ${area.label}.`;
+      }
+    }
+    return '';
   }
 
   function setJobStep(step) {
@@ -364,150 +501,296 @@
 
     els.jobStepAccount.classList.toggle('hidden', step !== 0);
     els.jobStepChecklist.classList.toggle('hidden', step !== 1);
-    els.jobStepFinish.classList.toggle('hidden', step !== 2);
+    els.jobStepReview.classList.toggle('hidden', step !== 2);
+    els.jobStepRecord.classList.toggle('hidden', step !== 3);
 
     if (step === 1) renderChecklist();
     if (step === 2) updateFinishSummary();
+    if (step === 3) updateRecordScreen();
   }
 
   function updateFinishSummary() {
     const account = state.accounts.find((a) => a.id === selectedAccountId);
     if (!account) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const nextDue = addMonths(today, VOLUME_MONTHS[account.volume] || 3);
+    const today = localDateIso();
+    const nextDue = addMonthsLocal(today, VOLUME_MONTHS[account.volume] || 3);
     const defCount = Object.values(draftChecklist).filter((c) => c.status === 'deficiency').length;
-    els.finishSummary.textContent = `${account.name} · ${formatDate(today)} · ${defCount} deficiency note(s) · Next due ${formatDate(nextDue)}`;
+    const defWord = defCount === 1 ? 'deficiency note' : 'deficiency notes';
+    els.finishSummary.textContent = `${account.name} · ${formatDate(today)} · ${defCount} ${defWord} · Next due ${formatDate(nextDue)}`;
     els.techName.value = state.techName;
     els.companyName.value = state.companyName;
+    showFieldError(els.completeError, '');
   }
 
-  function completeJob() {
-    const account = state.accounts.find((a) => a.id === selectedAccountId);
-    if (!account) return null;
-
-    const serviceDate = new Date().toISOString().slice(0, 10);
+  function buildJobFromDraft() {
+    const serviceDate = localDateIso();
     state.techName = els.techName.value.trim() || state.techName;
     state.companyName = els.companyName.value.trim() || state.companyName;
+    const recordNumber = window.HoodCertPdf
+      ? window.HoodCertPdf.makeRecordNumber(serviceDate)
+      : `HC-${serviceDate.replace(/-/g, '')}-DEMO`;
 
-    const job = {
+    return {
       id: uid(),
-      accountId: account.id,
+      accountId: selectedAccountId,
       serviceDate,
       techName: state.techName,
+      recordNumber,
       checklist: CHECKLIST_AREAS.map((a) => ({ ...draftChecklist[a.id] })),
       createdAt: Date.now()
     };
+  }
 
-    state.jobs.unshift(job);
-    account.lastServiceDate = serviceDate;
-    if (!account.jobs) account.jobs = [];
-    account.jobs.unshift(job.id);
+  async function completeJobOnce() {
+    if (jobCommitted || isSavingJob) return null;
+    isSavingJob = true;
+    els.btnCompleteJob.disabled = true;
+    els.btnCompleteJob.textContent = 'Saving…';
 
-    saveState();
-    lastCompletedJob = job;
-    renderBoard();
-    return job;
+    showFieldError(els.completeError, '');
+    const checklistErr = validateChecklist();
+    if (checklistErr) {
+      showFieldError(els.completeError, checklistErr);
+      isSavingJob = false;
+      els.btnCompleteJob.disabled = false;
+      els.btnCompleteJob.textContent = 'Complete job';
+      return null;
+    }
+    if (!canCompleteAnotherRecord()) {
+      showFieldError(
+        els.completeError,
+        'Free plan allows 3 service records per month. Upgrade to Pro for unlimited records.'
+      );
+      isSavingJob = false;
+      els.btnCompleteJob.disabled = false;
+      els.btnCompleteJob.textContent = 'Complete job';
+      return null;
+    }
+
+    const account = state.accounts.find((a) => a.id === selectedAccountId);
+    if (!account) {
+      isSavingJob = false;
+      els.btnCompleteJob.disabled = false;
+      els.btnCompleteJob.textContent = 'Complete job';
+      return null;
+    }
+
+    try {
+      const job = buildJobFromDraft();
+      state.jobs.unshift(job);
+      account.lastServiceDate = job.serviceDate;
+      if (!account.jobs) account.jobs = [];
+      account.jobs.unshift(job.id);
+      if (!isProPlan()) bumpRecordCount();
+      saveState();
+      lastCompletedJob = job;
+      jobCommitted = true;
+      renderBoard();
+      setJobStep(3);
+      return job;
+    } finally {
+      isSavingJob = false;
+      els.btnCompleteJob.disabled = false;
+      els.btnCompleteJob.textContent = 'Complete job';
+    }
+  }
+
+  function pdfPayloadFromJob(job) {
+    const account = state.accounts.find((a) => a.id === job.accountId);
+    if (!account) return null;
+    const nextDue = addMonthsLocal(job.serviceDate, VOLUME_MONTHS[account.volume] || 3);
+    return {
+      companyName: state.companyName,
+      techName: job.techName,
+      recordNumber: job.recordNumber,
+      account: { name: account.name, address: account.address, email: account.email },
+      serviceDate: formatDate(job.serviceDate),
+      nextDue: formatDate(nextDue),
+      checklist: job.checklist
+    };
+  }
+
+  function updateRecordScreen() {
+    const job = lastCompletedJob;
+    if (!job) return;
+    const account = state.accounts.find((a) => a.id === job.accountId);
+    els.recordMeta.textContent = `${job.recordNumber} · ${account ? account.name : 'Account'} · ${formatDate(job.serviceDate)}`;
+    showFieldError(els.pdfError, '');
+    if (navigator.share && navigator.canShare) {
+      els.btnSharePdf.classList.remove('hidden');
+    }
+  }
+
+  async function downloadPdfForJob() {
+    const job = lastCompletedJob;
+    if (!job || !window.HoodCertPdf) {
+      showFieldError(els.pdfError, 'PDF tools are not available. Refresh and try again.');
+      return;
+    }
+    showFieldError(els.pdfError, '');
+    try {
+      const payload = pdfPayloadFromJob(job);
+      if (!payload) return;
+      await window.HoodCertPdf.downloadServiceRecordPdf(payload);
+    } catch (e) {
+      console.error(e);
+      showFieldError(els.pdfError, 'PDF export failed. Tap Download again or check storage space.');
+    }
+  }
+
+  async function sharePdfForJob() {
+    const job = lastCompletedJob;
+    if (!job || !window.HoodCertPdf || !navigator.share) return;
+    try {
+      const payload = pdfPayloadFromJob(job);
+      if (!payload) return;
+      const { blob, filename } = await window.HoodCertPdf.blobServiceRecordPdf(payload);
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+      }
+    } catch (e) {
+      showFieldError(els.pdfError, 'Share failed on this device. Use Download instead.');
+    }
   }
 
   function renderBoard() {
-    const sorted = [...state.accounts].sort((a, b) => {
-      const sw = statusSortWeight(a) - statusSortWeight(b);
-      if (sw !== 0) return sw;
-      const na = accountNextDue(a);
-      const nb = accountNextDue(b);
-      if (!na && !nb) return 0;
-      if (!na) return 1;
-      if (!nb) return -1;
-      return daysUntil(na) - daysUntil(nb);
+    const pro = isProPlan();
+    els.boardLocked.classList.toggle('hidden', pro);
+    els.boardPro.classList.toggle('hidden', !pro);
+    if (!pro) return;
+
+    const sections = { overdue: [], due: [], later: [] };
+    state.accounts.forEach((account) => {
+      const bucket = accountBoardBucket(account);
+      sections[bucket.section].push({ account, bucket });
     });
 
-    els.boardList.innerHTML = '';
-    if (sorted.length === 0) {
+    const order = ['overdue', 'due', 'later'];
+    const titles = {
+      overdue: 'Overdue',
+      due: 'Due in 30 days',
+      later: 'Later'
+    };
+
+    els.boardSections.innerHTML = '';
+    const total = state.accounts.length;
+    if (total === 0) {
       els.boardEmpty.classList.remove('hidden');
       return;
     }
     els.boardEmpty.classList.add('hidden');
 
-    sorted.forEach((account) => {
-      const st = accountStatus(account);
-      const next = accountNextDue(account);
-      const li = document.createElement('li');
-      li.className = 'board-row';
+    order.forEach((key) => {
+      const rows = sections[key];
+      if (!rows.length) return;
+      const section = document.createElement('section');
+      section.className = 'board-section';
+      section.innerHTML = `<h3 class="board-section__title">${titles[key]}</h3>`;
 
-      const top = document.createElement('div');
-      top.className = 'board-row__top';
-      const name = document.createElement('p');
-      name.className = 'board-row__name';
-      name.textContent = account.name;
-      const badge = document.createElement('span');
-      badge.className = `badge ${st.badge}`;
-      badge.textContent = st.label;
-      top.appendChild(name);
-      top.appendChild(badge);
+      const table = document.createElement('div');
+      table.className = 'board-table';
+      table.setAttribute('role', 'table');
 
-      const meta = document.createElement('p');
-      meta.className = 'board-row__meta';
-      meta.textContent = `Last: ${formatDate(account.lastServiceDate)} · Next: ${next ? formatDate(next) : 'Set after first job'} · ${VOLUME_LABELS[account.volume] || account.volume}`;
+      rows.forEach(({ account, bucket }) => {
+        const next = accountNextDue(account);
+        const row = document.createElement('div');
+        row.className = 'board-table__row';
+        row.setAttribute('role', 'row');
 
-      const actions = document.createElement('div');
-      actions.className = 'board-row__actions';
+        const overdueLine =
+          bucket.overdueText ||
+          (next ? `Next ${formatDate(next)}` : 'No service date yet');
 
-      const copyBtn = document.createElement('button');
-      copyBtn.type = 'button';
-      copyBtn.className = 'btn btn-secondary btn-sm';
-      copyBtn.textContent = 'Copy rebook note';
+        row.innerHTML = `
+          <div class="board-table__cell board-table__cell--name" role="cell">
+            <p class="board-row__name">${account.name}</p>
+            <p class="board-row__meta">Last ${formatDate(account.lastServiceDate)} · ${VOLUME_LABELS[account.volume]}</p>
+          </div>
+          <div class="board-table__cell board-table__cell--status" role="cell">
+            <span class="badge ${bucket.badge}">${bucket.label}</span>
+            <span class="board-row__overdue">${overdueLine}</span>
+          </div>
+          <div class="board-table__cell board-table__cell--actions" role="cell"></div>
+        `;
 
-      const emailBtn = document.createElement('button');
-      emailBtn.type = 'button';
-      emailBtn.className = 'btn btn-accent btn-sm';
-      emailBtn.textContent = 'Send rebook note';
+        const actions = row.querySelector('.board-table__cell--actions');
+        const recordsBtn = document.createElement('button');
+        recordsBtn.type = 'button';
+        recordsBtn.className = 'btn btn-ghost btn-sm';
+        recordsBtn.textContent = 'Records';
+        recordsBtn.addEventListener('click', () => openRecordsForAccount(account.id));
+        actions.appendChild(recordsBtn);
 
-      actions.appendChild(copyBtn);
-      actions.appendChild(emailBtn);
-
-      li.appendChild(top);
-      li.appendChild(meta);
-      li.appendChild(actions);
-      els.boardList.appendChild(li);
-
-      const message = buildRebookMessage(account, next, st);
-
-      copyBtn.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(message);
-          showToast('Rebook note copied');
-        } catch (_e) {
-          showToast('Copy failed on this browser');
+        if (key === 'due' || key === 'overdue') {
+          const rebookBtn = document.createElement('button');
+          rebookBtn.type = 'button';
+          rebookBtn.className = 'btn btn-accent btn-sm';
+          rebookBtn.textContent = 'Send rebook note';
+          rebookBtn.addEventListener('click', () => sendRebookNote(account, next, bucket));
+          actions.appendChild(rebookBtn);
         }
+
+        table.appendChild(row);
       });
 
-      emailBtn.addEventListener('click', () => {
-        const subject = encodeURIComponent(`Hood cleaning rebook - ${account.name}`);
-        const body = encodeURIComponent(message);
-        const to = account.email ? encodeURIComponent(account.email) : '';
-        window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
-      });
+      section.appendChild(table);
+      els.boardSections.appendChild(section);
     });
   }
 
-  function buildRebookMessage(account, nextDue, st) {
+  function openRecordsForAccount(accountId) {
+    const jobs = state.jobs.filter((j) => j.accountId === accountId);
+    const account = state.accounts.find((a) => a.id === accountId);
+    if (!jobs.length) {
+      els.recordDialogBody.innerHTML = '<p class="meta">No saved records for this account yet.</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.className = 'record-list';
+      jobs.forEach((job) => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-ghost btn-block';
+        btn.textContent = `${job.recordNumber || 'Record'} · ${formatDate(job.serviceDate)} · ${job.techName}`;
+        btn.addEventListener('click', async () => {
+          lastCompletedJob = job;
+          els.recordDialog.close();
+          switchTab('job');
+          setJobStep(3);
+        });
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+      els.recordDialogBody.innerHTML = `<p class="meta">${account ? account.name : 'Account'}</p>`;
+      els.recordDialogBody.appendChild(list);
+    }
+    els.recordDialog.showModal();
+  }
+
+  function sendRebookNote(account, nextDue, bucket) {
+    const message = buildRebookMessage(account, nextDue, bucket);
+    const subject = encodeURIComponent(`Hood cleaning rebook - ${account.name}`);
+    const body = encodeURIComponent(message);
+    const to = account.email ? encodeURIComponent(account.email) : '';
+    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+  }
+
+  function buildRebookMessage(account, nextDue, bucket) {
     const company = state.companyName || 'Our hood cleaning team';
     const duePhrase = nextDue ? formatDate(nextDue) : 'soon';
-    const urgency =
-      st.key === 'overdue'
-        ? `Your kitchen exhaust cleaning is overdue (was due ${duePhrase}).`
-        : st.key === 'due'
-          ? `Your next hood cleaning is due around ${duePhrase}.`
-          : `Your hood cleaning schedule looks good. Next visit around ${duePhrase}.`;
-
+    let urgency = `Your next hood cleaning is due around ${duePhrase}.`;
+    if (bucket.key === 'overdue') {
+      urgency = `Your kitchen exhaust cleaning is overdue (was due ${duePhrase}).`;
+    }
     return [
       `Hi ${account.name} team,`,
-      ``,
+      '',
       `This is ${company}. ${urgency}`,
-      ``,
-      `We follow NFPA 96 style frequency for ${VOLUME_LABELS[account.volume] || 'your cooking volume'}. Reply with a good day/time to get on the calendar.`,
-      ``,
-      `Thank you,`,
+      '',
+      `We follow NFPA 96 style frequency for ${VOLUME_LABELS[account.volume] || 'your cooking volume'}. Reply with a good day or time to get on the calendar.`,
+      '',
+      'Thank you,',
       company
     ].join('\n');
   }
@@ -515,15 +798,15 @@
   function switchTab(tab) {
     els.tabButtons.forEach((btn) => {
       const active = btn.dataset.tab === tab;
-      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      if (active) btn.setAttribute('aria-current', 'page');
+      else btn.removeAttribute('aria-current');
     });
 
     const headings = {
-      job: ['New job', 'Select a restaurant, complete the hood checklist, and generate a service record PDF.'],
-      board: ['Rebook board', 'Accounts sorted by urgency. Overdue first, then due within 30 days.'],
+      job: ['New job', 'Select a restaurant, complete the hood checklist, and save one service record.'],
+      board: ['Rebook board', 'Overdue accounts first, then due within 30 days.'],
       settings: ['Settings', 'Defaults used on new jobs. Data stays in this browser only.']
     };
-
     const h = headings[tab] || headings.job;
     els.panelHeading.textContent = h[0];
     els.panelLede.textContent = h[1];
@@ -539,6 +822,10 @@
     if (tab === 'settings') {
       els.settingsCompany.value = state.companyName;
       els.settingsTech.value = state.techName;
+      els.settingsDemoPro.checked = state.demoPro;
+      els.planLabel.textContent = isProPlan()
+        ? 'Plan: Pro (demo or paid)'
+        : `Plan: Free · ${recordsUsedThisMonth()} of ${FREE_RECORDS_PER_MONTH} records used this month`;
     }
   }
 
@@ -547,7 +834,10 @@
     const iso = (offsetDays) => {
       const d = new Date(today);
       d.setDate(d.getDate() + offsetDays);
-      return d.toISOString().slice(0, 10);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
     };
 
     let beforeUrl;
@@ -556,74 +846,29 @@
       beforeUrl = await loadImageAsDataUrl('samples/hood-before.jpg');
       afterUrl = await loadImageAsDataUrl('samples/hood-after.jpg');
     } catch (e) {
-      console.warn('Sample images not loaded', e);
       beforeUrl = null;
       afterUrl = null;
     }
 
     const accounts = [
-      {
-        id: 'sample-1',
-        name: 'Harbor Grill',
-        address: '412 Dock St, Portland, OR 97204',
-        email: 'manager@harborgrill.example',
-        volume: 'medium',
-        lastServiceDate: iso(-120),
-        jobs: []
-      },
-      {
-        id: 'sample-2',
-        name: 'Wok Express 24',
-        address: '88 Burnside Ave, Portland, OR 97209',
-        email: 'ops@wokexpress.example',
-        volume: 'high',
-        lastServiceDate: iso(-45),
-        jobs: []
-      },
-      {
-        id: 'sample-3',
-        name: 'Lakeview Diner',
-        address: '2100 NE Sandy Blvd, Portland, OR 97232',
-        email: 'owner@lakeviewdiner.example',
-        volume: 'low',
-        lastServiceDate: iso(-30),
-        jobs: []
-      },
-      {
-        id: 'sample-4',
-        name: 'Brick Oven Pizza Co',
-        address: '55 SE Morrison St, Portland, OR 97214',
-        email: 'kitchen@brickoven.example',
-        volume: 'medium',
-        lastServiceDate: iso(-100),
-        jobs: []
-      },
-      {
-        id: 'sample-5',
-        name: 'Summit Catering Kitchen',
-        address: '900 NW 23rd Ave, Portland, OR 97210',
-        email: 'facilities@summitcatering.example',
-        volume: 'minimal',
-        lastServiceDate: iso(-60),
-        jobs: []
-      },
-      {
-        id: 'sample-6',
-        name: 'Riverside BBQ Pit',
-        address: '1440 SE Powell Blvd, Portland, OR 97202',
-        email: 'pitmaster@riversidebbq.example',
-        volume: 'high',
-        lastServiceDate: iso(-20),
-        jobs: []
-      }
+      { id: 'sample-1', name: 'Harbor Grill', address: '412 Dock St, Portland, OR 97204', email: 'manager@harborgrill.example', volume: 'medium', lastServiceDate: iso(-120), jobs: [] },
+      { id: 'sample-2', name: 'Wok Express 24', address: '88 Burnside Ave, Portland, OR 97209', email: 'ops@wokexpress.example', volume: 'high', lastServiceDate: iso(-45), jobs: [] },
+      { id: 'sample-3', name: 'Lakeview Diner', address: '2100 NE Sandy Blvd, Portland, OR 97232', email: 'owner@lakeviewdiner.example', volume: 'low', lastServiceDate: iso(-30), jobs: [] },
+      { id: 'sample-4', name: 'Brick Oven Pizza Co', address: '55 SE Morrison St, Portland, OR 97214', email: 'kitchen@brickoven.example', volume: 'medium', lastServiceDate: iso(-100), jobs: [] },
+      { id: 'sample-5', name: 'Summit Catering Kitchen', address: '900 NW 23rd Ave, Portland, OR 97210', email: 'facilities@summitcatering.example', volume: 'minimal', lastServiceDate: iso(-60), jobs: [] },
+      { id: 'sample-6', name: 'Riverside BBQ Pit', address: '1440 SE Powell Blvd, Portland, OR 97202', email: 'pitmaster@riversidebbq.example', volume: 'high', lastServiceDate: iso(-20), jobs: [] }
     ];
 
+    const stamp = new Date().toISOString();
     const completedChecklist = CHECKLIST_AREAS.map((area, i) => ({
       id: area.id,
       status: area.id === 'fan' ? 'deficiency' : 'pass',
       note: area.id === 'fan' ? 'Belt wear noted, fan cleaned and operational.' : '',
       beforePhoto: i < 3 ? beforeUrl : null,
-      afterPhoto: i < 3 ? afterUrl : null
+      afterPhoto: i < 3 ? afterUrl : null,
+      beforeAt: i < 3 ? stamp : null,
+      afterAt: i < 3 ? stamp : null,
+      noAccessReason: i >= 3 ? 'Panel sealed, documented no access' : ''
     }));
 
     const completedJob = {
@@ -631,6 +876,7 @@
       accountId: 'sample-1',
       serviceDate: iso(-14),
       techName: 'Maria Lopez',
+      recordNumber: `HC-${iso(-14).replace(/-/g, '')}-SAMP`,
       checklist: completedChecklist,
       createdAt: Date.now() - 14 * 86400000
     };
@@ -641,6 +887,9 @@
     state = {
       companyName: 'Summit Hood Services',
       techName: 'Maria Lopez',
+      plan: 'free',
+      demoPro: false,
+      recordsMonth: { key: monthKey(), count: 0 },
       accounts,
       jobs: [completedJob]
     };
@@ -666,19 +915,14 @@
       const address = els.newAddress.value.trim();
       const email = els.newEmail.value.trim();
       const volume = els.newVolume.value;
-      if (!name || !address) {
-        showToast('Name and address required');
-        return;
-      }
-      const acc = {
-        id: uid(),
-        name,
-        address,
-        email,
-        volume,
-        lastServiceDate: null,
-        jobs: []
-      };
+      let ok = true;
+      showFieldError(els.errNewName, name ? '' : 'Restaurant name is required.');
+      showFieldError(els.errNewAddress, address ? '' : 'Address is required.');
+      if (!name) ok = false;
+      if (!address) ok = false;
+      if (!ok) return;
+
+      const acc = { id: uid(), name, address, email, volume, lastServiceDate: null, jobs: [] };
       state.accounts.push(acc);
       saveState();
       renderAccountSelect();
@@ -699,55 +943,50 @@
     });
 
     els.btnBackAccount.addEventListener('click', () => setJobStep(0));
+    els.btnBackChecklist.addEventListener('click', () => setJobStep(1));
 
-    els.btnToFinish.addEventListener('click', () => setJobStep(2));
-
-    els.btnGeneratePdf.addEventListener('click', () => {
-      const account = state.accounts.find((a) => a.id === selectedAccountId);
-      if (!account || !window.HoodCertPdf) {
-        showToast('PDF library still loading');
-        return;
-      }
-
-      const job = completeJob();
-      if (!job) return;
-
-      const nextDue = addMonths(job.serviceDate, VOLUME_MONTHS[account.volume] || 3);
-      const filename = window.HoodCertPdf.generateServiceRecordPdf({
-        companyName: state.companyName,
-        techName: job.techName,
-        account: { name: account.name, address: account.address },
-        serviceDate: formatDate(job.serviceDate),
-        nextDue: formatDate(nextDue),
-        checklist: job.checklist
+    els.btnMarkPass.addEventListener('click', () => {
+      CHECKLIST_AREAS.forEach((a) => {
+        if (!draftChecklist[a.id].status) draftChecklist[a.id].status = 'pass';
       });
-
-      els.finishBanner.classList.remove('hidden');
-      showToast(`Saved ${filename}`);
+      renderChecklist();
     });
 
+    els.btnToReview.addEventListener('click', () => {
+      const err = validateChecklist();
+      showFieldError(els.checklistError, err);
+      if (err) return;
+      setJobStep(2);
+    });
+
+    els.btnCompleteJob.addEventListener('click', () => {
+      completeJobOnce();
+    });
+
+    els.btnDownloadPdf.addEventListener('click', () => downloadPdfForJob());
+    els.btnSharePdf.addEventListener('click', () => sharePdfForJob());
+
     els.btnEmailSummary.addEventListener('click', () => {
-      const account = state.accounts.find((a) => a.id === selectedAccountId);
-      if (!account || !window.HoodCertPdf) return;
       const job = lastCompletedJob;
-      const serviceDate = job ? job.serviceDate : new Date().toISOString().slice(0, 10);
-      const nextDue = addMonths(serviceDate, VOLUME_MONTHS[account.volume] || 3);
-      const defCount = Object.values(draftChecklist).filter((c) => c.status === 'deficiency').length;
-      const href = window.HoodCertPdf.buildMailtoSummary({
+      const account = job ? state.accounts.find((a) => a.id === job.accountId) : null;
+      if (!job || !account || !window.HoodCertPdf) return;
+      const payload = pdfPayloadFromJob(job);
+      if (!payload) return;
+      const defCount = job.checklist.filter((c) => c.status === 'deficiency').length;
+      window.location.href = window.HoodCertPdf.buildMailtoSummary({
         companyName: state.companyName,
         account: { name: account.name, email: account.email },
-        serviceDate: formatDate(serviceDate),
-        nextDue: formatDate(nextDue),
-        deficiencyCount: defCount
+        serviceDate: payload.serviceDate,
+        nextDue: payload.nextDue,
+        deficiencyCount: defCount,
+        recordNumber: job.recordNumber
       });
-      window.location.href = href;
     });
 
     els.btnNewJob.addEventListener('click', () => {
       selectedAccountId = '';
       els.accountSelect.value = '';
       els.btnToChecklist.disabled = true;
-      els.finishBanner.classList.add('hidden');
       lastCompletedJob = null;
       initDraftChecklist();
       setJobStep(0);
@@ -757,21 +996,43 @@
     els.btnSaveSettings.addEventListener('click', () => {
       state.companyName = els.settingsCompany.value.trim() || state.companyName;
       state.techName = els.settingsTech.value.trim() || state.techName;
+      state.demoPro = els.settingsDemoPro.checked;
       saveState();
+      renderBoard();
       showToast('Defaults saved');
     });
 
     els.btnClearData.addEventListener('click', () => {
       if (!window.confirm('Clear all Hood Cert Pack data on this device?')) return;
       localStorage.removeItem(STORAGE_KEY);
-      state = { companyName: 'Summit Hood Services', techName: 'Maria Lopez', accounts: [], jobs: [] };
+      state = {
+        companyName: 'Summit Hood Services',
+        techName: 'Maria Lopez',
+        plan: 'free',
+        demoPro: false,
+        recordsMonth: { key: monthKey(), count: 0 },
+        accounts: [],
+        jobs: []
+      };
       renderAccountSelect();
       renderBoard();
       setJobStep(0);
       showToast('Local data cleared');
     });
 
-    els.btnLoadSamples.addEventListener('click', () => loadSampleData());
+    els.btnLoadSamples.addEventListener('click', () => {
+      if (!window.confirm('Load sample restaurants? This replaces accounts and jobs on this device.')) return;
+      loadSampleData();
+    });
+
+    els.btnDemoUnlock.addEventListener('click', () => {
+      state.demoPro = true;
+      saveState();
+      renderBoard();
+      showToast('Pro board preview enabled');
+    });
+
+    els.btnCloseRecordDialog.addEventListener('click', () => els.recordDialog.close());
 
     els.tabButtons.forEach((btn) => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab || 'job'));
@@ -790,9 +1051,7 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get('sample') === '1') {
       const hasSamples = state.accounts.some((a) => a.id.startsWith('sample-'));
-      if (!hasSamples) {
-        loadSampleData();
-      }
+      if (!hasSamples) loadSampleData();
     }
   }
 
@@ -801,4 +1060,12 @@
   } else {
     init();
   }
+
+  window.HoodCertApp = {
+    getState: () => state,
+    validateChecklist,
+    completeJobOnce,
+    draftChecklist,
+    CHECKLIST_AREAS
+  };
 })();

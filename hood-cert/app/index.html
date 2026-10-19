@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#ffffff" />
-  <title>Hood Cert Pack</title>
+  <title>Hood Cert Pack app</title>
   <link rel="stylesheet" href="../shared.css" />
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
+  <script src="vendor/jspdf.umd.min.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -17,148 +17,188 @@
       <button type="button" class="btn-link" id="btn-load-samples">Load samples</button>
     </nav>
 
-    <header class="app-header">
-      <h1 class="app-header__title" id="panel-heading">New job</h1>
-      <p class="app-header__lede" id="panel-lede">Select a restaurant, complete the hood checklist, and generate a service record PDF.</p>
-    </header>
+    <main id="app-main">
+      <header class="app-header">
+        <h1 class="app-header__title" id="panel-heading">New job</h1>
+        <p class="app-header__lede" id="panel-lede">Select a restaurant, complete the hood checklist, and save one service record.</p>
+      </header>
 
-    <section class="panel is-active" id="panel-job" aria-labelledby="panel-heading">
-      <div class="job-step-indicator" id="job-steps" aria-hidden="true">
-        <span class="job-step-indicator__dot is-current"></span>
-        <span class="job-step-indicator__dot"></span>
-        <span class="job-step-indicator__dot"></span>
-      </div>
+      <section class="panel is-active" id="panel-job" aria-labelledby="panel-heading">
+        <div class="job-step-indicator" id="job-steps" aria-hidden="true">
+          <span class="job-step-indicator__dot is-current"></span>
+          <span class="job-step-indicator__dot"></span>
+          <span class="job-step-indicator__dot"></span>
+          <span class="job-step-indicator__dot"></span>
+        </div>
 
-      <div id="job-step-account">
-        <div class="card">
-          <div class="card__header">
-            <h2 class="card__title">Restaurant account</h2>
-          </div>
-          <div class="card__body">
-            <div class="field">
-              <label class="field-label" for="account-select">Select account</label>
-              <select class="field-select" id="account-select">
-                <option value="">Choose a restaurant…</option>
-              </select>
+        <div id="job-step-account">
+          <div class="card">
+            <div class="card__header">
+              <h2 class="card__title">Restaurant account</h2>
             </div>
-            <button type="button" class="btn btn-ghost btn-block" id="btn-toggle-add-account">Add new restaurant</button>
-            <div id="add-account-form" class="hidden">
+            <div class="card__body">
               <div class="field">
-                <label class="field-label" for="new-name">Restaurant name</label>
-                <input class="field-input" id="new-name" type="text" autocomplete="organization" />
-              </div>
-              <div class="field">
-                <label class="field-label" for="new-address">Address</label>
-                <input class="field-input" id="new-address" type="text" autocomplete="street-address" />
-              </div>
-              <div class="field">
-                <label class="field-label" for="new-email">Contact email</label>
-                <input class="field-input" id="new-email" type="email" autocomplete="email" />
-              </div>
-              <div class="field">
-                <label class="field-label" for="new-volume">Cooking volume (sets NFPA 96 frequency)</label>
-                <select class="field-select" id="new-volume">
-                  <option value="high">High volume (monthly)</option>
-                  <option value="medium">Medium volume (quarterly)</option>
-                  <option value="low">Low volume (semiannual)</option>
-                  <option value="minimal">Minimal / seasonal (annual)</option>
+                <label class="field-label" for="account-select">Select account</label>
+                <select class="field-select" id="account-select">
+                  <option value="">Choose a restaurant…</option>
                 </select>
-                <p class="field-hint">Frequency labels follow common NFPA 96 cooking-volume schedules. Your authority having jurisdiction may differ.</p>
               </div>
-              <button type="button" class="btn btn-secondary btn-block" id="btn-save-account">Save restaurant</button>
+              <button type="button" class="btn btn-ghost btn-block" id="btn-toggle-add-account">Add new restaurant</button>
+              <div id="add-account-form" class="hidden">
+                <div class="field">
+                  <label class="field-label" for="new-name">Restaurant name</label>
+                  <input class="field-input" id="new-name" type="text" autocomplete="organization" />
+                  <p class="field-error hidden" id="err-new-name" role="alert"></p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="new-address">Address</label>
+                  <input class="field-input" id="new-address" type="text" autocomplete="street-address" />
+                  <p class="field-error hidden" id="err-new-address" role="alert"></p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="new-email">Contact email</label>
+                  <input class="field-input" id="new-email" type="email" autocomplete="email" />
+                </div>
+                <div class="field">
+                  <label class="field-label" for="new-volume">Cooking volume (sets NFPA 96 frequency)</label>
+                  <select class="field-select" id="new-volume">
+                    <option value="high">High volume (monthly)</option>
+                    <option value="medium">Medium volume (quarterly)</option>
+                    <option value="low">Low volume (semiannual)</option>
+                    <option value="minimal">Minimal / seasonal (annual)</option>
+                  </select>
+                  <p class="field-hint">Frequency labels follow common NFPA 96 cooking-volume schedules. Your authority having jurisdiction may differ.</p>
+                </div>
+                <button type="button" class="btn btn-secondary btn-block" id="btn-save-account">Save restaurant</button>
+              </div>
+              <div class="action-stack">
+                <button type="button" class="btn btn-accent btn-block" id="btn-to-checklist" disabled>Continue to checklist</button>
+              </div>
             </div>
-            <div class="action-stack">
-              <button type="button" class="btn btn-accent btn-block" id="btn-to-checklist" disabled>Continue to checklist</button>
+          </div>
+        </div>
+
+        <div id="job-step-checklist" class="hidden">
+          <div class="checklist-progress" id="checklist-progress" aria-live="polite">0 of 7 areas · 0 photos</div>
+          <div class="card">
+            <div class="card__header card__header--split">
+              <h2 class="card__title" id="checklist-account-name">Checklist</h2>
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-mark-pass">Mark remaining as Pass</button>
+            </div>
+            <div class="card__body" id="checklist-root"></div>
+          </div>
+          <p class="field-error hidden" id="checklist-error" role="alert"></p>
+          <div class="action-stack">
+            <button type="button" class="btn btn-accent btn-block" id="btn-to-review">Review job</button>
+            <button type="button" class="btn btn-ghost btn-block" id="btn-back-account">Back</button>
+          </div>
+        </div>
+
+        <div id="job-step-review" class="hidden">
+          <div class="card">
+            <div class="card__header">
+              <h2 class="card__title">Review and complete</h2>
+            </div>
+            <div class="card__body">
+              <div class="field">
+                <label class="field-label" for="tech-name">Technician name</label>
+                <input class="field-input" id="tech-name" type="text" autocomplete="name" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="company-name">Company name</label>
+                <input class="field-input" id="company-name" type="text" autocomplete="organization" />
+              </div>
+              <p class="meta" id="finish-summary"></p>
+              <p class="field-error hidden" id="complete-error" role="alert"></p>
+              <div class="action-stack">
+                <button type="button" class="btn btn-accent btn-block" id="btn-complete-job">Complete job</button>
+                <button type="button" class="btn btn-ghost btn-block" id="btn-back-checklist">Back to checklist</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div id="job-step-checklist" class="hidden">
-        <div class="card">
-          <div class="card__header">
-            <h2 class="card__title" id="checklist-account-name">Checklist</h2>
+        <div id="job-step-record" class="hidden">
+          <div class="card">
+            <div class="card__header">
+              <h2 class="card__title">Service record</h2>
+            </div>
+            <div class="card__body">
+              <p class="record-meta" id="record-meta"></p>
+              <p class="field-error hidden" id="pdf-error" role="alert"></p>
+              <div class="action-stack">
+                <button type="button" class="btn btn-accent btn-block" id="btn-download-pdf">Download PDF</button>
+                <button type="button" class="btn btn-secondary btn-block hidden" id="btn-share-pdf">Share PDF</button>
+                <button type="button" class="btn btn-secondary btn-block" id="btn-email-summary">Email summary</button>
+                <button type="button" class="btn btn-ghost btn-block" id="btn-new-job">Start another job</button>
+              </div>
+            </div>
           </div>
-          <div class="card__body" id="checklist-root"></div>
         </div>
-        <div class="action-stack">
-          <button type="button" class="btn btn-accent btn-block" id="btn-to-finish">Review and generate PDF</button>
-          <button type="button" class="btn btn-ghost btn-block" id="btn-back-account">Back</button>
-        </div>
-      </div>
+      </section>
 
-      <div id="job-step-finish" class="hidden">
-        <div id="finish-banner" class="complete-banner hidden">
-          <p><strong>Service record ready.</strong> PDF downloaded. Attach it manually if you use the email button below.</p>
-        </div>
-        <div class="card">
-          <div class="card__header">
-            <h2 class="card__title">Generate service record</h2>
-          </div>
+      <section class="panel" id="panel-board" role="region" aria-label="Rebook board" hidden>
+        <div id="board-locked" class="card board-upsell hidden">
           <div class="card__body">
-            <div class="field">
-              <label class="field-label" for="tech-name">Technician name</label>
-              <input class="field-input" id="tech-name" type="text" autocomplete="name" />
-            </div>
-            <div class="field">
-              <label class="field-label" for="company-name">Company name</label>
-              <input class="field-input" id="company-name" type="text" autocomplete="organization" />
-            </div>
-            <p class="meta" id="finish-summary"></p>
-            <div class="action-stack">
-              <button type="button" class="btn btn-accent btn-block" id="btn-generate-pdf">Download PDF</button>
-              <button type="button" class="btn btn-secondary btn-block" id="btn-email-summary">Email summary (attach PDF yourself)</button>
-              <button type="button" class="btn btn-ghost btn-block" id="btn-new-job">Start another job</button>
-            </div>
+            <h2 class="card__title">Rebook board is on Pro</h2>
+            <p class="meta">Free includes 3 service records per month. Upgrade to see overdue accounts, days overdue, and one-tap rebook notes.</p>
+            <button type="button" class="btn btn-accent btn-block" id="btn-demo-unlock-board">Preview Pro board (demo)</button>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section class="panel" id="panel-board" role="region" aria-label="Rebook board" hidden>
-      <div class="card">
-        <div class="card__header">
-          <h2 class="card__title">Rebook board</h2>
-        </div>
-        <div class="card__body card__body--flush">
-          <ul class="board-list" id="board-list"></ul>
+        <div id="board-pro" class="hidden">
+          <div class="board-sections" id="board-sections"></div>
           <p class="empty-state hidden" id="board-empty">No restaurant accounts yet. Complete a job or load sample data.</p>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="panel" id="panel-settings" aria-label="Settings" hidden>
-      <div class="card">
-        <div class="card__header">
-          <h2 class="card__title">Company defaults</h2>
-        </div>
-        <div class="card__body">
-          <div class="field">
-            <label class="field-label" for="settings-company">Company name</label>
-            <input class="field-input" id="settings-company" type="text" />
+      <section class="panel" id="panel-settings" aria-label="Settings" hidden>
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Company defaults</h2>
           </div>
-          <div class="field">
-            <label class="field-label" for="settings-tech">Default technician name</label>
-            <input class="field-input" id="settings-tech" type="text" />
+          <div class="card__body">
+            <p class="meta" id="plan-label"></p>
+            <div class="field">
+              <label class="field-label" for="settings-company">Company name</label>
+              <input class="field-input" id="settings-company" type="text" />
+            </div>
+            <div class="field">
+              <label class="field-label" for="settings-tech">Default technician name</label>
+              <input class="field-input" id="settings-tech" type="text" />
+            </div>
+            <label class="field-check">
+              <input type="checkbox" id="settings-demo-pro" />
+              Demo: treat this device as Pro
+            </label>
+            <button type="button" class="btn btn-secondary btn-block" id="btn-save-settings">Save defaults</button>
+            <button type="button" class="btn btn-ghost btn-block" id="btn-clear-data">Clear all local data</button>
           </div>
-          <button type="button" class="btn btn-secondary btn-block" id="btn-save-settings">Save defaults</button>
-          <button type="button" class="btn btn-ghost btn-block" id="btn-clear-data">Clear all local data</button>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <dialog class="record-dialog" id="record-dialog" aria-labelledby="record-dialog-title">
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title" id="record-dialog-title">Past service record</h2>
+            <button type="button" class="btn-link" id="btn-close-record-dialog">Close</button>
+          </div>
+          <div class="card__body" id="record-dialog-body"></div>
+        </div>
+      </dialog>
+    </main>
   </div>
 
   <nav class="tab-bar" aria-label="Main">
-    <button type="button" class="tab-bar__btn" data-tab="job" aria-selected="true">
-      <span class="tab-bar__icon" aria-hidden="true">+</span>
+    <button type="button" class="tab-bar__btn" data-tab="job" aria-current="page">
+      <svg class="tab-bar__icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>
       Job
     </button>
-    <button type="button" class="tab-bar__btn" data-tab="board" aria-selected="false">
-      <span class="tab-bar__icon" aria-hidden="true">#</span>
+    <button type="button" class="tab-bar__btn" data-tab="board">
+      <svg class="tab-bar__icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
       Board
     </button>
-    <button type="button" class="tab-bar__btn" data-tab="settings" aria-selected="false">
-      <span class="tab-bar__icon" aria-hidden="true">*</span>
+    <button type="button" class="tab-bar__btn" data-tab="settings">
+      <svg class="tab-bar__icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
       Settings
     </button>
   </nav>
