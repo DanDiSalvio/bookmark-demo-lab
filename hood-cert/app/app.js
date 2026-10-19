@@ -68,6 +68,8 @@
     checklistAccountName: $('#checklist-account-name'),
     checklistProgress: $('#checklist-progress'),
     planUsageBanner: $('#plan-usage-banner'),
+    jobStepChecklistBlocked: $('#job-step-checklist-blocked'),
+    checklistBlockedBody: $('#checklist-blocked-body'),
     checklistError: $('#checklist-error'),
     btnMarkPass: $('#btn-mark-pass'),
     btnToReview: $('#btn-to-review'),
@@ -210,13 +212,22 @@
     if (left <= 0) {
       return 'Free plan limit reached for this month. Upgrade to Pro for unlimited records.';
     }
-    const word = left === 1 ? 'record' : 'records';
-    return `${left} of ${FREE_RECORDS_PER_MONTH} free ${word} left this month`;
+    if (left === 1) {
+      return '1 free record left this month';
+    }
+    return `${left} free records left this month`;
+  }
+
+  function isChecklistBlockedByPlan() {
+    return !isProPlan() && !canCompleteAnotherRecord();
   }
 
   function accountBoardBucket(account) {
     const next = accountNextDue(account);
-    if (!account.lastServiceDate || !next) {
+    if (!account.lastServiceDate) {
+      return { key: 'new', label: 'No visit yet', badge: 'badge--neutral', section: 'due' };
+    }
+    if (!next) {
       return { key: 'due', label: 'Due in 30 days', badge: 'badge--due', section: 'due' };
     }
     const days = daysUntil(next);
@@ -539,7 +550,15 @@
     });
 
     els.jobStepAccount.classList.toggle('hidden', step !== 0);
-    els.jobStepChecklist.classList.toggle('hidden', step !== 1);
+    const blocked = step === 1 && isChecklistBlockedByPlan();
+    els.jobStepChecklist.classList.toggle('hidden', step !== 1 || blocked);
+    if (els.jobStepChecklistBlocked) {
+      els.jobStepChecklistBlocked.classList.toggle('hidden', step !== 1 || !blocked);
+      if (blocked && els.checklistBlockedBody) {
+        els.checklistBlockedBody.textContent =
+          'You have used all 3 free service records this month. Upgrade to Pro for unlimited records, or wait until next month.';
+      }
+    }
     els.jobStepReview.classList.toggle('hidden', step !== 2);
     els.jobStepRecord.classList.toggle('hidden', step !== 3);
 
@@ -682,7 +701,7 @@
       console.error(e);
       showFieldError(
         els.pdfError,
-        'We could not build the PDF on this device. Stay on this screen, check you have free storage, then tap Download PDF again.'
+        'Your record is saved. The PDF could not be built on this device. Tap Download PDF to try again.'
       );
     }
   }
@@ -1058,6 +1077,20 @@
     });
 
     els.btnBackAccount.addEventListener('click', () => setJobStep(0));
+
+    const btnBackBlocked = $('#btn-back-account-blocked');
+    const btnChecklistUnlock = $('#btn-checklist-unlock-pro');
+    if (btnBackBlocked) {
+      btnBackBlocked.addEventListener('click', () => setJobStep(0));
+    }
+    if (btnChecklistUnlock) {
+      btnChecklistUnlock.addEventListener('click', () => {
+        state.demoPro = true;
+        saveState();
+        setJobStep(1);
+        showToast('Pro preview enabled for this device');
+      });
+    }
     els.btnBackChecklist.addEventListener('click', () => setJobStep(1));
 
     els.btnMarkPass.addEventListener('click', () => {

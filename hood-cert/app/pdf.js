@@ -207,9 +207,6 @@
     for (const item of payload.checklist) {
       if (item.status === 'no_access') continue;
       const label = AREA_LABELS[item.id] || item.id;
-      const hasBefore = !!item.beforePhoto;
-      const hasAfter = !!item.afterPhoto;
-      if (!hasBefore && !hasAfter) continue;
 
       if (y + cellH + 40 > 720) {
         doc.addPage();
@@ -261,6 +258,12 @@
             doc.setFontSize(8);
             doc.text('Photo unavailable', x + 8, boxTop + cellH / 2);
           }
+        } else {
+          doc.setFontSize(8);
+          doc.setTextColor(120);
+          const missing = photo.kind === 'Before' ? 'No before photo' : 'No after photo';
+          doc.text(missing, x + 8, boxTop + cellH / 2);
+          doc.setTextColor(0);
         }
       }
 
