@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Hood Cert Pack</title>
+  <link rel="stylesheet" href="../shared.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <nav class="shell-nav" aria-label="App navigation">
+      <a class="shell-nav__brand" href="/hood-cert/">Hood Cert Pack</a>
+      <button type="button" class="btn-link" id="btn-load-samples">Load samples</button>
+    </nav>
+
+    <header class="app-header">
+      <h1 class="app-header__title" id="panel-heading">New job</h1>
+      <p class="app-header__lede" id="panel-lede">Select a restaurant, complete the hood checklist, and generate a service record PDF.</p>
+    </header>
+
+    <section class="panel is-active" id="panel-job" aria-labelledby="panel-heading">
+      <div class="job-step-indicator" id="job-steps" aria-hidden="true">
+        <span class="job-step-indicator__dot is-current"></span>
+        <span class="job-step-indicator__dot"></span>
+        <span class="job-step-indicator__dot"></span>
+      </div>
+
+      <div id="job-step-account">
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Restaurant account</h2>
+          </div>
+          <div class="card__body">
+            <div class="field">
+              <label class="field-label" for="account-select">Select account</label>
+              <select class="field-select" id="account-select">
+                <option value="">Choose a restaurant…</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-ghost btn-block" id="btn-toggle-add-account">Add new restaurant</button>
+            <div id="add-account-form" class="hidden">
+              <div class="field">
+                <label class="field-label" for="new-name">Restaurant name</label>
+                <input class="field-input" id="new-name" type="text" autocomplete="organization" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="new-address">Address</label>
+                <input class="field-input" id="new-address" type="text" autocomplete="street-address" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="new-email">Contact email</label>
+                <input class="field-input" id="new-email" type="email" autocomplete="email" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="new-volume">Cooking volume (sets NFPA 96 frequency)</label>
+                <select class="field-select" id="new-volume">
+                  <option value="high">High volume (monthly)</option>
+                  <option value="medium">Medium volume (quarterly)</option>
+                  <option value="low">Low volume (semiannual)</option>
+                  <option value="minimal">Minimal / seasonal (annual)</option>
+                </select>
+                <p class="field-hint">Frequency labels follow common NFPA 96 cooking-volume schedules. Your authority having jurisdiction may differ.</p>
+              </div>
+              <button type="button" class="btn btn-secondary btn-block" id="btn-save-account">Save restaurant</button>
+            </div>
+            <div class="action-stack">
+              <button type="button" class="btn btn-accent btn-block" id="btn-to-checklist" disabled>Continue to checklist</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="job-step-checklist" class="hidden">
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title" id="checklist-account-name">Checklist</h2>
+          </div>
+          <div class="card__body" id="checklist-root"></div>
+        </div>
+        <div class="action-stack">
+          <button type="button" class="btn btn-accent btn-block" id="btn-to-finish">Review and generate PDF</button>
+          <button type="button" class="btn btn-ghost btn-block" id="btn-back-account">Back</button>
+        </div>
+      </div>
+
+      <div id="job-step-finish" class="hidden">
+        <div id="finish-banner" class="complete-banner hidden">
+          <p><strong>Service record ready.</strong> PDF downloaded. Attach it manually if you use the email button below.</p>
+        </div>
+        <div class="card">
+          <div class="card__header">
+            <h2 class="card__title">Generate service record</h2>
+          </div>
+          <div class="card__body">
+            <div class="field">
+              <label class="field-label" for="tech-name">Technician name</label>
+              <input class="field-input" id="tech-name" type="text" autocomplete="name" />
+            </div>
+            <div class="field">
+              <label class="field-label" for="company-name">Company name</label>
+              <input class="field-input" id="company-name" type="text" autocomplete="organization" />
+            </div>
+            <p class="meta" id="finish-summary"></p>
+            <div class="action-stack">
+              <button type="button" class="btn btn-accent btn-block" id="btn-generate-pdf">Download PDF</button>
+              <button type="button" class="btn btn-secondary btn-block" id="btn-email-summary">Email summary (attach PDF yourself)</button>
+              <button type="button" class="btn btn-ghost btn-block" id="btn-new-job">Start another job</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-board" role="region" aria-label="Rebook board" hidden>
+      <div class="card">
+        <div class="card__header">
+          <h2 class="card__title">Rebook board</h2>
+        </div>
+        <div class="card__body card__body--flush">
+          <ul class="board-list" id="board-list"></ul>
+          <p class="empty-state hidden" id="board-empty">No restaurant accounts yet. Complete a job or load sample data.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-settings" aria-label="Settings" hidden>
+      <div class="card">
+        <div class="card__header">
+          <h2 class="card__title">Company defaults</h2>
+        </div>
+        <div class="card__body">
+          <div class="field">
+            <label class="field-label" for="settings-company">Company name</label>
+            <input class="field-input" id="settings-company" type="text" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="settings-tech">Default technician name</label>
+            <input class="field-input" id="settings-tech" type="text" />
+          </div>
+          <button type="button" class="btn btn-secondary btn-block" id="btn-save-settings">Save defaults</button>
+          <button type="button" class="btn btn-ghost btn-block" id="btn-clear-data">Clear all local data</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <nav class="tab-bar" aria-label="Main">
+    <button type="button" class="tab-bar__btn" data-tab="job" aria-selected="true">
+      <span class="tab-bar__icon" aria-hidden="true">+</span>
+      Job
+    </button>
+    <button type="button" class="tab-bar__btn" data-tab="board" aria-selected="false">
+      <span class="tab-bar__icon" aria-hidden="true">#</span>
+      Board
+    </button>
+    <button type="button" class="tab-bar__btn" data-tab="settings" aria-selected="false">
+      <span class="tab-bar__icon" aria-hidden="true">*</span>
+      Settings
+    </button>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="pdf.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
