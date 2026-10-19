@@ -793,7 +793,9 @@
         nameEl.textContent = account.name;
         const metaEl = document.createElement('p');
         metaEl.className = 'board-row__meta';
-        metaEl.textContent = `Last ${lastServiceDisplay(account)} · ${VOLUME_LABELS[account.volume] || account.volume}`;
+        metaEl.textContent = account.lastServiceDate
+          ? `Last ${lastServiceDisplay(account)} · ${VOLUME_LABELS[account.volume] || account.volume}`
+          : VOLUME_LABELS[account.volume] || account.volume;
         nameCell.append(nameEl, metaEl);
 
         const statusCell = document.createElement('div');
@@ -804,10 +806,14 @@
         badge.textContent = bucket.label;
         const overdueEl = document.createElement('span');
         overdueEl.className = 'board-row__overdue';
-        overdueEl.textContent =
+        const statusLine =
           bucket.overdueText ||
-          (account.lastServiceDate && next ? `Next ${formatDate(next)}` : 'No visit yet');
-        statusCell.append(badge, overdueEl);
+          (account.lastServiceDate && next ? `Next ${formatDate(next)}` : '');
+        statusCell.appendChild(badge);
+        if (statusLine) {
+          overdueEl.textContent = statusLine;
+          statusCell.appendChild(overdueEl);
+        }
 
         const actions = document.createElement('div');
         actions.className = 'board-table__cell board-table__cell--actions';
@@ -964,7 +970,8 @@
       { id: 'sample-3', name: 'Lakeview Diner', address: '2100 NE Sandy Blvd, Portland, OR 97232', email: 'owner@lakeviewdiner.example', volume: 'low', lastServiceDate: iso(-30), jobs: [] },
       { id: 'sample-4', name: 'Brick Oven Pizza Co', address: '55 SE Morrison St, Portland, OR 97214', email: 'kitchen@brickoven.example', volume: 'medium', lastServiceDate: iso(-100), jobs: [] },
       { id: 'sample-5', name: 'Summit Catering Kitchen', address: '900 NW 23rd Ave, Portland, OR 97210', email: 'facilities@summitcatering.example', volume: 'minimal', lastServiceDate: iso(-60), jobs: [] },
-      { id: 'sample-6', name: 'Riverside BBQ Pit', address: '1440 SE Powell Blvd, Portland, OR 97202', email: 'pitmaster@riversidebbq.example', volume: 'high', lastServiceDate: iso(-20), jobs: [] }
+      { id: 'sample-6', name: 'Riverside BBQ Pit', address: '1440 SE Powell Blvd, Portland, OR 97202', email: 'pitmaster@riversidebbq.example', volume: 'high', lastServiceDate: iso(-20), jobs: [] },
+      { id: 'sample-7', name: 'Northside Commissary', address: '3010 N Interstate Ave, Portland, OR 97227', email: 'ops@northsidecommissary.example', volume: 'medium', lastServiceDate: null, jobs: [] }
     ];
 
     const stamp = new Date().toISOString();

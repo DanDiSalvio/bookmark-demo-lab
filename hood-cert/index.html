@@ -30,13 +30,19 @@
           <p class="hero__meta meta">No signup · Runs in your browser · Demo only</p>
         </div>
         <div class="hero__visual">
-          <img
-            class="hero__preview-img"
-            src="assets/certificate-preview.png"
-            width="480"
-            height="622"
-            alt="Rendered service record PDF showing record number, next cleaning due date, and photo pairs"
-          />
+          <picture>
+            <source
+              media="(max-width: 767px)"
+              srcset="assets/certificate-preview-mobile.png"
+            />
+            <img
+              class="hero__preview-img"
+              src="assets/certificate-preview.png"
+              width="520"
+              height="500"
+              alt="Rendered service record PDF showing record number, next cleaning due date, and hood before and after photos"
+            />
+          </picture>
         </div>
       </header>
 

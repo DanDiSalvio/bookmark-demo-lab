@@ -47,7 +47,7 @@ const pdfBytes = await page.evaluate(
           noAccessReason: ''
         };
       }
-      if (i >= 4) {
+      if (id === 'accessPanels') {
         return {
           id,
           status: 'no_access',
@@ -57,6 +57,18 @@ const pdfBytes = await page.evaluate(
           afterPhoto: null,
           beforeAt: null,
           afterAt: null
+        };
+      }
+      if (i >= 5) {
+        return {
+          id,
+          status: 'pass',
+          note: '',
+          beforePhoto: null,
+          afterPhoto: null,
+          beforeAt: null,
+          afterAt: null,
+          noAccessReason: ''
         };
       }
       return {
@@ -94,16 +106,41 @@ const prefix = path.join(outDir, 'certificate-preview-page');
 fs.writeFileSync(pdfPath, Buffer.from(pdfBytes));
 execSync(`pdftoppm -r 200 -png -f 1 -l 1 "${pdfPath}" "${prefix}"`, { stdio: 'inherit' });
 const rendered = `${prefix}-1.png`;
-const finalPath = path.join(outDir, 'certificate-preview.png');
 
 const meta = await sharp(rendered).metadata();
-const cropHeight = Math.min(Math.round(meta.height * 0.62), 1100);
+const scale = 2080 / meta.width;
+const fullHeightAt2x = Math.round(meta.height * scale);
+
+/** Crop from top through the first Hood before/after photo row (~1000px at 1x). */
+const desktopCropHeight1x = 1000;
+const desktopCropHeight2x = Math.round(desktopCropHeight1x * 2);
+
 await sharp(rendered)
-  .extract({ left: 0, top: 0, width: meta.width, height: cropHeight })
-  .resize({ width: 1040, withoutEnlargement: false })
+  .resize({ width: 2080 })
+  .extract({
+    left: 0,
+    top: 0,
+    width: 2080,
+    height: Math.min(desktopCropHeight2x, fullHeightAt2x)
+  })
   .png()
-  .toFile(finalPath);
+  .toFile(path.join(outDir, 'certificate-preview.png'));
+
+/** Mobile hero: header, next due, and first photo pair only. */
+const mobileCropHeight1x = 720;
+const mobileCropHeight2x = Math.round(mobileCropHeight1x * 2);
+
+await sharp(rendered)
+  .resize({ width: 2080 })
+  .extract({
+    left: 0,
+    top: 0,
+    width: 2080,
+    height: Math.min(mobileCropHeight2x, fullHeightAt2x)
+  })
+  .png()
+  .toFile(path.join(outDir, 'certificate-preview-mobile.png'));
 
 fs.unlinkSync(rendered);
 fs.unlinkSync(pdfPath);
-console.log('Wrote assets/certificate-preview.png');
+console.log('Wrote assets/certificate-preview.png and certificate-preview-mobile.png');

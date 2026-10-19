@@ -422,6 +422,7 @@
 @media (min-width: 768px) {
   .board-table__cell--actions {
     flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
   }
 }
@@ -432,7 +433,7 @@
   }
 
   .board-table__row {
-    grid-template-columns: 2fr 1.2fr 1fr;
+    grid-template-columns: 2fr 1.2fr auto;
     align-items: center;
   }
 }
