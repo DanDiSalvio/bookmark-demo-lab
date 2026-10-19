@@ -2,6 +2,7 @@ import { chromium } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, '../assets');
@@ -13,7 +14,7 @@ const page = await browser.newPage();
 await page.goto(`file://${appHtml}`);
 await page.waitForFunction(() => window.jspdf && window.HoodCertPdf);
 
-const dataUri = await page.evaluate(async () => {
+const pdfBytes = await page.evaluate(async () => {
   const payload = {
     companyName: 'Summit Hood Services',
     techName: 'Maria Lopez',
@@ -29,16 +30,30 @@ const dataUri = await page.evaluate(async () => {
         note: 'Belt wear noted, fan cleaned and operational.',
         beforePhoto: null,
         afterPhoto: null
+      },
+      {
+        id: 'ductwork',
+        status: 'no_access',
+        note: '',
+        noAccessReason: 'Panel sealed, documented no access',
+        beforePhoto: null,
+        afterPhoto: null
       }
     ]
   };
   const { doc } = await window.HoodCertPdf.buildServiceRecordPdf(payload);
-  return doc.output('datauristring');
+  const buf = doc.output('arraybuffer');
+  return Array.from(new Uint8Array(buf));
 });
 
-const viewer = await browser.newPage({ viewport: { width: 560, height: 726 } });
-await viewer.setContent(`<!DOCTYPE html><html><body style="margin:0;background:#fff"><embed src="${dataUri}" type="application/pdf" width="560" height="726" /></body></html>`);
-await viewer.waitForTimeout(1200);
-await viewer.screenshot({ path: path.join(outDir, 'certificate-preview.png') });
 await browser.close();
+
+const pdfPath = path.join(outDir, 'certificate-preview-temp.pdf');
+const prefix = path.join(outDir, 'certificate-preview-page');
+fs.writeFileSync(pdfPath, Buffer.from(pdfBytes));
+execSync(`pdftoppm -r 144 -png -f 1 -l 1 "${pdfPath}" "${prefix}"`, { stdio: 'inherit' });
+const rendered = `${prefix}-1.png`;
+const finalPath = path.join(outDir, 'certificate-preview.png');
+fs.renameSync(rendered, finalPath);
+fs.unlinkSync(pdfPath);
 console.log('Wrote assets/certificate-preview.png');

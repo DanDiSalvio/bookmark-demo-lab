@@ -20,7 +20,7 @@
     high: 'High volume (monthly)',
     medium: 'Medium volume (quarterly)',
     low: 'Low volume (semiannual)',
-    minimal: 'Minimal / seasonal (annual)'
+    minimal: 'Seasonal (annual)'
   };
 
   const CAMERA_SVG =
@@ -67,6 +67,7 @@
     checklistRoot: $('#checklist-root'),
     checklistAccountName: $('#checklist-account-name'),
     checklistProgress: $('#checklist-progress'),
+    planUsageBanner: $('#plan-usage-banner'),
     checklistError: $('#checklist-error'),
     btnMarkPass: $('#btn-mark-pass'),
     btnToReview: $('#btn-to-review'),
@@ -197,6 +198,20 @@
   function accountNextDue(account) {
     if (!account.lastServiceDate) return null;
     return addMonthsLocal(account.lastServiceDate, VOLUME_MONTHS[account.volume] || 3);
+  }
+
+  function lastServiceDisplay(account) {
+    return account.lastServiceDate ? formatDate(account.lastServiceDate) : 'No visit yet';
+  }
+
+  function freePlanBannerText() {
+    if (isProPlan()) return '';
+    const left = FREE_RECORDS_PER_MONTH - recordsUsedThisMonth();
+    if (left <= 0) {
+      return 'Free plan limit reached for this month. Upgrade to Pro for unlimited records.';
+    }
+    const word = left === 1 ? 'record' : 'records';
+    return `${left} of ${FREE_RECORDS_PER_MONTH} free ${word} left this month`;
   }
 
   function accountBoardBucket(account) {
@@ -416,7 +431,14 @@
       btnDef.textContent = 'Deficiency';
       btnDef.dataset.status = 'deficiency';
 
-      toggle.append(btnPass, btnDef);
+      const btnNoAccess = document.createElement('button');
+      btnNoAccess.type = 'button';
+      btnNoAccess.className = 'status-toggle__btn' + (item.status === 'no_access' ? ' is-na' : '');
+      btnNoAccess.textContent = 'No access';
+      btnNoAccess.dataset.status = 'no_access';
+
+      toggle.classList.add('status-toggle--three');
+      toggle.append(btnPass, btnDef, btnNoAccess);
       head.append(name, toggle);
 
       const noteField = document.createElement('div');
@@ -437,34 +459,47 @@
         noteField.append(noteLabel, noteInput);
       }
 
-      const photoGrid = document.createElement('div');
-      photoGrid.className = 'photo-grid';
-      photoGrid.append(createPhotoTile(area.id, 'before', item), createPhotoTile(area.id, 'after', item));
-
       const accessField = document.createElement('div');
       accessField.className = 'field field--compact';
-      const accessLabel = document.createElement('label');
-      accessLabel.className = 'field-label';
-      accessLabel.setAttribute('for', `no-access-${area.id}`);
-      accessLabel.textContent = 'No access (if no after photo)';
-      const accessInput = document.createElement('input');
-      accessInput.className = 'field-input';
-      accessInput.id = `no-access-${area.id}`;
-      accessInput.type = 'text';
-      accessInput.value = item.noAccessReason || '';
-      accessInput.disabled = !!item.afterPhoto;
-      accessInput.addEventListener('input', () => {
-        item.noAccessReason = accessInput.value;
-      });
-      accessField.append(accessLabel, accessInput);
+      if (item.status === 'no_access') {
+        const accessLabel = document.createElement('label');
+        accessLabel.className = 'field-label';
+        accessLabel.setAttribute('for', `no-access-reason-${area.id}`);
+        accessLabel.textContent = 'No access reason';
+        const accessInput = document.createElement('input');
+        accessInput.className = 'field-input';
+        accessInput.id = `no-access-reason-${area.id}`;
+        accessInput.type = 'text';
+        accessInput.value = item.noAccessReason || '';
+        accessInput.addEventListener('input', () => {
+          item.noAccessReason = accessInput.value;
+        });
+        accessField.append(accessLabel, accessInput);
+      }
 
-      wrap.append(head, noteField, photoGrid, accessField);
+      const photoGrid = document.createElement('div');
+      photoGrid.className = 'photo-grid';
+      if (item.status === 'pass' || item.status === 'deficiency') {
+        photoGrid.append(createPhotoTile(area.id, 'before', item), createPhotoTile(area.id, 'after', item));
+      }
+
+      wrap.append(head, noteField, accessField, photoGrid);
       els.checklistRoot.appendChild(wrap);
 
       toggle.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-status]');
         if (!btn) return;
-        item.status = btn.dataset.status === 'deficiency' ? 'deficiency' : 'pass';
+        const next = btn.dataset.status;
+        if (next === 'deficiency') item.status = 'deficiency';
+        else if (next === 'no_access') {
+          item.status = 'no_access';
+          item.afterPhoto = null;
+          item.afterAt = null;
+          item.note = '';
+        } else {
+          item.status = 'pass';
+          item.noAccessReason = '';
+        }
         renderChecklist();
       });
     });
@@ -476,12 +511,16 @@
     for (const area of CHECKLIST_AREAS) {
       const item = draftChecklist[area.id];
       if (!item.status) {
-        return `Choose Pass or Deficiency for ${area.label}.`;
+        return `Choose Pass, Deficiency, or No access for ${area.label}.`;
       }
-      const hasAfter = !!item.afterPhoto;
-      const noAccess = (item.noAccessReason || '').trim();
-      if (!hasAfter && !noAccess) {
-        return `Add an after photo or a no access reason for ${area.label}.`;
+      if (item.status === 'no_access') {
+        if (!(item.noAccessReason || '').trim()) {
+          return `Add a no access reason for ${area.label}.`;
+        }
+        continue;
+      }
+      if (!item.afterPhoto) {
+        return `Add an after photo for ${area.label}.`;
       }
       if (item.status === 'deficiency' && !(item.note || '').trim()) {
         return `Add a deficiency note for ${area.label}.`;
@@ -504,7 +543,14 @@
     els.jobStepReview.classList.toggle('hidden', step !== 2);
     els.jobStepRecord.classList.toggle('hidden', step !== 3);
 
-    if (step === 1) renderChecklist();
+    if (step === 1) {
+      if (els.planUsageBanner) {
+        const text = freePlanBannerText();
+        els.planUsageBanner.textContent = text;
+        els.planUsageBanner.classList.toggle('hidden', !text);
+      }
+      renderChecklist();
+    }
     if (step === 2) updateFinishSummary();
     if (step === 3) updateRecordScreen();
   }
@@ -634,7 +680,10 @@
       await window.HoodCertPdf.downloadServiceRecordPdf(payload);
     } catch (e) {
       console.error(e);
-      showFieldError(els.pdfError, 'PDF export failed. Tap Download again or check storage space.');
+      showFieldError(
+        els.pdfError,
+        'We could not build the PDF on this device. Stay on this screen, check you have free storage, then tap Download PDF again.'
+      );
     }
   }
 
@@ -673,7 +722,7 @@
       later: 'Later'
     };
 
-    els.boardSections.innerHTML = '';
+    els.boardSections.replaceChildren();
     const total = state.accounts.length;
     if (total === 0) {
       els.boardEmpty.classList.remove('hidden');
@@ -684,9 +733,28 @@
     order.forEach((key) => {
       const rows = sections[key];
       if (!rows.length) return;
-      const section = document.createElement('section');
+
+      const section =
+        key === 'later'
+          ? document.createElement('details')
+          : document.createElement('section');
       section.className = 'board-section';
-      section.innerHTML = `<h3 class="board-section__title">${titles[key]}</h3>`;
+      if (key === 'later') {
+        section.classList.add('board-section--collapsible');
+        section.open = false;
+      }
+
+      const heading = document.createElement('h2');
+      heading.className = 'board-section__title';
+      heading.textContent = `${titles[key]} (${rows.length})`;
+      if (key === 'later') {
+        const summary = document.createElement('summary');
+        summary.className = 'board-section__summary';
+        summary.appendChild(heading);
+        section.appendChild(summary);
+      } else {
+        section.appendChild(heading);
+      }
 
       const table = document.createElement('div');
       table.className = 'board-table';
@@ -698,23 +766,34 @@
         row.className = 'board-table__row';
         row.setAttribute('role', 'row');
 
-        const overdueLine =
+        const nameCell = document.createElement('div');
+        nameCell.className = 'board-table__cell board-table__cell--name';
+        nameCell.setAttribute('role', 'cell');
+        const nameEl = document.createElement('p');
+        nameEl.className = 'board-row__name';
+        nameEl.textContent = account.name;
+        const metaEl = document.createElement('p');
+        metaEl.className = 'board-row__meta';
+        metaEl.textContent = `Last ${lastServiceDisplay(account)} · ${VOLUME_LABELS[account.volume] || account.volume}`;
+        nameCell.append(nameEl, metaEl);
+
+        const statusCell = document.createElement('div');
+        statusCell.className = 'board-table__cell board-table__cell--status';
+        statusCell.setAttribute('role', 'cell');
+        const badge = document.createElement('span');
+        badge.className = `badge ${bucket.badge}`;
+        badge.textContent = bucket.label;
+        const overdueEl = document.createElement('span');
+        overdueEl.className = 'board-row__overdue';
+        overdueEl.textContent =
           bucket.overdueText ||
-          (next ? `Next ${formatDate(next)}` : 'No service date yet');
+          (account.lastServiceDate && next ? `Next ${formatDate(next)}` : 'No visit yet');
+        statusCell.append(badge, overdueEl);
 
-        row.innerHTML = `
-          <div class="board-table__cell board-table__cell--name" role="cell">
-            <p class="board-row__name">${account.name}</p>
-            <p class="board-row__meta">Last ${formatDate(account.lastServiceDate)} · ${VOLUME_LABELS[account.volume]}</p>
-          </div>
-          <div class="board-table__cell board-table__cell--status" role="cell">
-            <span class="badge ${bucket.badge}">${bucket.label}</span>
-            <span class="board-row__overdue">${overdueLine}</span>
-          </div>
-          <div class="board-table__cell board-table__cell--actions" role="cell"></div>
-        `;
+        const actions = document.createElement('div');
+        actions.className = 'board-table__cell board-table__cell--actions';
+        actions.setAttribute('role', 'cell');
 
-        const actions = row.querySelector('.board-table__cell--actions');
         const recordsBtn = document.createElement('button');
         recordsBtn.type = 'button';
         recordsBtn.className = 'btn btn-ghost btn-sm';
@@ -731,6 +810,7 @@
           actions.appendChild(rebookBtn);
         }
 
+        row.append(nameCell, statusCell, actions);
         table.appendChild(row);
       });
 
@@ -742,8 +822,17 @@
   function openRecordsForAccount(accountId) {
     const jobs = state.jobs.filter((j) => j.accountId === accountId);
     const account = state.accounts.find((a) => a.id === accountId);
+    els.recordDialogBody.replaceChildren();
+    const title = document.createElement('p');
+    title.className = 'meta';
+    title.textContent = account ? account.name : 'Account';
+    els.recordDialogBody.appendChild(title);
+
     if (!jobs.length) {
-      els.recordDialogBody.innerHTML = '<p class="meta">No saved records for this account yet.</p>';
+      const empty = document.createElement('p');
+      empty.className = 'meta';
+      empty.textContent = 'No saved records for this account yet.';
+      els.recordDialogBody.appendChild(empty);
     } else {
       const list = document.createElement('ul');
       list.className = 'record-list';
@@ -753,7 +842,7 @@
         btn.type = 'button';
         btn.className = 'btn btn-ghost btn-block';
         btn.textContent = `${job.recordNumber || 'Record'} · ${formatDate(job.serviceDate)} · ${job.techName}`;
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
           lastCompletedJob = job;
           els.recordDialog.close();
           switchTab('job');
@@ -762,7 +851,6 @@
         li.appendChild(btn);
         list.appendChild(li);
       });
-      els.recordDialogBody.innerHTML = `<p class="meta">${account ? account.name : 'Account'}</p>`;
       els.recordDialogBody.appendChild(list);
     }
     els.recordDialog.showModal();
@@ -796,7 +884,8 @@
   }
 
   function switchTab(tab) {
-    els.tabButtons.forEach((btn) => {
+    const allTabButtons = [...els.tabButtons, ...document.querySelectorAll('.shell-top-nav__btn')];
+    allTabButtons.forEach((btn) => {
       const active = btn.dataset.tab === tab;
       if (active) btn.setAttribute('aria-current', 'page');
       else btn.removeAttribute('aria-current');
@@ -860,16 +949,42 @@
     ];
 
     const stamp = new Date().toISOString();
-    const completedChecklist = CHECKLIST_AREAS.map((area, i) => ({
-      id: area.id,
-      status: area.id === 'fan' ? 'deficiency' : 'pass',
-      note: area.id === 'fan' ? 'Belt wear noted, fan cleaned and operational.' : '',
-      beforePhoto: i < 3 ? beforeUrl : null,
-      afterPhoto: i < 3 ? afterUrl : null,
-      beforeAt: i < 3 ? stamp : null,
-      afterAt: i < 3 ? stamp : null,
-      noAccessReason: i >= 3 ? 'Panel sealed, documented no access' : ''
-    }));
+    const completedChecklist = CHECKLIST_AREAS.map((area, i) => {
+      if (area.id === 'fan') {
+        return {
+          id: area.id,
+          status: 'deficiency',
+          note: 'Belt wear noted, fan cleaned and operational.',
+          beforePhoto: beforeUrl,
+          afterPhoto: afterUrl,
+          beforeAt: stamp,
+          afterAt: stamp,
+          noAccessReason: ''
+        };
+      }
+      if (i >= 3) {
+        return {
+          id: area.id,
+          status: 'no_access',
+          note: '',
+          beforePhoto: null,
+          afterPhoto: null,
+          beforeAt: null,
+          afterAt: null,
+          noAccessReason: 'Panel sealed, documented no access'
+        };
+      }
+      return {
+        id: area.id,
+        status: 'pass',
+        note: '',
+        beforePhoto: beforeUrl,
+        afterPhoto: afterUrl,
+        beforeAt: stamp,
+        afterAt: stamp,
+        noAccessReason: ''
+      };
+    });
 
     const completedJob = {
       id: 'sample-job-1',
@@ -1018,6 +1133,10 @@
       renderBoard();
       setJobStep(0);
       showToast('Local data cleared');
+    });
+
+    document.querySelectorAll('.shell-top-nav__btn').forEach((btn) => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab || 'job'));
     });
 
     els.btnLoadSamples.addEventListener('click', () => {

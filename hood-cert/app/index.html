@@ -17,6 +17,12 @@
       <button type="button" class="btn-link" id="btn-load-samples">Load samples</button>
     </nav>
 
+    <nav class="shell-top-nav" aria-label="App sections">
+      <button type="button" class="shell-top-nav__btn" data-tab="job">Job</button>
+      <button type="button" class="shell-top-nav__btn" data-tab="board">Board</button>
+      <button type="button" class="shell-top-nav__btn" data-tab="settings">Settings</button>
+    </nav>
+
     <main id="app-main">
       <header class="app-header">
         <h1 class="app-header__title" id="panel-heading">New job</h1>
@@ -65,7 +71,7 @@
                     <option value="high">High volume (monthly)</option>
                     <option value="medium">Medium volume (quarterly)</option>
                     <option value="low">Low volume (semiannual)</option>
-                    <option value="minimal">Minimal / seasonal (annual)</option>
+                    <option value="minimal">Seasonal (annual)</option>
                   </select>
                   <p class="field-hint">Frequency labels follow common NFPA 96 cooking-volume schedules. Your authority having jurisdiction may differ.</p>
                 </div>
@@ -79,6 +85,7 @@
         </div>
 
         <div id="job-step-checklist" class="hidden">
+          <p class="plan-usage-banner hidden" id="plan-usage-banner" role="status"></p>
           <div class="checklist-progress" id="checklist-progress" aria-live="polite">0 of 7 areas · 0 photos</div>
           <div class="card">
             <div class="card__header card__header--split">

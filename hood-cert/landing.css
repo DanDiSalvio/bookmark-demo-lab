@@ -2,27 +2,36 @@
   max-width: var(--max-width-wide);
   margin: 0 auto;
   padding: 0 var(--space-4) calc(var(--space-12) + var(--safe-bottom));
+  overflow-x: hidden;
 }
 
-.hero {
+.hero--split {
+  display: grid;
+  gap: var(--space-8);
   margin-bottom: var(--space-10);
   padding-top: var(--space-4);
 }
 
+@media (min-width: 1024px) {
+  .hero--split {
+    grid-template-columns: 5fr 7fr;
+    align-items: center;
+    gap: var(--space-10);
+  }
+}
+
 .hero__title {
   margin: 0 0 var(--space-4);
-  font-size: clamp(28px, 7vw, 40px);
+  font-size: clamp(28px, 6vw, 40px);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.12;
-  color: var(--color-text);
-  max-width: 18ch;
+  max-width: 22ch;
 }
 
 .hero__lede {
   margin: 0 0 var(--space-6);
   font-size: 17px;
-  font-weight: 400;
   line-height: 1.5;
   color: var(--color-text-muted);
   max-width: 48ch;
@@ -38,7 +47,20 @@
 .hero__actions .btn {
   width: 100%;
   max-width: 320px;
-  font-size: 15px;
+}
+
+.hero__visual {
+  min-width: 0;
+}
+
+.hero__preview-img,
+.cert-preview-img {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
 }
 
 .audience {
@@ -66,185 +88,81 @@
 }
 
 .section__title {
-  margin: 0 0 var(--space-5);
+  margin: 0 0 var(--space-4);
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: var(--color-text);
 }
 
-.flow-grid {
-  display: grid;
-  gap: var(--space-4);
+.section__lede {
+  margin: 0 0 var(--space-4);
 }
 
-@media (min-width: 768px) {
-  .flow-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.flow-card {
-  padding: var(--space-5);
+.flow-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-bg);
+  overflow: hidden;
 }
 
-.flow-card__step {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-accent);
-  margin-bottom: var(--space-2);
+.flow-row {
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.flow-card__title {
+.flow-row:last-child {
+  border-bottom: none;
+}
+
+.flow-row__title {
   margin: 0 0 var(--space-2);
   font-size: 16px;
   font-weight: 600;
-  letter-spacing: -0.01em;
 }
 
-.flow-card__desc {
+.flow-row__desc {
   margin: 0;
   font-size: 14px;
   color: var(--color-text-muted);
   line-height: 1.5;
 }
 
-.cert-preview {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--color-surface);
+.pricing-grid {
+  display: grid;
+  gap: var(--space-4);
 }
 
-.cert-preview__chrome {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.cert-preview__body {
-  padding: var(--space-5);
-  background: #fff;
-  color: #0a0b0d;
-}
-
-@media (prefers-color-scheme: dark) {
-  .cert-preview__body {
-    background: #fff;
+@media (min-width: 768px) {
+  .pricing-grid {
+    grid-template-columns: 1fr 1fr;
+    max-width: 720px;
   }
 }
 
-.cert-preview__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
-  padding-bottom: var(--space-4);
-  border-bottom: 2px solid #c2410c;
-}
-
-.cert-preview__logo {
-  width: 48px;
-  height: 48px;
-  border: 1px dashed #d4d4d8;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: #71717a;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.cert-preview__company {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.cert-preview__doc-title {
-  margin: 4px 0 0;
-  font-size: 11px;
-  color: #52525b;
-}
-
-.cert-preview__meta {
-  font-size: 11px;
-  text-align: right;
-  color: #52525b;
-}
-
-.cert-preview__meta p {
-  margin: 0 0 4px;
-}
-
-.cert-preview__checklist {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2) var(--space-4);
-  font-size: 11px;
-  margin-bottom: var(--space-4);
-}
-
-.cert-preview__row {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.cert-preview__pass {
-  color: #16a34a;
-  font-weight: 600;
-}
-
-.cert-preview__def {
-  color: #dc2626;
-  font-weight: 600;
-}
-
-.cert-preview__photos {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-}
-
-.cert-preview__thumb {
-  aspect-ratio: 4/3;
-  background: linear-gradient(135deg, #e4e4e7 0%, #d4d4d8 100%);
-  border-radius: 4px;
-}
-
-.cert-preview__footer {
-  font-size: 10px;
-  color: #71717a;
-  line-height: 1.4;
-}
-
 .pricing-card {
-  max-width: 360px;
   padding: var(--space-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-bg);
 }
 
-.pricing-card__price {
+.pricing-card--pro {
+  border-color: var(--color-accent);
+}
+
+.pricing-card__name {
   margin: 0 0 var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.pricing-card__price {
+  margin: 0 0 var(--space-4);
   font-size: 32px;
   font-weight: 700;
-  letter-spacing: -0.03em;
 }
 
 .pricing-card__price span {
@@ -253,34 +171,37 @@
   color: var(--color-text-muted);
 }
 
-.pricing-card__tier {
-  margin: 0 0 var(--space-4);
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
-
 .pricing-card__list {
   margin: 0 0 var(--space-5);
-  padding: 0;
-  list-style: none;
-}
-
-.pricing-card__list li {
-  padding: var(--space-2) 0;
+  padding-left: 1.1rem;
   font-size: 14px;
-  border-bottom: 1px solid var(--color-border);
+  line-height: 1.6;
 }
 
-.pricing-card__list li:last-child {
-  border-bottom: none;
+.waitlist-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 420px;
 }
 
-.pricing-card__free {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-  font-size: 13px;
-  color: var(--color-text-muted);
+.waitlist-form .field-input {
+  min-height: var(--tap-min);
+  font-size: 16px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  width: 100%;
+}
+
+.waitlist-form .btn {
+  min-height: var(--tap-min);
+}
+
+.waitlist-confirm {
+  margin-top: var(--space-3);
+  font-size: 14px;
+  color: var(--color-success);
 }
 
 .disclaimer-block {

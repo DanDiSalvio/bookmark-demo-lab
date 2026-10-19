@@ -7,6 +7,7 @@
 
   const STATUS_PASS = { r: 21, g: 128, b: 61 };
   const STATUS_DEF = { r: 185, g: 28, b: 28 };
+  const STATUS_NO_ACCESS = { r: 161, g: 98, b: 7 };
 
   const AREA_LABELS = {
     hood: 'Hood',
@@ -160,25 +161,31 @@
     for (const item of payload.checklist) {
       if (!item.status) continue;
       const label = AREA_LABELS[item.id] || item.id;
-      const isDef = item.status === 'deficiency';
-      const status = isDef ? 'Deficiency' : 'Pass';
+      let status = 'Pass';
+      let c = STATUS_PASS;
+      if (item.status === 'deficiency') {
+        status = 'Deficiency';
+        c = STATUS_DEF;
+      } else if (item.status === 'no_access') {
+        status = 'No access';
+        c = STATUS_NO_ACCESS;
+      }
       doc.text(label, margin, y);
       doc.setFont('helvetica', 'bold');
-      const c = isDef ? STATUS_DEF : STATUS_PASS;
       doc.setTextColor(c.r, c.g, c.b);
       doc.text(status, pageW - margin, y, { align: 'right' });
       doc.setTextColor(0);
       doc.setFont('helvetica', 'normal');
       y += 12;
-      if (isDef && item.note) {
+      if (item.status === 'deficiency' && item.note) {
         const noteLines = doc.splitTextToSize(`Note: ${item.note}`, contentW - 20);
         doc.setTextColor(80);
         doc.text(noteLines, margin + 12, y);
         doc.setTextColor(0);
         y += noteLines.length * 11;
       }
-      if (item.noAccessReason) {
-        const naLines = doc.splitTextToSize(`No access: ${item.noAccessReason}`, contentW - 20);
+      if (item.status === 'no_access' && item.noAccessReason) {
+        const naLines = doc.splitTextToSize(`Reason: ${item.noAccessReason}`, contentW - 20);
         doc.setTextColor(80);
         doc.text(naLines, margin + 12, y);
         doc.setTextColor(0);
@@ -198,6 +205,7 @@
     doc.setFont('helvetica', 'normal');
 
     for (const item of payload.checklist) {
+      if (item.status === 'no_access') continue;
       const label = AREA_LABELS[item.id] || item.id;
       const hasBefore = !!item.beforePhoto;
       const hasAfter = !!item.afterPhoto;
@@ -276,6 +284,17 @@
     const discLines = doc.splitTextToSize(DISCLAIMER, contentW);
     doc.text(discLines, margin, y);
     doc.setTextColor(0);
+
+    const pageCount = doc.internal.getNumberOfPages();
+    const pageH = doc.internal.pageSize.getHeight();
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(120);
+      doc.text(`Page ${p} of ${pageCount}`, pageW / 2, pageH - 24, { align: 'center' });
+      doc.setTextColor(0);
+    }
 
     const slug =
       payload.account.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() ||

@@ -8,11 +8,12 @@ async function completeOneJob(page) {
     return acc ? acc.lastServiceDate : null;
   });
   await page.getByRole('button', { name: 'Continue to checklist' }).click();
-  await page.getByRole('button', { name: 'Mark remaining as Pass' }).click();
-  const inputs = page.locator('input[id^="no-access-"]');
-  const count = await inputs.count();
+  const items = page.locator('.checklist-item');
+  const count = await items.count();
   for (let i = 0; i < count; i++) {
-    await inputs.nth(i).fill('No access demo');
+    const item = items.nth(i);
+    await item.getByRole('button', { name: 'No access' }).click();
+    await item.locator('input[type="text"]').fill('No access demo');
   }
   await page.getByRole('button', { name: 'Review job' }).click();
   await page.getByRole('button', { name: 'Complete job' }).click();

@@ -10,6 +10,7 @@
   --color-text-muted: #5b616e;
   --color-accent: #c2410c;
   --color-accent-hover: #9a3412;
+  --color-accent-text: #c2410c;
   --color-accent-subtle: #fff7ed;
   --color-danger: #b91c1c;
   --color-danger-subtle: #fef2f2;
@@ -46,8 +47,8 @@
     --color-border: #2a2d35;
     --color-text: #f4f4f5;
     --color-text-muted: #9ca3af;
-    --color-accent: #fb923c;
-    --color-accent-hover: #fdba74;
+    --color-accent-text: #fb923c;
+    --color-accent-hover: #9a3412;
     --color-accent-subtle: #1c1410;
     --color-danger: #f87171;
     --color-danger-subtle: #1f1212;
@@ -158,12 +159,12 @@ body {
 }
 
 .btn-accent {
-  background: var(--color-accent);
+  background: #c2410c;
   color: #fff;
 }
 
 .btn-accent:hover {
-  background: var(--color-accent-hover);
+  background: #9a3412;
 }
 
 .btn-block {
@@ -183,7 +184,7 @@ body {
   min-height: var(--tap-min);
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   cursor: pointer;
   text-decoration: none;
 }
@@ -292,6 +293,6 @@ body {
 .field-textarea:focus-visible,
 .status-toggle__btn:focus-visible,
 .photo-tile:focus-within {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-accent-text);
   outline-offset: 2px;
 }

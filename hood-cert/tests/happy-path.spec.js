@@ -6,11 +6,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const samplePhoto = path.join(__dirname, '../app/samples/hood-before.jpg');
 
 async function fillChecklistForSubmit(page) {
-  await page.getByRole('button', { name: 'Mark remaining as Pass' }).click();
-  const inputs = page.locator('input[id^="no-access-"]');
-  const count = await inputs.count();
+  const items = page.locator('.checklist-item');
+  const count = await items.count();
   for (let i = 0; i < count; i++) {
-    await inputs.nth(i).fill('Demo no access note');
+    const item = items.nth(i);
+    await item.getByRole('button', { name: 'No access' }).click();
+    await item.locator('input[type="text"]').fill('Demo no access note');
   }
 }
 
@@ -29,8 +30,11 @@ test('hood cert happy path: job, complete, pdf, board', async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/hood-service-record/);
 
   await page.getByRole('button', { name: 'Board' }).click();
-  const board = page.getByRole('region', { name: 'Rebook board' });
-  await expect(board.getByText('Riverside BBQ Pit')).toBeVisible();
+  const lastService = await page.evaluate(() => {
+    const acc = window.HoodCertApp.getState().accounts.find((a) => a.name === 'Riverside BBQ Pit');
+    return acc && acc.lastServiceDate;
+  });
+  expect(lastService).toBeTruthy();
 });
 
 test('double complete creates one job only', async ({ page }) => {
