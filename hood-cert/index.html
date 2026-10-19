@@ -33,8 +33,14 @@
           <picture>
             <source
               media="(max-width: 767px)"
+              type="image/webp"
+              srcset="assets/certificate-preview-mobile.webp"
+            />
+            <source
+              media="(max-width: 767px)"
               srcset="assets/certificate-preview-mobile.png"
             />
+            <source type="image/webp" srcset="assets/certificate-preview.webp" />
             <img
               class="hero__preview-img"
               src="assets/certificate-preview.png"
@@ -79,13 +85,26 @@
       <section class="section" aria-labelledby="preview-heading">
         <h2 class="section__title" id="preview-heading">Service record preview</h2>
         <p class="meta section__lede">Real PDF export from the app, not a mock layout.</p>
-        <img
-          class="cert-preview-img"
-          src="assets/certificate-preview.png"
-          width="560"
-          height="726"
-          alt="Example hood cleaning service record PDF"
-        />
+        <picture>
+          <source
+            media="(max-width: 767px)"
+            type="image/webp"
+            srcset="assets/certificate-preview-mobile.webp"
+          />
+          <source
+            media="(max-width: 767px)"
+            srcset="assets/certificate-preview-mobile.png"
+          />
+          <source type="image/webp" srcset="assets/certificate-preview.webp" />
+          <img
+            class="cert-preview-img"
+            src="assets/certificate-preview.png"
+            width="560"
+            height="726"
+            loading="lazy"
+            alt="Example hood cleaning service record PDF"
+          />
+        </picture>
       </section>
 
       <section class="section pricing-section" aria-labelledby="pricing-heading">

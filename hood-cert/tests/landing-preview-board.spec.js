@@ -35,7 +35,7 @@ test.describe('HC-13 hero preview assets', () => {
     expect(desktopMeta.height).toBeGreaterThanOrEqual(1800);
 
     const mobileMeta = await sharp(mobile).metadata();
-    expect(mobileMeta.width).toBe(2080);
+    expect(mobileMeta.width).toBe(1080);
 
     async function assertPhotosVisible(pngPath) {
       const { width: w, height: h } = await sharp(pngPath).metadata();

@@ -108,39 +108,60 @@ execSync(`pdftoppm -r 200 -png -f 1 -l 1 "${pdfPath}" "${prefix}"`, { stdio: 'in
 const rendered = `${prefix}-1.png`;
 
 const meta = await sharp(rendered).metadata();
-const scale = 2080 / meta.width;
-const fullHeightAt2x = Math.round(meta.height * scale);
+const full = await sharp(rendered).resize({ width: 2080 }).toBuffer();
+const fullMeta = await sharp(full).metadata();
+const fullH = fullMeta.height;
+const fullW = fullMeta.width;
 
-/** Crop from top through the first Hood before/after photo row (~1000px at 1x). */
-const desktopCropHeight1x = 1000;
-const desktopCropHeight2x = Math.round(desktopCropHeight1x * 2);
-
-await sharp(rendered)
-  .resize({ width: 2080 })
-  .extract({
-    left: 0,
-    top: 0,
-    width: 2080,
-    height: Math.min(desktopCropHeight2x, fullHeightAt2x)
-  })
+/** Desktop: header through first Hood before/after row (includes checklist). */
+const desktopCropHeight = Math.min(Math.round(1000 * 2), fullH);
+const desktopPng = await sharp(full)
+  .extract({ left: 0, top: 0, width: fullW, height: desktopCropHeight })
   .png()
-  .toFile(path.join(outDir, 'certificate-preview.png'));
+  .toBuffer();
 
-/** Mobile hero: header, next due, and first photo pair only. */
-const mobileCropHeight1x = 720;
-const mobileCropHeight2x = Math.round(mobileCropHeight1x * 2);
-
-await sharp(rendered)
-  .resize({ width: 2080 })
-  .extract({
-    left: 0,
-    top: 0,
-    width: 2080,
-    height: Math.min(mobileCropHeight2x, fullHeightAt2x)
-  })
+/** Mobile: header through account, then hood photo row from desktop crop (no checklist). */
+const topEnd = Math.round(fullH * 0.195);
+const topBand = await sharp(full).extract({ left: 0, top: 0, width: fullW, height: topEnd }).png().toBuffer();
+const desktopMeta = await sharp(desktopPng).metadata();
+const photoTop = Math.round(desktopMeta.height * 0.52);
+const photoHeight = Math.min(Math.round(desktopMeta.height * 0.46), desktopMeta.height - photoTop);
+const photoBand = await sharp(desktopPng)
+  .extract({ left: 0, top: photoTop, width: desktopMeta.width, height: photoHeight })
   .png()
-  .toFile(path.join(outDir, 'certificate-preview-mobile.png'));
+  .toBuffer();
+const topMeta = await sharp(topBand).metadata();
+const photoMeta = await sharp(photoBand).metadata();
+const mobileComposite = await sharp({
+  create: {
+    width: fullW,
+    height: topMeta.height + photoMeta.height,
+    channels: 3,
+    background: { r: 255, g: 255, b: 255 }
+  }
+})
+  .composite([
+    { input: topBand, top: 0, left: 0 },
+    { input: photoBand, top: topMeta.height, left: 0 }
+  ])
+  .png()
+  .toBuffer();
+
+async function writeVariants(baseName, pngBuffer, mobileWidth) {
+  const width = mobileWidth ?? 2080;
+  const resized = await sharp(pngBuffer).resize({ width, withoutEnlargement: false }).toBuffer();
+  const pngPath = path.join(outDir, `${baseName}.png`);
+  const webpPath = path.join(outDir, `${baseName}.webp`);
+  await sharp(resized).png({ compressionLevel: 9 }).toFile(pngPath);
+  await sharp(resized).webp({ quality: 82, effort: 6 }).toFile(webpPath);
+  const pngKb = Math.round(fs.statSync(pngPath).size / 1024);
+  const webpKb = Math.round(fs.statSync(webpPath).size / 1024);
+  console.log(`${baseName}: ${width}px PNG ${pngKb} KB, WebP ${webpKb} KB`);
+}
+
+await writeVariants('certificate-preview', desktopPng, 2080);
+await writeVariants('certificate-preview-mobile', mobileComposite, 1080);
 
 fs.unlinkSync(rendered);
 fs.unlinkSync(pdfPath);
-console.log('Wrote assets/certificate-preview.png and certificate-preview-mobile.png');
+console.log('Wrote certificate preview assets (PNG + WebP).');
