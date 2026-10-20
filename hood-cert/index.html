@@ -30,25 +30,40 @@
           <p class="hero__meta meta">No signup · Runs in your browser · Demo only</p>
         </div>
         <div class="hero__visual">
-          <picture>
-            <source
-              media="(max-width: 767px)"
-              type="image/webp"
-              srcset="assets/certificate-preview-mobile.webp"
-            />
-            <source
-              media="(max-width: 767px)"
-              srcset="assets/certificate-preview-mobile.png"
-            />
-            <source type="image/webp" srcset="assets/certificate-preview.webp" />
-            <img
-              class="hero__preview-img"
-              src="assets/certificate-preview.png"
-              width="520"
-              height="500"
-              alt="Rendered service record PDF showing record number, next cleaning due date, and hood before and after photos"
-            />
-          </picture>
+          <div class="hero-preview-card hero-preview-card--desktop">
+            <picture>
+              <source type="image/webp" srcset="assets/certificate-preview.webp" />
+              <img
+                class="hero__preview-img"
+                src="assets/certificate-preview.png"
+                width="520"
+                height="500"
+                alt="Rendered service record PDF showing record number, next cleaning due date, and hood before and after sample photos"
+              />
+            </picture>
+            <p class="hero-preview-card__caption meta">Real PDF layout from the app. Sample photos.</p>
+          </div>
+          <div class="hero-preview-card hero-preview-card--mobile">
+            <p class="hero-preview-card__due">Next cleaning due: Jan 19, 2027</p>
+            <p class="hero-preview-card__demo-label">Sample photos for demo, not from a real job</p>
+            <a class="hero-preview-card__photos" href="assets/sample-service-record.pdf">
+              <picture>
+                <source type="image/webp" srcset="assets/certificate-preview-hero-photos.webp" />
+                <img
+                  class="hero__preview-photos-img"
+                  src="assets/certificate-preview-hero-photos.png"
+                  width="390"
+                  height="220"
+                  alt="Hood before and after sample photo pair from the service record PDF"
+                />
+              </picture>
+            </a>
+            <p class="hero-preview-card__times">
+              <span>Before · Oct 19, 10:05 AM</span>
+              <span>After · Oct 19, 11:40 AM</span>
+            </p>
+            <p class="hero-preview-card__caption meta">Real PDF layout from the app. Sample photos.</p>
+          </div>
         </div>
       </header>
 
@@ -84,16 +99,16 @@
 
       <section class="section" aria-labelledby="preview-heading">
         <h2 class="section__title" id="preview-heading">Service record preview</h2>
-        <p class="meta section__lede">Real PDF export from the app, not a mock layout.</p>
+        <p class="meta section__lede">Real PDF layout from the app. Sample photos.</p>
         <picture>
           <source
             media="(max-width: 767px)"
             type="image/webp"
-            srcset="assets/certificate-preview-mobile.webp"
+            srcset="assets/certificate-preview-section-mobile.webp"
           />
           <source
             media="(max-width: 767px)"
-            srcset="assets/certificate-preview-mobile.png"
+            srcset="assets/certificate-preview-section-mobile.png"
           />
           <source type="image/webp" srcset="assets/certificate-preview.webp" />
           <img

@@ -8,14 +8,12 @@ const samplesDir = path.join(__dirname, '../app/samples');
 
 const jobs = [
   {
-    input: '/tmp/hood-samples/before-src.jpg',
-    output: 'hood-before.jpg',
-    position: 'top'
+    input: '/tmp/hood-before-src.jpg',
+    output: 'hood-before.jpg'
   },
   {
-    input: '/tmp/hood-samples/after-commercial.jpg',
-    output: 'hood-after.jpg',
-    position: 'top'
+    input: '/tmp/hood-after-src.jpg',
+    output: 'hood-after.jpg'
   }
 ];
 
@@ -24,7 +22,7 @@ for (const job of jobs) {
   const outPath = path.join(samplesDir, job.output);
   while (quality >= 58) {
     await sharp(job.input)
-      .resize(1600, 1200, { fit: 'cover', position: job.position })
+      .resize(1600, 1200, { fit: 'cover', position: 'centre' })
       .jpeg({ quality, mozjpeg: true })
       .toFile(outPath);
     const { size } = fs.statSync(outPath);

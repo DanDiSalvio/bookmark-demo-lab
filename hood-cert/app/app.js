@@ -3,6 +3,14 @@
 
   const STORAGE_KEY = 'hood-cert-pack-v1';
   const FREE_RECORDS_PER_MONTH = 3;
+  const SAMPLE_PHOTO_DISCLAIMER = 'Sample photos for demo, not from a real job';
+
+  function samplePhotoTimes(serviceDateIso) {
+    const [y, m, d] = serviceDateIso.split('-').map(Number);
+    const before = new Date(y, m - 1, d, 10, 5, 0, 0);
+    const after = new Date(y, m - 1, d, 11, 40, 0, 0);
+    return { beforeAt: before.toISOString(), afterAt: after.toISOString() };
+  }
 
   const CHECKLIST_AREAS = [
     { id: 'hood', label: 'Hood' },
@@ -664,7 +672,7 @@
     const account = state.accounts.find((a) => a.id === job.accountId);
     if (!account) return null;
     const nextDue = addMonthsLocal(job.serviceDate, VOLUME_MONTHS[account.volume] || 3);
-    return {
+    const payload = {
       companyName: state.companyName,
       techName: job.techName,
       recordNumber: job.recordNumber,
@@ -673,6 +681,10 @@
       nextDue: formatDate(nextDue),
       checklist: job.checklist
     };
+    if (job.sampleUsesStockPhotos) {
+      payload.samplePhotoDisclaimer = SAMPLE_PHOTO_DISCLAIMER;
+    }
+    return payload;
   }
 
   function updateRecordScreen() {
@@ -974,21 +986,34 @@
       { id: 'sample-7', name: 'Northside Commissary', address: '3010 N Interstate Ave, Portland, OR 97227', email: 'ops@northsidecommissary.example', volume: 'medium', lastServiceDate: null, jobs: [] }
     ];
 
-    const stamp = new Date().toISOString();
-    const completedChecklist = CHECKLIST_AREAS.map((area, i) => {
+    const sampleServiceDate = iso(-14);
+    const { beforeAt, afterAt } = samplePhotoTimes(sampleServiceDate);
+    const completedChecklist = CHECKLIST_AREAS.map((area) => {
+      if (area.id === 'hood') {
+        return {
+          id: area.id,
+          status: 'pass',
+          note: '',
+          beforePhoto: beforeUrl,
+          afterPhoto: afterUrl,
+          beforeAt,
+          afterAt,
+          noAccessReason: ''
+        };
+      }
       if (area.id === 'fan') {
         return {
           id: area.id,
           status: 'deficiency',
           note: 'Belt wear noted, fan cleaned and operational.',
-          beforePhoto: beforeUrl,
-          afterPhoto: afterUrl,
-          beforeAt: stamp,
-          afterAt: stamp,
+          beforePhoto: null,
+          afterPhoto: null,
+          beforeAt: null,
+          afterAt: null,
           noAccessReason: ''
         };
       }
-      if (i >= 3) {
+      if (['accessPanels', 'greaseContainment', 'fireSuppressionNozzles'].includes(area.id)) {
         return {
           id: area.id,
           status: 'no_access',
@@ -1004,10 +1029,10 @@
         id: area.id,
         status: 'pass',
         note: '',
-        beforePhoto: beforeUrl,
-        afterPhoto: afterUrl,
-        beforeAt: stamp,
-        afterAt: stamp,
+        beforePhoto: null,
+        afterPhoto: null,
+        beforeAt: null,
+        afterAt: null,
         noAccessReason: ''
       };
     });
@@ -1015,10 +1040,11 @@
     const completedJob = {
       id: 'sample-job-1',
       accountId: 'sample-1',
-      serviceDate: iso(-14),
+      serviceDate: sampleServiceDate,
       techName: 'Maria Lopez',
-      recordNumber: `HC-${iso(-14).replace(/-/g, '')}-SAMP`,
+      recordNumber: `HC-${sampleServiceDate.replace(/-/g, '')}-SAMP`,
       checklist: completedChecklist,
+      sampleUsesStockPhotos: true,
       createdAt: Date.now() - 14 * 86400000
     };
 

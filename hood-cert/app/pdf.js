@@ -100,7 +100,8 @@
    *     beforeAt?: string | null,
    *     afterAt?: string | null,
    *     noAccessReason?: string | null
-   *   }>
+   *   }>,
+   *   samplePhotoDisclaimer?: string
    * }} payload
    * @returns {Promise<{ doc: import('jspdf').jsPDF, filename: string }>}
    */
@@ -267,7 +268,19 @@
         }
       }
 
-      y = rowY + cellH + 22;
+      if (payload.samplePhotoDisclaimer && (item.beforePhoto || item.afterPhoto)) {
+        y = rowY + cellH + 14;
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        const disclaimerLines = doc.splitTextToSize(payload.samplePhotoDisclaimer, contentW);
+        doc.text(disclaimerLines, margin, y);
+        doc.setTextColor(0);
+        doc.setFont('helvetica', 'normal');
+        y += disclaimerLines.length * 10 + 6;
+      } else {
+        y = rowY + cellH + 22;
+      }
     }
 
     if (y > 640) {

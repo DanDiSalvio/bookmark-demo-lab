@@ -1,10 +1,10 @@
 # Sample hood photos
 
-Used in the Load samples demo job and in the landing certificate preview render.
+Stock photos used only for the demo Load samples job and landing preview renders. They are labeled in the app as sample photos, not from a real job.
 
 | File | Description | Source | Author | License |
 |------|-------------|--------|--------|---------|
-| `hood-before.jpg` | Commercial restaurant line with exhaust hood, active cooking (before cleaning) | [Pexels photo 17303438](https://www.pexels.com/photo/stove-with-pots-and-pans-in-a-restaurant-kitchen-17303438/) | Fatma Çekmez | [Pexels License](https://www.pexels.com/license/) (free for commercial use, no attribution required) |
-| `hood-after.jpg` | Clean commercial kitchen with stainless hood and work surfaces (after cleaning) | [Pexels photo 6375553](https://www.pexels.com/photo/a-stainless-table-in-the-kitchen-6375553/) | Skylar Kang | [Pexels License](https://www.pexels.com/license/) (free for commercial use, no attribution required) |
+| `hood-before.jpg` | Close-up of a grease- and dust-clogged aluminum mesh kitchen hood filter | [Wikimedia Commons: Long-uncleaned kitchen hood filter, close-up](https://commons.wikimedia.org/wiki/File:Long-uncleaned_kitchen_hood_filter,_close-up.jpg) | Veikk0.ma | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) |
+| `hood-after.jpg` | Same filter type after dishwasher cleaning, bare aluminum mesh | [Wikimedia Commons: Kitchen hood filter after being washed in a dishwasher, close-up](https://commons.wikimedia.org/wiki/File:Kitchen_hood_filter_after_being_washed_in_a_dishwasher,_close-up.jpg) | Veikk0.ma | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) |
 
-Images were cropped to 1600×1200 and compressed for in-app use. No logos or brand marks were visible in the selected crops.
+Images were resized to 1600×1200 and compressed for in-app use. No logos or brand marks appear in the cropped frames.

@@ -24,23 +24,31 @@ async function photoRegionHasContent(pngPath, crop) {
 }
 
 test.describe('HC-13 hero preview assets', () => {
-  test('desktop and mobile PNGs include visible hood photo pair', async () => {
+  test('desktop and hero photo PNGs include visible hood photo pair', async () => {
     const desktop = path.join(assetsDir, 'certificate-preview.png');
-    const mobile = path.join(assetsDir, 'certificate-preview-mobile.png');
+    const heroPhotos = path.join(assetsDir, 'certificate-preview-hero-photos.png');
+    const sectionMobile = path.join(assetsDir, 'certificate-preview-section-mobile.png');
     expect(fs.existsSync(desktop)).toBe(true);
-    expect(fs.existsSync(mobile)).toBe(true);
+    expect(fs.existsSync(heroPhotos)).toBe(true);
+    expect(fs.existsSync(sectionMobile)).toBe(true);
+    expect(fs.statSync(desktop).size).toBeLessThanOrEqual(400 * 1024);
+    expect(fs.statSync(heroPhotos).size).toBeLessThanOrEqual(400 * 1024);
 
     const desktopMeta = await sharp(desktop).metadata();
-    expect(desktopMeta.width).toBe(2080);
-    expect(desktopMeta.height).toBeGreaterThanOrEqual(1800);
+    expect(desktopMeta.width).toBeGreaterThanOrEqual(2000);
+    expect(desktopMeta.height).toBeGreaterThanOrEqual(1650);
 
-    const mobileMeta = await sharp(mobile).metadata();
-    expect(mobileMeta.width).toBe(1080);
+    const heroMeta = await sharp(heroPhotos).metadata();
+    expect(heroMeta.width).toBe(1080);
+
+    const sectionMeta = await sharp(sectionMobile).metadata();
+    expect(sectionMeta.width).toBe(1080);
+    expect(sectionMeta.height).toBeGreaterThan(heroMeta.height);
 
     async function assertPhotosVisible(pngPath) {
       const { width: w, height: h } = await sharp(pngPath).metadata();
-      const photoTop = Math.round(h * 0.55);
-      const photoHeight = Math.min(Math.round(h * 0.35), h - photoTop);
+      const photoTop = Math.round(h * 0.2);
+      const photoHeight = Math.min(Math.round(h * 0.7), h - photoTop);
       const crop = {
         left: Math.round(w * 0.05),
         top: photoTop,
@@ -51,21 +59,44 @@ test.describe('HC-13 hero preview assets', () => {
     }
 
     await assertPhotosVisible(desktop);
-    await assertPhotosVisible(mobile);
+    const { width: hw, height: hh } = await sharp(heroPhotos).metadata();
+    expect(
+      await photoRegionHasContent(heroPhotos, {
+        left: Math.round(hw * 0.05),
+        top: Math.round(hh * 0.15),
+        width: Math.round(hw * 0.9),
+        height: Math.round(hh * 0.75)
+      })
+    ).toBe(true);
   });
 
-  for (const width of [390, 1440]) {
-    test(`landing hero shows preview image @ ${width}px`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto('/hood-cert/');
-      const img = page.locator('.hero__preview-img');
-      await expect(img).toBeVisible();
-      const box = await img.boundingBox();
-      expect(box).toBeTruthy();
-      expect(box.height).toBeGreaterThan(120);
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    });
-  }
+  test('mobile hero uses HTML caption and large photo tiles @ 390px', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/hood-cert/');
+    await expect(page.getByText('Next cleaning due: Jan 19, 2027')).toBeVisible();
+    await expect(page.getByText('Sample photos for demo, not from a real job')).toBeVisible();
+    const link = page.locator('.hero-preview-card__photos');
+    await expect(link).toHaveAttribute('href', /sample-service-record\.pdf$/);
+    const img = page.locator('.hero__preview-photos-img');
+    await expect(img).toBeVisible();
+    const box = await img.boundingBox();
+    expect(box).toBeTruthy();
+    expect(box.width).toBeGreaterThanOrEqual(150);
+    const times = page.locator('.hero-preview-card__times');
+    const fontSize = await times.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(fontSize).toBeGreaterThanOrEqual(11);
+  });
+
+  test('desktop hero shows full preview @ 1440px', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/hood-cert/');
+    const img = page.locator('.hero-preview-card--desktop .hero__preview-img');
+    await expect(img).toBeVisible();
+    const box = await img.boundingBox();
+    expect(box).toBeTruthy();
+    expect(box.height).toBeGreaterThan(120);
+    await expect(page.locator('.hero-preview-card--desktop .hero-preview-card__caption')).toBeVisible();
+  });
 });
 
 test.describe('HC-14 rebook board layout', () => {
