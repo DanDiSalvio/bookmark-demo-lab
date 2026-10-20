@@ -29,41 +29,45 @@
           </div>
           <p class="hero__meta meta">No signup · Runs in your browser · Demo only</p>
         </div>
-        <div class="hero__visual">
-          <div class="hero-preview-card hero-preview-card--desktop">
-            <picture>
-              <source type="image/webp" srcset="assets/certificate-preview.webp" />
+        <div class="hero__visual hero-preview">
+          <p class="hero-preview__due-mobile">Next cleaning due: Jan 19, 2027</p>
+          <a class="hero-preview__img-link" href="assets/sample-service-record.pdf">
+            <picture class="hero-preview__picture">
+              <source
+                media="(max-width: 767px)"
+                type="image/webp"
+                srcset="assets/certificate-preview-hero-photos.webp"
+              />
+              <source
+                media="(max-width: 767px)"
+                srcset="assets/certificate-preview-hero-photos.png"
+              />
+              <source media="(min-width: 768px)" type="image/webp" srcset="assets/certificate-preview.webp" />
               <img
                 class="hero__preview-img"
                 src="assets/certificate-preview.png"
                 width="520"
                 height="500"
-                alt="Rendered service record PDF showing record number, next cleaning due date, and hood before and after sample photos"
+                alt="Rendered service record PDF with filter before and after sample photos"
               />
             </picture>
-            <p class="hero-preview-card__caption meta">Real PDF layout from the app. Sample photos.</p>
-          </div>
-          <div class="hero-preview-card hero-preview-card--mobile">
-            <p class="hero-preview-card__due">Next cleaning due: Jan 19, 2027</p>
-            <p class="hero-preview-card__demo-label">Sample photos for demo, not from a real job</p>
-            <a class="hero-preview-card__photos" href="assets/sample-service-record.pdf">
-              <picture>
-                <source type="image/webp" srcset="assets/certificate-preview-hero-photos.webp" />
-                <img
-                  class="hero__preview-photos-img"
-                  src="assets/certificate-preview-hero-photos.png"
-                  width="390"
-                  height="220"
-                  alt="Hood before and after sample photo pair from the service record PDF"
-                />
-              </picture>
-            </a>
-            <p class="hero-preview-card__times">
-              <span>Before · Oct 19, 10:05 AM</span>
-              <span>After · Oct 19, 11:40 AM</span>
-            </p>
-            <p class="hero-preview-card__caption meta">Real PDF layout from the app. Sample photos.</p>
-          </div>
+          </a>
+          <p class="hero-preview__times-mobile">
+            <span>Before · Oct 19, 10:05 AM</span>
+            <span>After · Oct 19, 11:40 AM</span>
+          </p>
+          <p class="hero-preview__caption meta">Real PDF layout from the app. Sample photos.</p>
+          <p class="sample-photo-credit">
+            Sample photos:
+            <a href="https://commons.wikimedia.org/wiki/File:Long-uncleaned_kitchen_hood_filter,_close-up.jpg">"Long-uncleaned kitchen hood filter, close-up"</a>
+            and
+            <a href="https://commons.wikimedia.org/wiki/File:Kitchen_hood_filter_after_being_washed_in_a_dishwasher,_close-up.jpg">"Kitchen hood filter after being washed in a dishwasher, close-up"</a>
+            by
+            <a href="https://commons.wikimedia.org/wiki/User:Veikk0.ma">Veikk0.ma</a>,
+            Wikimedia Commons,
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+            Cropped and compressed for web.
+          </p>
         </div>
       </header>
 
@@ -167,6 +171,17 @@
     <footer class="footer">
       <a class="btn btn-accent" href="/hood-cert/app/?sample=1">Try the rebook board</a>
       <p class="footer__credit meta">Demo for hood cleaning owner-operators · Part of Dan's Demo Lab</p>
+      <p class="sample-photo-credit sample-photo-credit--footer">
+        Sample photos:
+        <a href="https://commons.wikimedia.org/wiki/File:Long-uncleaned_kitchen_hood_filter,_close-up.jpg">"Long-uncleaned kitchen hood filter, close-up"</a>
+        and
+        <a href="https://commons.wikimedia.org/wiki/File:Kitchen_hood_filter_after_being_washed_in_a_dishwasher,_close-up.jpg">"Kitchen hood filter after being washed in a dishwasher, close-up"</a>
+        by
+        <a href="https://commons.wikimedia.org/wiki/User:Veikk0.ma">Veikk0.ma</a>,
+        Wikimedia Commons,
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+        Cropped and compressed for web.
+      </p>
     </footer>
   </div>
   <script src="landing.js" defer></script>

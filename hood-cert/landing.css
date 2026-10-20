@@ -53,15 +53,12 @@
   min-width: 0;
 }
 
-.hero-preview-card--mobile {
+.hero-preview__due-mobile,
+.hero-preview__times-mobile {
   display: block;
 }
 
-.hero-preview-card--desktop {
-  display: none;
-}
-
-.hero-preview-card__due {
+.hero-preview__due-mobile {
   margin: 0 0 var(--space-2);
   font-size: 17px;
   font-weight: 700;
@@ -69,15 +66,7 @@
   line-height: 1.25;
 }
 
-.hero-preview-card__demo-label {
-  margin: 0 0 var(--space-3);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  line-height: 1.35;
-}
-
-.hero-preview-card__photos {
+.hero-preview__img-link {
   display: block;
   margin-bottom: var(--space-2);
   border-radius: var(--radius);
@@ -85,18 +74,12 @@
   border: 1px solid var(--color-border);
 }
 
-.hero-preview-card__photos:focus-visible {
+.hero-preview__img-link:focus-visible {
   outline: 2px solid var(--color-accent-text);
   outline-offset: 2px;
 }
 
-.hero__preview-photos-img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.hero-preview-card__times {
+.hero-preview__times-mobile {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
@@ -106,20 +89,44 @@
   color: var(--color-text-muted);
 }
 
-.hero-preview-card__caption {
+.hero-preview__caption {
+  margin: 0 0 var(--space-2);
+}
+
+.sample-photo-credit {
   margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.sample-photo-credit a {
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sample-photo-credit a:hover {
+  color: var(--color-text);
+}
+
+.sample-photo-credit--footer {
+  margin-top: var(--space-4);
+  max-width: 52ch;
 }
 
 @media (min-width: 768px) {
-  .hero-preview-card--mobile {
+  .hero-preview__due-mobile,
+  .hero-preview__times-mobile {
     display: none;
   }
 
-  .hero-preview-card--desktop {
-    display: block;
+  .hero-preview__img-link {
+    pointer-events: none;
+    cursor: default;
   }
 
-  .hero-preview-card__caption {
+  .hero-preview__caption {
     margin-top: var(--space-2);
   }
 }
@@ -130,8 +137,8 @@
   width: 100%;
   max-width: 520px;
   height: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border: none;
+  border-radius: 0;
 }
 
 .audience {

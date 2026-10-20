@@ -3,7 +3,8 @@
 
   const STORAGE_KEY = 'hood-cert-pack-v1';
   const FREE_RECORDS_PER_MONTH = 3;
-  const SAMPLE_PHOTO_DISCLAIMER = 'Sample photos for demo, not from a real job';
+  const SAMPLE_PHOTO_ATTRIBUTION =
+    'Sample photos, not from a real job. Photos by Veikk0.ma via Wikimedia Commons, CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0). Cropped and compressed.';
 
   function samplePhotoTimes(serviceDateIso) {
     const [y, m, d] = serviceDateIso.split('-').map(Number);
@@ -682,7 +683,8 @@
       checklist: job.checklist
     };
     if (job.sampleUsesStockPhotos) {
-      payload.samplePhotoDisclaimer = SAMPLE_PHOTO_DISCLAIMER;
+      payload.samplePhotoAttribution = SAMPLE_PHOTO_ATTRIBUTION;
+      payload.omitPhotolessAreas = true;
     }
     return payload;
   }
@@ -990,6 +992,18 @@
     const { beforeAt, afterAt } = samplePhotoTimes(sampleServiceDate);
     const completedChecklist = CHECKLIST_AREAS.map((area) => {
       if (area.id === 'hood') {
+        return {
+          id: area.id,
+          status: 'pass',
+          note: '',
+          beforePhoto: null,
+          afterPhoto: null,
+          beforeAt: null,
+          afterAt: null,
+          noAccessReason: ''
+        };
+      }
+      if (area.id === 'filters') {
         return {
           id: area.id,
           status: 'pass',

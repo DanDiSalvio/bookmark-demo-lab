@@ -9,7 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, '../assets');
 const appHtml = path.join(__dirname, '../app/index.html');
 const samplesDir = path.join(__dirname, '../app/samples');
-const SAMPLE_PHOTO_DISCLAIMER = 'Sample photos for demo, not from a real job';
+const SAMPLE_PHOTO_ATTRIBUTION =
+  'Sample photos, not from a real job. Photos by Veikk0.ma via Wikimedia Commons, CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0). Cropped and compressed.';
 const SERVICE_ISO = '2026-10-19';
 
 fs.mkdirSync(outDir, { recursive: true });
@@ -32,7 +33,7 @@ const areaIds = [
 
 function buildChecklist(beforeUrl, afterUrl) {
   return areaIds.map((id) => {
-    if (id === 'hood') {
+    if (id === 'filters') {
       return {
         id,
         status: 'pass',
@@ -88,7 +89,8 @@ const previewPayload = {
   account: { name: 'Harbor Grill', address: '412 Dock St, Portland, OR 97204' },
   serviceDate: 'Oct 19, 2026',
   nextDue: 'Jan 19, 2027',
-  samplePhotoDisclaimer: SAMPLE_PHOTO_DISCLAIMER,
+  samplePhotoAttribution: SAMPLE_PHOTO_ATTRIBUTION,
+  omitPhotolessAreas: true,
   checklist: buildChecklist(
     `data:image/jpeg;base64,${beforeB64}`,
     `data:image/jpeg;base64,${afterB64}`
@@ -126,29 +128,51 @@ const desktopPng = await sharp(full)
   .png()
   .toBuffer();
 
-const desktopMeta = await sharp(desktopPng).metadata();
-const photoTop = Math.round(desktopMeta.height * 0.52);
-const photoHeight = Math.min(Math.round(desktopMeta.height * 0.48), desktopMeta.height - photoTop);
-const heroPhotosPng = await sharp(desktopPng)
-  .extract({ left: 0, top: photoTop, width: desktopMeta.width, height: photoHeight })
-  .png()
-  .toBuffer();
-
 const sectionMobilePng = await sharp(full)
   .resize({ width: 1080, withoutEnlargement: false })
   .png()
   .toBuffer();
 
+const photoCellW = 520;
+const photoCellH = 390;
+const gap = 8;
+const beforeTile = await sharp(path.join(samplesDir, 'hood-before.jpg'))
+  .resize(photoCellW, photoCellH, { fit: 'cover', position: 'centre' })
+  .toBuffer();
+const afterTile = await sharp(path.join(samplesDir, 'hood-after.jpg'))
+  .resize(photoCellW, photoCellH, { fit: 'cover', position: 'centre' })
+  .toBuffer();
+const heroPhotosPng = await sharp({
+  create: {
+    width: photoCellW * 2 + gap,
+    height: photoCellH,
+    channels: 3,
+    background: { r: 255, g: 255, b: 255 }
+  }
+})
+  .composite([
+    { input: beforeTile, left: 0, top: 0 },
+    { input: afterTile, left: photoCellW + gap, top: 0 }
+  ])
+  .png()
+  .toBuffer();
+
 async function writeCompactPng(pngBuffer, filePath, maxWidth) {
   let quality = 78;
+  let width = maxWidth;
   let out = await sharp(pngBuffer)
-    .resize({ width: maxWidth, withoutEnlargement: false })
+    .resize({ width, withoutEnlargement: false })
     .png({ compressionLevel: 9, palette: true, quality, effort: 10 })
     .toBuffer();
-  while (out.length > 400 * 1024 && quality > 48) {
-    quality -= 6;
+  while (out.length > 400 * 1024 && (quality > 36 || width > maxWidth * 0.9)) {
+    if (quality > 36) {
+      quality -= 6;
+    } else {
+      width = Math.round(width * 0.96);
+      quality = 72;
+    }
     out = await sharp(pngBuffer)
-      .resize({ width: maxWidth, withoutEnlargement: false })
+      .resize({ width, withoutEnlargement: false })
       .png({ compressionLevel: 9, palette: true, quality, effort: 10 })
       .toBuffer();
   }
@@ -156,18 +180,18 @@ async function writeCompactPng(pngBuffer, filePath, maxWidth) {
   return out;
 }
 
-async function writeVariants(baseName, pngBuffer, maxWidth) {
+async function writeVariants(baseName, pngBuffer, maxWidth, webpQuality = 82) {
   const pngPath = path.join(outDir, `${baseName}.png`);
   const webpPath = path.join(outDir, `${baseName}.webp`);
   const compact = await writeCompactPng(pngBuffer, pngPath, maxWidth);
-  await sharp(compact).webp({ quality: 82, effort: 6 }).toFile(webpPath);
+  await sharp(compact).webp({ quality: webpQuality, effort: 6 }).toFile(webpPath);
   const pngKb = Math.round(fs.statSync(pngPath).size / 1024);
   const webpKb = Math.round(fs.statSync(webpPath).size / 1024);
   console.log(`${baseName}: ${maxWidth}px PNG ${pngKb} KB, WebP ${webpKb} KB`);
 }
 
-await writeVariants('certificate-preview', desktopPng, 2080);
-await writeVariants('certificate-preview-hero-photos', heroPhotosPng, 1080);
+await writeVariants('certificate-preview', desktopPng, 2080, 78);
+await writeVariants('certificate-preview-hero-photos', heroPhotosPng, 1048, 68);
 await writeVariants('certificate-preview-section-mobile', sectionMobilePng, 1080);
 
 fs.unlinkSync(rendered);

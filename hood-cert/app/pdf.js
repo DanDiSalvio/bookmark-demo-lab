@@ -101,7 +101,8 @@
    *     afterAt?: string | null,
    *     noAccessReason?: string | null
    *   }>,
-   *   samplePhotoDisclaimer?: string
+   *   samplePhotoAttribution?: string,
+   *   omitPhotolessAreas?: boolean
    * }} payload
    * @returns {Promise<{ doc: import('jspdf').jsPDF, filename: string }>}
    */
@@ -207,6 +208,8 @@
 
     for (const item of payload.checklist) {
       if (item.status === 'no_access') continue;
+      const hasPhoto = Boolean(item.beforePhoto || item.afterPhoto);
+      if (payload.omitPhotolessAreas && !hasPhoto) continue;
       const label = AREA_LABELS[item.id] || item.id;
 
       if (y + cellH + 40 > 720) {
@@ -268,16 +271,15 @@
         }
       }
 
-      if (payload.samplePhotoDisclaimer && (item.beforePhoto || item.afterPhoto)) {
-        y = rowY + cellH + 14;
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(8);
-        doc.setTextColor(120);
-        const disclaimerLines = doc.splitTextToSize(payload.samplePhotoDisclaimer, contentW);
-        doc.text(disclaimerLines, margin, y);
-        doc.setTextColor(0);
+      if (payload.samplePhotoAttribution && hasPhoto) {
+        y = rowY + cellH + 12;
         doc.setFont('helvetica', 'normal');
-        y += disclaimerLines.length * 10 + 6;
+        doc.setFontSize(8);
+        doc.setTextColor(90);
+        const attributionLines = doc.splitTextToSize(payload.samplePhotoAttribution, contentW);
+        doc.text(attributionLines, margin, y);
+        doc.setTextColor(0);
+        y += attributionLines.length * 10 + 10;
       } else {
         y = rowY + cellH + 22;
       }
