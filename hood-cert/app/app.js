@@ -3,8 +3,6 @@
 
   const STORAGE_KEY = 'hood-cert-pack-v1';
   const FREE_RECORDS_PER_MONTH = 3;
-  const SAMPLE_PHOTO_ATTRIBUTION =
-    'Sample photos, not from a real job. Photos by Veikk0.ma via Wikimedia Commons, CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0). Cropped and compressed.';
 
   function samplePhotoTimes(serviceDateIso) {
     const [y, m, d] = serviceDateIso.split('-').map(Number);
@@ -682,8 +680,8 @@
       nextDue: formatDate(nextDue),
       checklist: job.checklist
     };
-    if (job.sampleUsesStockPhotos) {
-      payload.samplePhotoAttribution = SAMPLE_PHOTO_ATTRIBUTION;
+    if (job.sampleUsesStockPhotos && window.HoodCertPhotoCredits) {
+      payload.samplePhotoCredits = window.HoodCertPhotoCredits.SAMPLE_HOOD_FILTER_CREDITS;
       payload.omitPhotolessAreas = true;
     }
     return payload;

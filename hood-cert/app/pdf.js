@@ -55,6 +55,56 @@
     });
   }
 
+  const CREDIT_LINE_HEIGHT = 9;
+  const CREDIT_FONT_SIZE = 6;
+
+  /**
+   * @param {import('jspdf').jsPDF} doc
+   * @param {number} x
+   * @param {number} y
+   * @param {number} maxW
+   * @param {{ title: string, fileUrl: string, author: string, authorUrl: string, license: string, licenseUrl: string }} credit
+   * @returns {number} block height in pt
+   */
+  function drawColumnPhotoCredit(doc, x, y, maxW, credit) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(CREDIT_FONT_SIZE);
+    doc.setTextColor(90);
+    let cy = y;
+
+    const titleLines = doc.splitTextToSize(`"${credit.title}"`, maxW);
+    for (const line of titleLines) {
+      doc.textWithLink(line, x, cy, { url: credit.fileUrl });
+      cy += CREDIT_LINE_HEIGHT;
+    }
+
+    const byLabel = 'by ';
+    doc.text(byLabel, x, cy);
+    let cx = x + doc.getTextWidth(byLabel);
+    doc.textWithLink(credit.author, cx, cy, { url: credit.authorUrl });
+    cx += doc.getTextWidth(credit.author);
+    const licenseLead = ', ';
+    doc.text(licenseLead, cx, cy);
+    cx += doc.getTextWidth(licenseLead);
+    doc.textWithLink(credit.license, cx, cy, { url: credit.licenseUrl });
+    cy += CREDIT_LINE_HEIGHT;
+
+    doc.textWithLink('Wikimedia Commons', x, cy, { url: credit.fileUrl });
+    cy += CREDIT_LINE_HEIGHT;
+
+    doc.setTextColor(0);
+    return cy - y;
+  }
+
+  /**
+   * @param {number} boxTop
+   * @param {number} cellH
+   * @param {number} [gap]
+   */
+  function photoCreditTopY(boxTop, cellH, gap) {
+    return boxTop + cellH + (gap == null ? 5 : gap);
+  }
+
   function formatPhotoTime(iso) {
     if (!iso) return '';
     try {
@@ -101,7 +151,7 @@
    *     afterAt?: string | null,
    *     noAccessReason?: string | null
    *   }>,
-   *   samplePhotoAttribution?: string,
+   *   samplePhotoCredits?: { before: object, after: object },
    *   omitPhotolessAreas?: boolean
    * }} payload
    * @returns {Promise<{ doc: import('jspdf').jsPDF, filename: string }>}
@@ -212,7 +262,21 @@
       if (payload.omitPhotolessAreas && !hasPhoto) continue;
       const label = AREA_LABELS[item.id] || item.id;
 
-      if (y + cellH + 40 > 720) {
+      const pairs = [
+        { kind: 'Before', slot: 'before', data: item.beforePhoto, at: item.beforeAt },
+        { kind: 'After', slot: 'after', data: item.afterPhoto, at: item.afterAt }
+      ];
+
+      let captionBlock = 12;
+      for (const photo of pairs) {
+        if (formatPhotoTime(photo.at)) {
+          captionBlock = 16;
+          break;
+        }
+      }
+
+      const creditReserve = payload.samplePhotoCredits && hasPhoto ? 52 : 0;
+      if (y + 12 + cellH + captionBlock + creditReserve + 24 > 720) {
         doc.addPage();
         y = margin;
       }
@@ -223,10 +287,8 @@
       y += 12;
 
       const rowY = y;
-      const pairs = [
-        { kind: 'Before', data: item.beforePhoto, at: item.beforeAt },
-        { kind: 'After', data: item.afterPhoto, at: item.afterAt }
-      ];
+      const boxTop = rowY + captionBlock;
+      let creditBlockBottom = boxTop + cellH;
 
       for (let i = 0; i < pairs.length; i++) {
         const photo = pairs[i];
@@ -240,7 +302,6 @@
         }
         doc.setTextColor(0);
 
-        const boxTop = rowY + (cap ? 16 : 12);
         doc.setDrawColor(220);
         doc.setLineWidth(0.5);
         doc.rect(x, boxTop, cellW, cellH);
@@ -269,20 +330,18 @@
           doc.text(missing, x + 8, boxTop + cellH / 2);
           doc.setTextColor(0);
         }
+
+        if (payload.samplePhotoCredits && photo.data) {
+          const credit = payload.samplePhotoCredits[photo.slot];
+          if (credit) {
+            const creditTop = photoCreditTopY(boxTop, cellH);
+            const creditH = drawColumnPhotoCredit(doc, x, creditTop, cellW, credit);
+            creditBlockBottom = Math.max(creditBlockBottom, creditTop + creditH);
+          }
+        }
       }
 
-      if (payload.samplePhotoAttribution && hasPhoto) {
-        y = rowY + cellH + 12;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(90);
-        const attributionLines = doc.splitTextToSize(payload.samplePhotoAttribution, contentW);
-        doc.text(attributionLines, margin, y);
-        doc.setTextColor(0);
-        y += attributionLines.length * 10 + 10;
-      } else {
-        y = rowY + cellH + 22;
-      }
+      y = payload.samplePhotoCredits && hasPhoto ? creditBlockBottom + 10 : boxTop + cellH + 14;
     }
 
     if (y > 640) {
@@ -366,6 +425,8 @@
     blobServiceRecordPdf,
     buildMailtoSummary,
     computeDrawSize,
+    photoCreditTopY,
+    drawColumnPhotoCredit,
     makeRecordNumber,
     AREA_LABELS,
     DISCLAIMER

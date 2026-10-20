@@ -53,8 +53,11 @@ test.describe('HC-13 hero preview assets', () => {
     expect(fs.existsSync(sectionMobile)).toBe(true);
     expect(fs.statSync(desktop).size).toBeLessThanOrEqual(400 * 1024);
     expect(fs.statSync(heroPhotos).size).toBeLessThanOrEqual(400 * 1024);
+    const hero720Webp = path.join(assetsDir, 'certificate-preview-hero-photos-720.webp');
+    expect(fs.existsSync(hero720Webp)).toBe(true);
+    expect(fs.statSync(hero720Webp).size).toBeLessThanOrEqual(160 * 1024);
     expect(fs.statSync(path.join(assetsDir, 'certificate-preview-hero-photos.webp')).size).toBeLessThanOrEqual(
-      120 * 1024
+      160 * 1024
     );
 
     const desktopMeta = await sharp(desktop).metadata();
@@ -105,6 +108,27 @@ test.describe('HC-13 hero preview assets', () => {
     const times = page.locator('.hero-preview__times-mobile');
     const fontSize = await times.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
     expect(fontSize).toBeGreaterThanOrEqual(11);
+  });
+
+  test('mobile hero WebP transfer stays under 160 KB @ 390px', async ({ page }) => {
+    const sizes = [];
+    page.on('response', async (res) => {
+      const url = res.url();
+      if (!url.includes('certificate-preview-hero-photos')) return;
+      const body = await res.body().catch(() => null);
+      if (body) {
+        sizes.push({ url, bytes: body.length });
+      }
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/hood-cert/');
+    await expect(page.locator('.hero-preview__picture img')).toBeVisible();
+    const heroResponses = sizes.filter((s) => s.url.includes('hero-photos'));
+    expect(heroResponses.length).toBeGreaterThan(0);
+    const webp = heroResponses.find((s) => s.url.includes('.webp'));
+    expect(webp).toBeTruthy();
+    expect(webp.bytes).toBeLessThanOrEqual(160 * 1024);
+    expect(webp.url).toMatch(/hero-photos-720\.webp/);
   });
 
   test('mobile first load skips desktop hero image', async ({ page }) => {

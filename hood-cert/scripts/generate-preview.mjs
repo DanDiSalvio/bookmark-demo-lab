@@ -9,8 +9,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, '../assets');
 const appHtml = path.join(__dirname, '../app/index.html');
 const samplesDir = path.join(__dirname, '../app/samples');
-const SAMPLE_PHOTO_ATTRIBUTION =
-  'Sample photos, not from a real job. Photos by Veikk0.ma via Wikimedia Commons, CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0). Cropped and compressed.';
+const SAMPLE_PHOTO_CREDITS = {
+  before: {
+    title: 'Long-uncleaned kitchen hood filter, close-up',
+    fileUrl:
+      'https://commons.wikimedia.org/wiki/File:Long-uncleaned_kitchen_hood_filter,_close-up.jpg',
+    author: 'Veikk0.ma',
+    authorUrl: 'https://commons.wikimedia.org/wiki/User:Veikk0.ma',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/'
+  },
+  after: {
+    title: 'Kitchen hood filter after being washed in a dishwasher, close-up',
+    fileUrl:
+      'https://commons.wikimedia.org/wiki/File:Kitchen_hood_filter_after_being_washed_in_a_dishwasher,_close-up.jpg',
+    author: 'Veikk0.ma',
+    authorUrl: 'https://commons.wikimedia.org/wiki/User:Veikk0.ma',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/'
+  }
+};
 const SERVICE_ISO = '2026-10-19';
 
 fs.mkdirSync(outDir, { recursive: true });
@@ -89,7 +107,7 @@ const previewPayload = {
   account: { name: 'Harbor Grill', address: '412 Dock St, Portland, OR 97204' },
   serviceDate: 'Oct 19, 2026',
   nextDue: 'Jan 19, 2027',
-  samplePhotoAttribution: SAMPLE_PHOTO_ATTRIBUTION,
+  samplePhotoCredits: SAMPLE_PHOTO_CREDITS,
   omitPhotolessAreas: true,
   checklist: buildChecklist(
     `data:image/jpeg;base64,${beforeB64}`,
@@ -192,6 +210,7 @@ async function writeVariants(baseName, pngBuffer, maxWidth, webpQuality = 82) {
 
 await writeVariants('certificate-preview', desktopPng, 2080, 78);
 await writeVariants('certificate-preview-hero-photos', heroPhotosPng, 1048, 68);
+await writeVariants('certificate-preview-hero-photos-720', heroPhotosPng, 720, 72);
 await writeVariants('certificate-preview-section-mobile', sectionMobilePng, 1080);
 
 fs.unlinkSync(rendered);

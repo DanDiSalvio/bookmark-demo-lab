@@ -112,7 +112,7 @@
 
 .sample-photo-credit--footer {
   margin-top: var(--space-4);
-  max-width: 52ch;
+  max-width: 56ch;
 }
 
 @media (min-width: 768px) {
