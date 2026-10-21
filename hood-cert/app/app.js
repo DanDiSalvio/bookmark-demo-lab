@@ -682,6 +682,7 @@
     };
     if (job.sampleUsesStockPhotos && window.HoodCertPhotoCredits) {
       payload.samplePhotoCredits = window.HoodCertPhotoCredits.SAMPLE_HOOD_FILTER_CREDITS;
+      payload.samplePhotoDisclaimer = window.HoodCertPhotoCredits.SAMPLE_PHOTO_DISCLAIMER;
       payload.omitPhotolessAreas = true;
     }
     return payload;

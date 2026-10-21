@@ -53,7 +53,9 @@ test.describe('HC-13 hero preview assets', () => {
     expect(fs.existsSync(sectionMobile)).toBe(true);
     expect(fs.statSync(desktop).size).toBeLessThanOrEqual(400 * 1024);
     expect(fs.statSync(heroPhotos).size).toBeLessThanOrEqual(400 * 1024);
+    const hero360Webp = path.join(assetsDir, 'certificate-preview-hero-photos-360.webp');
     const hero720Webp = path.join(assetsDir, 'certificate-preview-hero-photos-720.webp');
+    expect(fs.existsSync(hero360Webp)).toBe(true);
     expect(fs.existsSync(hero720Webp)).toBe(true);
     expect(fs.statSync(hero720Webp).size).toBeLessThanOrEqual(160 * 1024);
     expect(fs.statSync(path.join(assetsDir, 'certificate-preview-hero-photos.webp')).size).toBeLessThanOrEqual(
@@ -110,7 +112,12 @@ test.describe('HC-13 hero preview assets', () => {
     expect(fontSize).toBeGreaterThanOrEqual(11);
   });
 
-  test('mobile hero WebP transfer stays under 160 KB @ 390px', async ({ page }) => {
+  test('mobile hero picks 720w WebP at 2x DPR (~390px viewport)', async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2
+    });
+    const page = await context.newPage();
     const sizes = [];
     page.on('response', async (res) => {
       const url = res.url();
@@ -120,15 +127,68 @@ test.describe('HC-13 hero preview assets', () => {
         sizes.push({ url, bytes: body.length });
       }
     });
-    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/hood-cert/');
-    await expect(page.locator('.hero-preview__picture img')).toBeVisible();
-    const heroResponses = sizes.filter((s) => s.url.includes('hero-photos'));
+    const img = page.locator('.hero-preview__picture img');
+    await expect(img).toBeVisible();
+    const currentSrc = await img.evaluate((el) => el.currentSrc);
+    expect(currentSrc).toMatch(/hero-photos-720\.webp/);
+    expect(currentSrc).not.toMatch(/hero-photos-360\.webp/);
+    expect(currentSrc).not.toMatch(/hero-photos\.webp$/);
+
+    const heroResponses = sizes.filter((s) => s.url.includes('hero-photos') && s.url.includes('.webp'));
     expect(heroResponses.length).toBeGreaterThan(0);
-    const webp = heroResponses.find((s) => s.url.includes('.webp'));
+    const webp = heroResponses.find((s) => s.url.includes('hero-photos-720.webp'));
     expect(webp).toBeTruthy();
     expect(webp.bytes).toBeLessThanOrEqual(160 * 1024);
-    expect(webp.url).toMatch(/hero-photos-720\.webp/);
+    await context.close();
+  });
+
+  test('hero mobile source uses calc(100vw - 34px) sizes and 360/720/1048 srcset', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/hood-cert/');
+    const webpSource = page.locator('.hero-preview__picture source[type="image/webp"]').first();
+    await expect(webpSource).toHaveAttribute('sizes', 'calc(100vw - 34px)');
+    const srcset = await webpSource.getAttribute('srcset');
+    expect(srcset).toContain('360w');
+    expect(srcset).toContain('720w');
+    expect(srcset).toContain('1048w');
+  });
+
+  test('section-mobile preview image lazy-loads below the fold @ 390px', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 520 });
+    await page.goto('/hood-cert/');
+    await expect(page.locator('.hero-preview__picture img')).toBeVisible();
+    const sectionImg = page.locator('.section-preview-picture__img');
+    await expect(sectionImg).toHaveAttribute('loading', 'lazy');
+    await expect(sectionImg).toHaveAttribute('fetchpriority', 'low');
+
+    const belowFold = await sectionImg.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.top >= window.innerHeight;
+    });
+    expect(belowFold).toBe(true);
+
+    const srcBeforeScroll = await sectionImg.evaluate((el) => el.currentSrc);
+    expect(srcBeforeScroll).toContain('data:image/svg+xml');
+    const sectionMobileBefore = await page.evaluate(() =>
+      performance.getEntriesByType('resource').some((e) => e.name.includes('certificate-preview-section-mobile'))
+    );
+    expect(sectionMobileBefore).toBe(false);
+
+    await sectionImg.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await page.waitForFunction(() => !document.querySelector('[data-defer-section-mobile]'), null, {
+      timeout: 10000
+    });
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('.section-preview-picture__img');
+        return el && el.currentSrc && !el.currentSrc.startsWith('data:image/svg+xml');
+      },
+      null,
+      { timeout: 10000 }
+    );
+    const currentSrc = await sectionImg.evaluate((el) => el.currentSrc);
+    expect(currentSrc).toMatch(/certificate-preview-section-mobile/);
   });
 
   test('mobile first load skips desktop hero image', async ({ page }) => {

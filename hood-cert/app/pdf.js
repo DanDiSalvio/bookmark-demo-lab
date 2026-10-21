@@ -56,7 +56,8 @@
   }
 
   const CREDIT_LINE_HEIGHT = 9;
-  const CREDIT_FONT_SIZE = 6;
+  const CREDIT_FONT_SIZE = 7.5;
+  const PHOTO_CREDIT_GAP = 14;
 
   /**
    * @param {import('jspdf').jsPDF} doc
@@ -102,7 +103,7 @@
    * @param {number} [gap]
    */
   function photoCreditTopY(boxTop, cellH, gap) {
-    return boxTop + cellH + (gap == null ? 5 : gap);
+    return boxTop + cellH + (gap == null ? PHOTO_CREDIT_GAP : gap);
   }
 
   function formatPhotoTime(iso) {
@@ -152,9 +153,11 @@
    *     noAccessReason?: string | null
    *   }>,
    *   samplePhotoCredits?: { before: object, after: object },
-   *   omitPhotolessAreas?: boolean
+   *   samplePhotoDisclaimer?: string,
+   *   omitPhotolessAreas?: boolean,
+   *   recordLayout?: boolean
    * }} payload
-   * @returns {Promise<{ doc: import('jspdf').jsPDF, filename: string }>}
+   * @returns {Promise<{ doc: import('jspdf').jsPDF, filename: string, layout?: { photoCredits: object[] } }>}
    */
   async function buildServiceRecordPdf(payload) {
     const jsPDF = getJsPdf();
@@ -165,6 +168,8 @@
     const contentW = pageW - margin * 2;
     const cellW = (contentW - 12) / 2;
     const cellH = cellW * 0.75;
+    /** @type {{ photoCredits: Array<{ slot: string, boxTop: number, boxBottom: number, imageBottom: number | null, creditTop: number, gap: number, fontSize: number }> }} */
+    const layout = { photoCredits: [] };
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
@@ -254,6 +259,15 @@
     doc.setFont('helvetica', 'bold');
     doc.text('Photo documentation', margin, y);
     y += 14;
+    if (payload.samplePhotoCredits && payload.samplePhotoDisclaimer) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(90);
+      doc.text(payload.samplePhotoDisclaimer, margin, y);
+      doc.setTextColor(0);
+      doc.setFont('helvetica', 'normal');
+      y += 12;
+    }
     doc.setFont('helvetica', 'normal');
 
     for (const item of payload.checklist) {
@@ -275,7 +289,7 @@
         }
       }
 
-      const creditReserve = payload.samplePhotoCredits && hasPhoto ? 52 : 0;
+      const creditReserve = payload.samplePhotoCredits && hasPhoto ? 64 : 0;
       if (y + 12 + cellH + captionBlock + creditReserve + 24 > 720) {
         doc.addPage();
         y = margin;
@@ -306,6 +320,7 @@
         doc.setLineWidth(0.5);
         doc.rect(x, boxTop, cellW, cellH);
 
+        let imageBottom = null;
         if (photo.data) {
           try {
             const dims = await measureDataUrl(photo.data);
@@ -319,6 +334,7 @@
               fit.drawW,
               fit.drawH
             );
+            imageBottom = boxTop + fit.offsetY + fit.drawH;
           } catch (_e) {
             doc.setFontSize(8);
             doc.text('Photo unavailable', x + 8, boxTop + cellH / 2);
@@ -337,6 +353,18 @@
             const creditTop = photoCreditTopY(boxTop, cellH);
             const creditH = drawColumnPhotoCredit(doc, x, creditTop, cellW, credit);
             creditBlockBottom = Math.max(creditBlockBottom, creditTop + creditH);
+            if (payload.recordLayout) {
+              const boxBottom = boxTop + cellH;
+              layout.photoCredits.push({
+                slot: photo.slot,
+                boxTop,
+                boxBottom,
+                imageBottom,
+                creditTop,
+                gap: creditTop - boxBottom,
+                fontSize: CREDIT_FONT_SIZE
+              });
+            }
           }
         }
       }
@@ -377,6 +405,9 @@
       payload.account.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() ||
       'service-record';
     const filename = `hood-service-record-${slug}.pdf`;
+    if (payload.recordLayout) {
+      return { doc, filename, layout };
+    }
     return { doc, filename };
   }
 
@@ -429,6 +460,8 @@
     drawColumnPhotoCredit,
     makeRecordNumber,
     AREA_LABELS,
-    DISCLAIMER
+    DISCLAIMER,
+    PHOTO_CREDIT_GAP,
+    CREDIT_FONT_SIZE
   };
 })(window);

@@ -36,13 +36,13 @@
               <source
                 media="(max-width: 767px)"
                 type="image/webp"
-                srcset="assets/certificate-preview-hero-photos-720.webp 720w, assets/certificate-preview-hero-photos.webp 1048w"
-                sizes="(max-width: 767px) 100vw, 520px"
+                srcset="assets/certificate-preview-hero-photos-360.webp 360w, assets/certificate-preview-hero-photos-720.webp 720w, assets/certificate-preview-hero-photos.webp 1048w"
+                sizes="calc(100vw - 34px)"
               />
               <source
                 media="(max-width: 767px)"
-                srcset="assets/certificate-preview-hero-photos-720.png 720w, assets/certificate-preview-hero-photos.png 1048w"
-                sizes="(max-width: 767px) 100vw, 520px"
+                srcset="assets/certificate-preview-hero-photos-360.png 360w, assets/certificate-preview-hero-photos-720.png 720w, assets/certificate-preview-hero-photos.png 1048w"
+                sizes="calc(100vw - 34px)"
               />
               <source media="(min-width: 768px)" type="image/webp" srcset="assets/certificate-preview.webp" />
               <img
@@ -107,7 +107,7 @@
       <section class="section" aria-labelledby="preview-heading">
         <h2 class="section__title" id="preview-heading">Service record preview</h2>
         <p class="meta section__lede">Real PDF layout from the app. Sample photos, not from a real job.</p>
-        <picture>
+        <picture class="section-preview-picture" data-defer-section-mobile>
           <source
             media="(max-width: 767px)"
             type="image/webp"
@@ -119,11 +119,13 @@
           />
           <source type="image/webp" srcset="assets/certificate-preview.webp" />
           <img
-            class="cert-preview-img"
+            class="cert-preview-img section-preview-picture__img"
             src="assets/certificate-preview.png"
             width="560"
             height="726"
             loading="lazy"
+            decoding="async"
+            fetchpriority="low"
             alt="Example hood cleaning service record PDF"
           />
         </picture>

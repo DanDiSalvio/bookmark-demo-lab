@@ -108,6 +108,7 @@ const previewPayload = {
   serviceDate: 'Oct 19, 2026',
   nextDue: 'Jan 19, 2027',
   samplePhotoCredits: SAMPLE_PHOTO_CREDITS,
+  samplePhotoDisclaimer: 'Sample photos, not from a real job.',
   omitPhotolessAreas: true,
   checklist: buildChecklist(
     `data:image/jpeg;base64,${beforeB64}`,
@@ -211,6 +212,7 @@ async function writeVariants(baseName, pngBuffer, maxWidth, webpQuality = 82) {
 await writeVariants('certificate-preview', desktopPng, 2080, 78);
 await writeVariants('certificate-preview-hero-photos', heroPhotosPng, 1048, 68);
 await writeVariants('certificate-preview-hero-photos-720', heroPhotosPng, 720, 72);
+await writeVariants('certificate-preview-hero-photos-360', heroPhotosPng, 360, 70);
 await writeVariants('certificate-preview-section-mobile', sectionMobilePng, 1080);
 
 fs.unlinkSync(rendered);

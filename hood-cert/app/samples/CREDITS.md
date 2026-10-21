@@ -13,4 +13,6 @@ Attribution wording (author, image title, **CC BY-SA 4.0**, link to each Wikimed
 
 - `hood-cert/index.html` (landing hero and footer)
 - `hood-cert/app/photo-credits.js` (app PDF export for sample jobs)
-- Sample PDF previews under `hood-cert/assets/`
+- Sample PDF previews under `hood-cert/assets/` (`sample-service-record.pdf` and raster previews generated from it)
+
+Sample jobs also print the line **“Sample photos, not from a real job.”** in exported PDFs above the photo documentation block.
