@@ -23,7 +23,8 @@
     }
   };
 
-  const SAMPLE_PHOTO_DISCLAIMER = 'Sample photos, not from a real job.';
+  const SAMPLE_PHOTO_DISCLAIMER =
+    'Sample photos, not from a real job. Cropped and Compressed. For web.';
 
   global.HoodCertPhotoCredits = {
     SAMPLE_HOOD_FILTER_CREDITS,

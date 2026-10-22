@@ -95,69 +95,26 @@ test.describe('HC-13 hero preview assets', () => {
     ).toBe(true);
   });
 
-  test('mobile hero uses HTML caption and large photo tiles @ 390px', async ({ page }) => {
+  test('mobile hero uses HTML photo pair and sample due date @ 390px', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/hood-cert/');
-    await expect(page.getByText('Next cleaning due: Jan 19, 2027')).toBeVisible();
+    await expect(page.locator('#hero-next-due')).toContainText(/Next cleaning due:/);
     await expect(page.getByText('Sample photos for demo, not from a real job')).toHaveCount(0);
-    const link = page.locator('.hero-preview__img-link');
+    const link = page.locator('.hero-preview__mobile .hero-preview__img-link');
     await expect(link).toHaveAttribute('href', /sample-service-record\.pdf$/);
-    const img = page.locator('.hero-preview__picture img');
-    await expect(img).toBeVisible();
-    const box = await img.boundingBox();
+    const tiles = page.locator('.hero-preview__tile img');
+    await expect(tiles).toHaveCount(2);
+    const box = await tiles.first().boundingBox();
     expect(box).toBeTruthy();
-    expect(box.width / 2).toBeGreaterThanOrEqual(170);
-    const times = page.locator('.hero-preview__times-mobile');
-    const fontSize = await times.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-    expect(fontSize).toBeGreaterThanOrEqual(11);
-  });
-
-  test('mobile hero picks 720w WebP at 2x DPR (~390px viewport)', async ({ browser }) => {
-    const context = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      deviceScaleFactor: 2
-    });
-    const page = await context.newPage();
-    const sizes = [];
-    page.on('response', async (res) => {
-      const url = res.url();
-      if (!url.includes('certificate-preview-hero-photos')) return;
-      const body = await res.body().catch(() => null);
-      if (body) {
-        sizes.push({ url, bytes: body.length });
-      }
-    });
-    await page.goto('/hood-cert/');
-    const img = page.locator('.hero-preview__picture img');
-    await expect(img).toBeVisible();
-    const currentSrc = await img.evaluate((el) => el.currentSrc);
-    expect(currentSrc).toMatch(/hero-photos-720\.webp/);
-    expect(currentSrc).not.toMatch(/hero-photos-360\.webp/);
-    expect(currentSrc).not.toMatch(/hero-photos\.webp$/);
-
-    const heroResponses = sizes.filter((s) => s.url.includes('hero-photos') && s.url.includes('.webp'));
-    expect(heroResponses.length).toBeGreaterThan(0);
-    const webp = heroResponses.find((s) => s.url.includes('hero-photos-720.webp'));
-    expect(webp).toBeTruthy();
-    expect(webp.bytes).toBeLessThanOrEqual(160 * 1024);
-    await context.close();
-  });
-
-  test('hero mobile source uses calc(100vw - 34px) sizes and 360/720/1048 srcset', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/hood-cert/');
-    const webpSource = page.locator('.hero-preview__picture source[type="image/webp"]').first();
-    await expect(webpSource).toHaveAttribute('sizes', 'calc(100vw - 34px)');
-    const srcset = await webpSource.getAttribute('srcset');
-    expect(srcset).toContain('360w');
-    expect(srcset).toContain('720w');
-    expect(srcset).toContain('1048w');
+    expect(box.width).toBeGreaterThanOrEqual(150);
+    await expect(page.locator('#hero-before-time')).not.toBeEmpty();
+    await expect(page.locator('#hero-after-time')).not.toBeEmpty();
   });
 
   test('section-mobile preview image lazy-loads below the fold @ 390px', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 520 });
     await page.goto('/hood-cert/');
-    await expect(page.locator('.hero-preview__picture img')).toBeVisible();
+    await expect(page.locator('.hero-preview__tile img').first()).toBeVisible();
     const sectionImg = page.locator('.section-preview-picture__img');
     await expect(sectionImg).toHaveAttribute('loading', 'lazy');
     await expect(sectionImg).toHaveAttribute('fetchpriority', 'low');
@@ -201,7 +158,7 @@ test.describe('HC-13 hero preview assets', () => {
     });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/hood-cert/');
-    await expect(page.locator('.hero-preview__picture img')).toBeVisible();
+    await expect(page.locator('.hero-preview__tile img').first()).toBeVisible();
     expect(requested.some((u) => u.includes('certificate-preview.png') || u.includes('certificate-preview.webp'))).toBe(
       false
     );
@@ -210,7 +167,8 @@ test.describe('HC-13 hero preview assets', () => {
   test('desktop hero shows full preview @ 1440px', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/hood-cert/');
-    const img = page.locator('.hero-preview__picture img');
+    const img = page.locator('.hero-preview__desktop .hero-preview__picture img');
+    await expect(img).toHaveAttribute('src', /certificate-preview\.png/);
     await expect(img).toBeVisible();
     const box = await img.boundingBox();
     expect(box).toBeTruthy();

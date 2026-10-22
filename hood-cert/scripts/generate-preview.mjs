@@ -108,7 +108,7 @@ const previewPayload = {
   serviceDate: 'Oct 19, 2026',
   nextDue: 'Jan 19, 2027',
   samplePhotoCredits: SAMPLE_PHOTO_CREDITS,
-  samplePhotoDisclaimer: 'Sample photos, not from a real job.',
+  samplePhotoDisclaimer: 'Sample photos, not from a real job. Cropped and Compressed. For web.',
   omitPhotolessAreas: true,
   checklist: buildChecklist(
     `data:image/jpeg;base64,${beforeB64}`,
