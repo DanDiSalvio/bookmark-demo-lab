@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const assetsDir = path.join(__dirname, '../assets');
-const SAMPLE_DISCLAIMER = 'Sample photos, not from a real job. Cropped and Compressed. For web.';
+const SAMPLE_DISCLAIMER = 'Sample photos, not from a real job.';
+const SAMPLE_CHANGE_NOTE = 'Recompressed, not cropped.';
 
 function pdfLatin1(bytes) {
   return Buffer.from(bytes).toString('latin1');
@@ -43,14 +44,16 @@ test.describe('HC-24 sample photo disclaimer in PDFs', () => {
     const { bytes } = await buildSamplePdfBytes(page);
     const raw = pdfLatin1(bytes);
     expect(raw).toContain(SAMPLE_DISCLAIMER);
-    expect(raw).toContain('Compressed.');
+    expect(raw).toContain(SAMPLE_CHANGE_NOTE);
+    expect(raw.toLowerCase()).not.toContain('cropped and');
   });
 
   test('shipped sample-service-record.pdf includes disclaimer text', () => {
     const pdfPath = path.join(assetsDir, 'sample-service-record.pdf');
     const raw = fs.readFileSync(pdfPath).toString('latin1');
     expect(raw).toContain(SAMPLE_DISCLAIMER);
-    expect(raw).toContain('Compressed.');
+    expect(raw).toContain(SAMPLE_CHANGE_NOTE);
+    expect(raw.toLowerCase()).not.toContain('cropped and');
   });
 });
 

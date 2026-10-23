@@ -20,7 +20,7 @@
 endobj
 4 0 obj
 <<
-/Length 4283
+/Length 4407
 >>
 stream
 0.200025 w
@@ -217,7 +217,7 @@ BT
 9.1999999999999993 TL
 0.353 g
 48. 454. Td
-(Sample photos, not from a real job. Cropped and Compressed. For web.) Tj
+(Sample photos, not from a real job.) Tj
 ET
 BT
 /F2 10 Tf
@@ -291,6 +291,13 @@ BT
 (Wikimedia Commons) Tj
 ET
 BT
+/F1 7.5 Tf
+8.625 TL
+0.353 g
+48. 184. Td
+(Recompressed, not cropped.) Tj
+ET
+BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.353 g
@@ -355,17 +362,24 @@ BT
 (Wikimedia Commons) Tj
 ET
 BT
+/F1 7.5 Tf
+8.625 TL
+0.353 g
+312. 184. Td
+(Recompressed, not cropped.) Tj
+ET
+BT
 /F2 10 Tf
 11.5 TL
 0. g
-48. 162. Td
+48. 153. Td
 (Serviced by Maria Lopez, Summit Hood Services) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.353 g
-48. 146. Td
+48. 137. Td
 (This document is a service record from your kitchen exhaust cleaning company. It is not a fire inspection, code compliance certification, or NFPA) Tj
 T* (compliance certificate. Cleaning frequency guidance references NFPA 96 cooking-volume schedules. The authority having jurisdiction and your) Tj
 T* (insurer determine what documentation they accept.) Tj
@@ -1806,7 +1820,7 @@ endobj
 21 0 obj
 <<
 /Producer (jsPDF 2.5.2)
-/CreationDate (D:20261022231045-00'00')
+/CreationDate (D:20261023231607-00'00')
 >>
 endobj
 22 0 obj
@@ -1820,35 +1834,35 @@ endobj
 xref
 0 23
 0000000000 65535 f 
-0000006289 00000 n 
-0000315262 00000 n 
+0000006413 00000 n 
+0000315386 00000 n 
 0000000015 00000 n 
 0000001954 00000 n 
-0000006346 00000 n 
-0000006471 00000 n 
-0000006601 00000 n 
-0000006734 00000 n 
-0000006871 00000 n 
-0000006994 00000 n 
-0000007123 00000 n 
-0000007255 00000 n 
-0000007391 00000 n 
-0000007519 00000 n 
-0000007646 00000 n 
-0000007775 00000 n 
-0000007908 00000 n 
-0000008010 00000 n 
-0000008106 00000 n 
-0000161639 00000 n 
-0000315532 00000 n 
-0000315618 00000 n 
+0000006470 00000 n 
+0000006595 00000 n 
+0000006725 00000 n 
+0000006858 00000 n 
+0000006995 00000 n 
+0000007118 00000 n 
+0000007247 00000 n 
+0000007379 00000 n 
+0000007515 00000 n 
+0000007643 00000 n 
+0000007770 00000 n 
+0000007899 00000 n 
+0000008032 00000 n 
+0000008134 00000 n 
+0000008230 00000 n 
+0000161763 00000 n 
+0000315656 00000 n 
+0000315742 00000 n 
 trailer
 <<
 /Size 23
 /Root 22 0 R
 /Info 21 0 R
-/ID [ <226F2F4C92292E195D5F1E19F79D0E43> <226F2F4C92292E195D5F1E19F79D0E43> ]
+/ID [ <20E6DECEFC53C9A162C2A0C5F9EF8102> <20E6DECEFC53C9A162C2A0C5F9EF8102> ]
 >>
 startxref
-315722
+315846
 %%EOF

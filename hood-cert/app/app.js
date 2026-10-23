@@ -197,8 +197,17 @@
     return `${y}-${m}-${day}`;
   }
 
-  function daysUntil(iso) {
+  function boardAsOfDate() {
+    if (window.HoodCertSampleBoard && state.accounts.some((a) => a.id.startsWith('sample-'))) {
+      return new Date(`${window.HoodCertSampleBoard.DEMO_TODAY_ISO}T12:00:00`);
+    }
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  }
+
+  function daysUntil(iso) {
+    const today = boardAsOfDate();
     today.setHours(0, 0, 0, 0);
     const target = new Date(iso + 'T12:00:00');
     return Math.round((target - today) / 86400000);
@@ -957,14 +966,19 @@
   }
 
   async function loadSampleData() {
-    const today = new Date();
-    const iso = (offsetDays) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() + offsetDays);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
+    const board = window.HoodCertSampleBoard;
+    const { accounts: sampleAccounts, sampleServiceDate } = board
+      ? board.buildSampleAccounts()
+      : { accounts: [], sampleServiceDate: '2026-10-19' };
+
+    const addressById = {
+      'sample-1': '412 Dock St, Portland, OR 97204',
+      'sample-2': '88 Burnside Ave, Portland, OR 97209',
+      'sample-3': '2100 NE Sandy Blvd, Portland, OR 97232',
+      'sample-4': '55 SE Morrison St, Portland, OR 97214',
+      'sample-5': '900 NW 23rd Ave, Portland, OR 97210',
+      'sample-6': '1440 SE Powell Blvd, Portland, OR 97202',
+      'sample-7': '3010 N Interstate Ave, Portland, OR 97227'
     };
 
     let beforeUrl;
@@ -977,17 +991,11 @@
       afterUrl = null;
     }
 
-    const accounts = [
-      { id: 'sample-1', name: 'Harbor Grill', address: '412 Dock St, Portland, OR 97204', email: 'manager@harborgrill.example', volume: 'medium', lastServiceDate: iso(-120), jobs: [] },
-      { id: 'sample-2', name: 'Wok Express 24', address: '88 Burnside Ave, Portland, OR 97209', email: 'ops@wokexpress.example', volume: 'high', lastServiceDate: iso(-45), jobs: [] },
-      { id: 'sample-3', name: 'Lakeview Diner', address: '2100 NE Sandy Blvd, Portland, OR 97232', email: 'owner@lakeviewdiner.example', volume: 'low', lastServiceDate: iso(-30), jobs: [] },
-      { id: 'sample-4', name: 'Brick Oven Pizza Co', address: '55 SE Morrison St, Portland, OR 97214', email: 'kitchen@brickoven.example', volume: 'medium', lastServiceDate: iso(-100), jobs: [] },
-      { id: 'sample-5', name: 'Summit Catering Kitchen', address: '900 NW 23rd Ave, Portland, OR 97210', email: 'facilities@summitcatering.example', volume: 'minimal', lastServiceDate: iso(-60), jobs: [] },
-      { id: 'sample-6', name: 'Riverside BBQ Pit', address: '1440 SE Powell Blvd, Portland, OR 97202', email: 'pitmaster@riversidebbq.example', volume: 'high', lastServiceDate: iso(-20), jobs: [] },
-      { id: 'sample-7', name: 'Northside Commissary', address: '3010 N Interstate Ave, Portland, OR 97227', email: 'ops@northsidecommissary.example', volume: 'medium', lastServiceDate: null, jobs: [] }
-    ];
-
-    const sampleServiceDate = iso(-14);
+    const accounts = sampleAccounts.map((a) => ({
+      ...a,
+      address: addressById[a.id] || '',
+      jobs: []
+    }));
     const { beforeAt, afterAt } = samplePhotoTimes(sampleServiceDate);
     const completedChecklist = CHECKLIST_AREAS.map((area) => {
       if (area.id === 'hood') {
@@ -1026,7 +1034,7 @@
           noAccessReason: ''
         };
       }
-      if (['accessPanels', 'greaseContainment', 'fireSuppressionNozzles'].includes(area.id)) {
+      if (area.id === 'accessPanels') {
         return {
           id: area.id,
           status: 'no_access',
@@ -1249,7 +1257,25 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get('sample') === '1') {
       const hasSamples = state.accounts.some((a) => a.id.startsWith('sample-'));
-      if (!hasSamples) loadSampleData();
+      const rebookId = params.get('rebook');
+      if (!hasSamples) {
+        loadSampleData().then(() => {
+          if (rebookId) openRebookFromQuery(rebookId);
+        });
+      } else if (rebookId) {
+        openRebookFromQuery(rebookId);
+      }
+    }
+  }
+
+  function openRebookFromQuery(accountId) {
+    const account = state.accounts.find((a) => a.id === accountId);
+    if (!account) return;
+    switchTab('board');
+    const next = accountNextDue(account);
+    const bucket = accountBoardBucket(account);
+    if (bucket.section === 'overdue' || bucket.section === 'due') {
+      sendRebookNote(account, next, bucket);
     }
   }
 

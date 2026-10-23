@@ -18,14 +18,13 @@
     const board = window.HoodCertSampleBoard;
     if (!board) return;
 
-    const nextDue = board.formatDate(board.nextDueFromSampleJob(new Date()));
+    const nextDue = board.sampleHeroDueLabel();
     const dueEl = document.getElementById('hero-next-due');
     if (dueEl) {
       dueEl.textContent = `Next cleaning due: ${nextDue}`;
     }
 
-    const { sampleServiceDate } = board.buildSampleAccounts(new Date());
-    const times = board.samplePhotoTimes(sampleServiceDate);
+    const times = board.samplePhotoTimes(board.SAMPLE_JOB_DATE_ISO);
     const beforeEl = document.getElementById('hero-before-time');
     const afterEl = document.getElementById('hero-after-time');
     if (beforeEl) beforeEl.textContent = times.beforeLabel;
@@ -37,13 +36,20 @@
     const board = window.HoodCertSampleBoard;
     if (!root || !board) return;
 
-    const { overdue, due } = board.landingRebookRows(new Date());
+    const { overdue, due } = board.landingRebookRows(board.DEMO_TODAY_ISO);
     root.replaceChildren();
+    root.setAttribute('data-ui', 'rebook-board-preview');
 
     const intro = document.createElement('p');
-    intro.className = 'hero__rebook-lede meta';
-    intro.textContent = 'Sample rebook board rows from the demo restaurants load.';
+    intro.className = 'hero__rebook-lede';
+    intro.textContent = 'Same sample accounts as Load samples in the app.';
     root.appendChild(intro);
+
+    function primaryValue(bucket, statusLine) {
+      if (bucket.overdueText) return bucket.overdueText;
+      if (bucket.key === 'new') return bucket.label;
+      return statusLine || '';
+    }
 
     function renderSection(title, rows) {
       if (!rows.length) return;
@@ -77,16 +83,17 @@
         const statusCell = document.createElement('div');
         statusCell.className = 'landing-rebook__cell landing-rebook__cell--status';
         statusCell.setAttribute('role', 'cell');
+        const valueEl = document.createElement('p');
+        valueEl.className = 'landing-rebook__primary-value';
+        valueEl.textContent = primaryValue(bucket, statusLine);
         const badge = document.createElement('span');
         badge.className = `badge ${bucket.badge}`;
         badge.textContent = bucket.label;
-        statusCell.appendChild(badge);
-        if (statusLine) {
-          const line = document.createElement('span');
-          line.className = 'landing-rebook__status-line';
-          line.textContent = statusLine;
-          statusCell.appendChild(line);
-        }
+        const action = document.createElement('a');
+        action.className = 'btn btn-accent btn-sm landing-rebook__action';
+        action.href = board.rebookAppHref(account.id);
+        action.textContent = 'Send rebook note';
+        statusCell.append(valueEl, badge, action);
 
         row.append(nameCell, statusCell);
         table.appendChild(row);

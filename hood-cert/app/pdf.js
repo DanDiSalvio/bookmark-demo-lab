@@ -93,6 +93,13 @@
     doc.textWithLink('Wikimedia Commons', x, cy, { url: credit.fileUrl });
     cy += CREDIT_LINE_HEIGHT;
 
+    const changeNote =
+      global.HoodCertPhotoCredits && global.HoodCertPhotoCredits.SAMPLE_PHOTO_CHANGE_NOTE
+        ? global.HoodCertPhotoCredits.SAMPLE_PHOTO_CHANGE_NOTE
+        : 'Recompressed, not cropped.';
+    doc.text(changeNote, x, cy);
+    cy += CREDIT_LINE_HEIGHT;
+
     doc.setTextColor(0);
     return cy - y;
   }

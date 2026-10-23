@@ -12,22 +12,23 @@ async function titleLineCount(page, selector) {
 }
 
 test.describe('Day 4 landing polish', () => {
-  test('T1 hero headline stays under three lines @ 1280 and 390', async ({ page }) => {
+  test('T1 hero headline stays at two lines or fewer @ 1280 and 390', async ({ page }) => {
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/hood-cert/');
       const lines = await titleLineCount(page, '.hero__title');
-      expect(lines).toBeLessThan(3);
+      expect(lines).toBeLessThanOrEqual(2);
     }
   });
 
-  test('T2 rebook fragment renders sample board rows with dates', async ({ page }) => {
+  test('T2 rebook fragment renders overdue sample board rows', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/hood-cert/');
     const board = page.getByRole('region', { name: 'Rebook board preview' });
     await expect(board).toBeVisible();
-    await expect(board.getByText('Harbor Grill')).toBeVisible();
+    await expect(board.getByText('Wok Express 24')).toBeVisible();
     await expect(board.getByText('Brick Oven Pizza Co')).toBeVisible();
+    await expect(board.getByText('Riverside BBQ Pit')).toBeVisible();
     await expect(board.getByText(/days overdue/)).toHaveCount(2, { timeout: 5000 });
     await expect(board.locator('.badge--overdue').first()).toBeVisible();
   });
@@ -58,13 +59,13 @@ test.describe('Day 4 landing polish', () => {
     expect(parseFloat(marginLeft) || 0).toBe(0);
   });
 
-  test('HC-23c caption matches sample disclaimer wording', async ({ page }) => {
+  test('HC-23c mobile caption matches sample disclaimer wording', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/hood-cert/');
-    await expect(page.locator('.hero-preview__caption-disclaimer')).toHaveText(
-      'Sample photos, not from a real job.'
+    await expect(page.locator('.hero-preview__caption--mobile')).toHaveText(
+      'Sample photos, not from a real job. Tap to open the sample PDF.'
     );
-    await expect(page.locator('.hero-preview__pdf-status')).toHaveText('Pass');
+    await expect(page.locator('.hero-preview__filters-status .hero-preview__pdf-status')).toHaveText('Pass');
   });
 
   test('HC-23d landing Pass labels match PDF status constants', async ({ page }) => {

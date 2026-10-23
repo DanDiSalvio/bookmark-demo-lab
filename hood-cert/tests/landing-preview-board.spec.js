@@ -44,55 +44,38 @@ test.describe('HC-20 sample photo credit', () => {
 });
 
 test.describe('HC-13 hero preview assets', () => {
-  test('desktop and hero photo PNGs include visible filter photo pair', async () => {
+  test('desktop preview and mobile tile derivatives exist', async () => {
     const desktop = path.join(assetsDir, 'certificate-preview.png');
-    const heroPhotos = path.join(assetsDir, 'certificate-preview-hero-photos.png');
     const sectionMobile = path.join(assetsDir, 'certificate-preview-section-mobile.png');
+    const tile400 = path.join(assetsDir, 'hero-tiles/hood-before-400.webp');
+    const tile800 = path.join(assetsDir, 'hero-tiles/hood-after-800.webp');
     expect(fs.existsSync(desktop)).toBe(true);
-    expect(fs.existsSync(heroPhotos)).toBe(true);
     expect(fs.existsSync(sectionMobile)).toBe(true);
+    expect(fs.existsSync(tile400)).toBe(true);
+    expect(fs.existsSync(tile800)).toBe(true);
     expect(fs.statSync(desktop).size).toBeLessThanOrEqual(400 * 1024);
-    expect(fs.statSync(heroPhotos).size).toBeLessThanOrEqual(400 * 1024);
-    const hero360Webp = path.join(assetsDir, 'certificate-preview-hero-photos-360.webp');
-    const hero720Webp = path.join(assetsDir, 'certificate-preview-hero-photos-720.webp');
-    expect(fs.existsSync(hero360Webp)).toBe(true);
-    expect(fs.existsSync(hero720Webp)).toBe(true);
-    expect(fs.statSync(hero720Webp).size).toBeLessThanOrEqual(160 * 1024);
-    expect(fs.statSync(path.join(assetsDir, 'certificate-preview-hero-photos.webp')).size).toBeLessThanOrEqual(
-      160 * 1024
-    );
+    expect(
+      fs.statSync(tile400).size + fs.statSync(path.join(assetsDir, 'hero-tiles/hood-after-400.webp')).size
+    ).toBeLessThanOrEqual(160 * 1024);
+    expect(
+      fs.statSync(path.join(assetsDir, 'hero-tiles/hood-before-800.webp')).size +
+        fs.statSync(tile800).size
+    ).toBeLessThanOrEqual(160 * 1024);
 
     const desktopMeta = await sharp(desktop).metadata();
     expect(desktopMeta.width).toBeGreaterThanOrEqual(2000);
-    expect(desktopMeta.height).toBeGreaterThanOrEqual(1650);
-
-    const heroMeta = await sharp(heroPhotos).metadata();
-    expect(heroMeta.width).toBeGreaterThanOrEqual(1000);
 
     const sectionMeta = await sharp(sectionMobile).metadata();
     expect(sectionMeta.width).toBe(1080);
-    expect(sectionMeta.height).toBeGreaterThan(heroMeta.height);
 
-    async function assertPhotosVisible(pngPath) {
-      const { width: w, height: h } = await sharp(pngPath).metadata();
-      const photoTop = Math.round(h * 0.2);
-      const photoHeight = Math.min(Math.round(h * 0.7), h - photoTop);
-      const crop = {
-        left: Math.round(w * 0.05),
-        top: photoTop,
-        width: Math.round(w * 0.9),
-        height: photoHeight
-      };
-      expect(await photoRegionHasContent(pngPath, crop)).toBe(true);
-    }
-
-    await assertPhotosVisible(desktop);
-    const { width: hw, height: hh } = await sharp(heroPhotos).metadata();
-    const halfW = Math.floor(hw / 2);
-    expect(await photoRegionHasContent(heroPhotos, { left: 0, top: 0, width: halfW - 4, height: hh })).toBe(true);
-    expect(
-      await photoRegionHasContent(heroPhotos, { left: halfW + 4, top: 0, width: halfW - 4, height: hh })
-    ).toBe(true);
+    const { width: w, height: h } = await sharp(desktop).metadata();
+    const crop = {
+      left: Math.round(w * 0.05),
+      top: Math.round(h * 0.2),
+      width: Math.round(w * 0.9),
+      height: Math.min(Math.round(h * 0.5), h - Math.round(h * 0.2))
+    };
+    expect(await photoRegionHasContent(desktop, crop)).toBe(true);
   });
 
   test('mobile hero uses HTML photo pair and sample due date @ 390px', async ({ page }) => {
@@ -173,7 +156,7 @@ test.describe('HC-13 hero preview assets', () => {
     const box = await img.boundingBox();
     expect(box).toBeTruthy();
     expect(box.height).toBeGreaterThan(120);
-    await expect(page.locator('.hero-preview__caption')).toBeVisible();
+    await expect(page.locator('.hero-preview__caption--desktop')).toBeVisible();
   });
 });
 

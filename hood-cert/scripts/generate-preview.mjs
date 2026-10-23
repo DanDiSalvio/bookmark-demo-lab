@@ -108,7 +108,7 @@ const previewPayload = {
   serviceDate: 'Oct 19, 2026',
   nextDue: 'Jan 19, 2027',
   samplePhotoCredits: SAMPLE_PHOTO_CREDITS,
-  samplePhotoDisclaimer: 'Sample photos, not from a real job. Cropped and Compressed. For web.',
+  samplePhotoDisclaimer: 'Sample photos, not from a real job.',
   omitPhotolessAreas: true,
   checklist: buildChecklist(
     `data:image/jpeg;base64,${beforeB64}`,
@@ -141,7 +141,8 @@ const fullMeta = await sharp(full).metadata();
 const fullH = fullMeta.height;
 const fullW = fullMeta.width;
 
-const desktopCropHeight = Math.min(Math.round(1000 * 2), fullH);
+/** End hero raster above photo credit lines (avoid clipping mid-credit). */
+const desktopCropHeight = Math.min(Math.round(fullH * 0.72), fullH);
 const desktopPng = await sharp(full)
   .extract({ left: 0, top: 0, width: fullW, height: desktopCropHeight })
   .png()
@@ -149,30 +150,6 @@ const desktopPng = await sharp(full)
 
 const sectionMobilePng = await sharp(full)
   .resize({ width: 1080, withoutEnlargement: false })
-  .png()
-  .toBuffer();
-
-const photoCellW = 520;
-const photoCellH = 390;
-const gap = 8;
-const beforeTile = await sharp(path.join(samplesDir, 'hood-before.jpg'))
-  .resize(photoCellW, photoCellH, { fit: 'cover', position: 'centre' })
-  .toBuffer();
-const afterTile = await sharp(path.join(samplesDir, 'hood-after.jpg'))
-  .resize(photoCellW, photoCellH, { fit: 'cover', position: 'centre' })
-  .toBuffer();
-const heroPhotosPng = await sharp({
-  create: {
-    width: photoCellW * 2 + gap,
-    height: photoCellH,
-    channels: 3,
-    background: { r: 255, g: 255, b: 255 }
-  }
-})
-  .composite([
-    { input: beforeTile, left: 0, top: 0 },
-    { input: afterTile, left: photoCellW + gap, top: 0 }
-  ])
   .png()
   .toBuffer();
 
@@ -210,9 +187,6 @@ async function writeVariants(baseName, pngBuffer, maxWidth, webpQuality = 82) {
 }
 
 await writeVariants('certificate-preview', desktopPng, 2080, 78);
-await writeVariants('certificate-preview-hero-photos', heroPhotosPng, 1048, 68);
-await writeVariants('certificate-preview-hero-photos-720', heroPhotosPng, 720, 72);
-await writeVariants('certificate-preview-hero-photos-360', heroPhotosPng, 360, 70);
 await writeVariants('certificate-preview-section-mobile', sectionMobilePng, 1080);
 
 fs.unlinkSync(rendered);

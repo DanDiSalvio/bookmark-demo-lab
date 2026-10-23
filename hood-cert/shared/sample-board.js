@@ -16,6 +16,11 @@
     no_access: 'No access'
   };
 
+  /** Fixed demo calendar so hero copy and PDF stay aligned regardless of visit day. */
+  const DEMO_TODAY_ISO = '2026-10-23';
+  const SAMPLE_JOB_DATE_ISO = '2026-10-19';
+  const SAMPLE_NEXT_DUE_LABEL = 'Jan 19, 2027';
+
   function formatDate(iso) {
     if (!iso) return 'Never';
     const d = new Date(iso + 'T12:00:00');
@@ -77,18 +82,24 @@
     return `${y}-${m}-${day}`;
   }
 
+  function demoTodayDate(asOf) {
+    if (asOf instanceof Date) return asOf;
+    if (asOf) return new Date(`${asOf}T12:00:00`);
+    return new Date(`${DEMO_TODAY_ISO}T12:00:00`);
+  }
+
   /** Same account roster as Load samples in the app. */
   function buildSampleAccounts(asOf) {
-    const ref = asOf instanceof Date ? asOf : new Date();
+    const ref = demoTodayDate(asOf);
     const iso = (offsetDays) => isoOffset(ref, offsetDays);
-    const sampleServiceDate = iso(-14);
+    const sampleServiceDate = SAMPLE_JOB_DATE_ISO;
 
     const accounts = [
       {
         id: 'sample-1',
         name: 'Harbor Grill',
         volume: 'medium',
-        lastServiceDate: sampleServiceDate,
+        lastServiceDate: SAMPLE_JOB_DATE_ISO,
         email: 'manager@harborgrill.example'
       },
       {
@@ -139,7 +150,8 @@
   }
 
   function samplePhotoTimes(serviceDateIso) {
-    const [y, m, d] = serviceDateIso.split('-').map(Number);
+    const iso = serviceDateIso || SAMPLE_JOB_DATE_ISO;
+    const [y, m, d] = iso.split('-').map(Number);
     const before = new Date(y, m - 1, d, 10, 5, 0, 0);
     const after = new Date(y, m - 1, d, 11, 40, 0, 0);
     return {
@@ -158,9 +170,12 @@
     };
   }
 
-  function nextDueFromSampleJob(asOf) {
-    const { sampleServiceDate } = buildSampleAccounts(asOf);
-    return addMonthsLocal(sampleServiceDate, VOLUME_MONTHS.medium);
+  function nextDueFromSampleJob(_asOf) {
+    return addMonthsLocal(SAMPLE_JOB_DATE_ISO, VOLUME_MONTHS.medium);
+  }
+
+  function sampleHeroDueLabel() {
+    return SAMPLE_NEXT_DUE_LABEL;
   }
 
   /**
@@ -188,18 +203,23 @@
       };
       if (bucket.section === 'overdue' && overdue.length < maxOverdue) overdue.push(row);
       if (bucket.section === 'due' && due.length < maxDue) due.push(row);
-      if (bucket.section === 'later' && account.id === 'sample-1' && due.length < maxDue) {
-        due.push(row);
-      }
     });
 
     return { overdue, due };
+  }
+
+  function rebookAppHref(accountId) {
+    const id = encodeURIComponent(accountId);
+    return `/hood-cert/app/?sample=1&rebook=${id}`;
   }
 
   global.HoodCertSampleBoard = {
     VOLUME_MONTHS,
     VOLUME_LABELS,
     PDF_AREA_STATUS,
+    DEMO_TODAY_ISO,
+    SAMPLE_JOB_DATE_ISO,
+    SAMPLE_NEXT_DUE_LABEL,
     formatDate,
     addMonthsLocal,
     accountNextDue,
@@ -207,6 +227,8 @@
     buildSampleAccounts,
     samplePhotoTimes,
     nextDueFromSampleJob,
-    landingRebookRows
+    sampleHeroDueLabel,
+    landingRebookRows,
+    rebookAppHref
   };
 })(typeof window !== 'undefined' ? window : globalThis);
