@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Hood Cert Pack helps kitchen exhaust owners protect rebook revenue with a clear due board and service records as proof." />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Hood Cert Pack: Rebook board and service records</title>
+  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="landing.css" />
+</head>
+<body>
+  <div class="page page--landing">
+    <nav class="shell-nav" aria-label="Site">
+      <a class="shell-nav__brand" href="/hood-cert/">Hood Cert Pack</a>
+      <a class="shell-nav__link" href="/hood-cert/app/">Open app</a>
+    </nav>
+
+    <main>
+      <header class="hero hero--split">
+        <div class="hero__copy">
+          <h1 class="hero__title">See every overdue hood account.</h1>
+          <p class="hero__lede">
+            Missed rebooks cost real revenue. Hood Cert Pack gives your office one board for overdue and due-soon accounts, while techs still leave a clean PDF service record after every visit.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn-accent" href="/hood-cert/app/?sample=1">Try the rebook board</a>
+            <a class="btn btn-secondary" href="/hood-cert/app/">Start free</a>
+          </div>
+          <p class="hero__meta meta">No signup · Runs in your browser · Demo only</p>
+        </div>
+        <div class="hero__visual hero-preview">
+          <div class="hero-preview__mobile" data-hero-mobile>
+            <p class="hero-preview__due-mobile" id="hero-next-due">Next cleaning due: Jan 19, 2027</p>
+            <a
+              class="hero-preview__img-link"
+              href="assets/sample-service-record.pdf"
+              target="_blank"
+              rel="noopener"
+            >
+              <div class="hero-preview__photo-pair" role="group" aria-label="Filter before and after from sample record">
+                <figure class="hero-preview__tile">
+                  <picture>
+                    <source
+                      media="(min-width: 768px)"
+                      srcset="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                    />
+                    <source
+                      type="image/webp"
+                      srcset="
+                        assets/hero-tiles/hood-before-400.webp 400w,
+                        assets/hero-tiles/hood-before-800.webp 800w
+                      "
+                      sizes="(max-width: 767px) calc(50vw - 21px), 1px"
+                    />
+                    <img
+                      src="assets/hero-tiles/hood-before-400.jpg"
+                      srcset="
+                        assets/hero-tiles/hood-before-400.jpg 400w,
+                        assets/hero-tiles/hood-before-800.jpg 800w
+                      "
+                      sizes="(max-width: 767px) calc(50vw - 21px), 1px"
+                      width="400"
+                      height="300"
+                      alt="Before cleaning sample hood filter"
+                      decoding="async"
+                    />
+                  </picture>
+                  <figcaption class="hero-preview__tile-caption">
+                    <span class="hero-preview__tile-kind">Before</span>
+                    <span class="hero-preview__tile-time" id="hero-before-time">Oct 19, 10:05 AM</span>
+                  </figcaption>
+                </figure>
+                <figure class="hero-preview__tile">
+                  <picture>
+                    <source
+                      media="(min-width: 768px)"
+                      srcset="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                    />
+                    <source
+                      type="image/webp"
+                      srcset="
+                        assets/hero-tiles/hood-after-400.webp 400w,
+                        assets/hero-tiles/hood-after-800.webp 800w
+                      "
+                      sizes="(max-width: 767px) calc(50vw - 21px), 1px"
+                    />
+                    <img
+                      src="assets/hero-tiles/hood-after-400.jpg"
+                      srcset="
+                        assets/hero-tiles/hood-after-400.jpg 400w,
+                        assets/hero-tiles/hood-after-800.jpg 800w
+                      "
+                      sizes="(max-width: 767px) calc(50vw - 21px), 1px"
+                      width="400"
+                      height="300"
+                      alt="After cleaning sample hood filter"
+                      decoding="async"
+                    />
+                  </picture>
+                  <figcaption class="hero-preview__tile-caption">
+                    <span class="hero-preview__tile-kind">After</span>
+                    <span class="hero-preview__tile-time" id="hero-after-time">Oct 19, 11:40 AM</span>
+                  </figcaption>
+                </figure>
+              </div>
+            </a>
+            <p class="hero-preview__filters-status meta">
+              Filters: <span class="hero-preview__pdf-status" data-pdf-status="pass">Pass</span> after cleaning
+            </p>
+          </div>
+          <div class="hero-preview__desktop" data-hero-desktop>
+            <a
+              class="hero-preview__img-link hero-preview__img-link--desktop"
+              href="assets/sample-service-record.pdf"
+              target="_blank"
+              rel="noopener"
+            >
+              <picture class="hero-preview__picture">
+                <source media="(min-width: 768px)" type="image/webp" srcset="assets/certificate-preview.webp" />
+                <img
+                  class="hero__preview-img"
+                  data-desktop-src="assets/certificate-preview.png"
+                  width="520"
+                  height="500"
+                  alt="Rendered service record PDF with filter before and after sample photos"
+                />
+              </picture>
+            </a>
+          </div>
+          <p class="hero-preview__caption hero-preview__caption--desktop meta">
+            Real PDF layout from the app. Sample photos, not from a real job.
+          </p>
+          <p class="hero-preview__caption hero-preview__caption--mobile meta">
+            Sample photos, not from a real job. Tap to open the sample PDF.
+          </p>
+          <p class="sample-photo-credit sample-photo-credit--hero">
+            Sample photos, not from a real job:
+            <a href="https://commons.wikimedia.org/wiki/File:Long-uncleaned_kitchen_hood_filter,_close-up.jpg">"Long-uncleaned kitchen hood filter, close-up"</a>
+            and
+            <a href="https://commons.wikimedia.org/wiki/File:Kitchen_hood_filter_after_being_washed_in_a_dishwasher,_close-up.jpg">"Kitchen hood filter after being washed in a dishwasher, close-up"</a>
+            by
+            <a href="https://commons.wikimedia.org/wiki/User:Veikk0.ma">Veikk0.ma</a>
+            on
+            <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>,
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+            Resized and recompressed.
+          </p>
+        </div>
+        <div
+          class="hero__rebook"
+          id="landing-rebook-root"
+          role="region"
+          aria-label="Rebook board preview"
+          data-ui="rebook-board-preview"
+        >
+          <p class="hero__rebook-lede">Same sample accounts as Load samples in the app.</p>
+          <section class="landing-rebook__section">
+            <h2 class="landing-rebook__title">Overdue (2)</h2>
+            <div class="landing-rebook__table" role="table">
+              <div class="landing-rebook__row" role="row">
+                <div class="landing-rebook__cell landing-rebook__cell--name" role="cell">
+                  <p class="landing-rebook__name">Wok Express 24</p>
+                  <p class="landing-rebook__meta">Last Sep 8, 2026 · High volume (monthly)</p>
+                </div>
+                <div class="landing-rebook__cell landing-rebook__cell--status" role="cell">
+                  <p class="landing-rebook__primary-value">15 days overdue</p>
+                  <span class="badge badge--overdue">Overdue</span>
+                  <a class="btn btn-accent btn-sm landing-rebook__action" href="/hood-cert/app/?sample=1&amp;rebook=sample-2">Send rebook note</a>
+                </div>
+              </div>
+              <div class="landing-rebook__row" role="row">
+                <div class="landing-rebook__cell landing-rebook__cell--name" role="cell">
+                  <p class="landing-rebook__name">Brick Oven Pizza Co</p>
+                  <p class="landing-rebook__meta">Last Jul 15, 2026 · Medium volume (quarterly)</p>
+                </div>
+                <div class="landing-rebook__cell landing-rebook__cell--status" role="cell">
+                  <p class="landing-rebook__primary-value">10 days overdue</p>
+                  <span class="badge badge--overdue">Overdue</span>
+                  <a class="btn btn-accent btn-sm landing-rebook__action" href="/hood-cert/app/?sample=1&amp;rebook=sample-4">Send rebook note</a>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="landing-rebook__section">
+            <h2 class="landing-rebook__title">Due in 30 days (2)</h2>
+            <div class="landing-rebook__table" role="table">
+              <div class="landing-rebook__row" role="row">
+                <div class="landing-rebook__cell landing-rebook__cell--name" role="cell">
+                  <p class="landing-rebook__name">Riverside BBQ Pit</p>
+                  <p class="landing-rebook__meta">Last Oct 3, 2026 · High volume (monthly)</p>
+                </div>
+                <div class="landing-rebook__cell landing-rebook__cell--status" role="cell">
+                  <p class="landing-rebook__primary-value">Next Nov 3, 2026</p>
+                  <span class="badge badge--due">Due in 30 days</span>
+                  <a class="btn btn-accent btn-sm landing-rebook__action" href="/hood-cert/app/?sample=1&amp;rebook=sample-6">Send rebook note</a>
+                </div>
+              </div>
+              <div class="landing-rebook__row" role="row">
+                <div class="landing-rebook__cell landing-rebook__cell--name" role="cell">
+                  <p class="landing-rebook__name">Northside Commissary</p>
+                  <p class="landing-rebook__meta">Medium volume (quarterly)</p>
+                </div>
+                <div class="landing-rebook__cell landing-rebook__cell--status" role="cell">
+                  <p class="landing-rebook__primary-value">No visit yet</p>
+                  <span class="badge badge--neutral">No visit yet</span>
+                  <a class="btn btn-accent btn-sm landing-rebook__action" href="/hood-cert/app/?sample=1&amp;rebook=sample-7">Send rebook note</a>
+                </div>
+              </div>
+            </div>
+          </section>
+          <a class="btn btn-secondary btn-sm hero__rebook-cta" href="/hood-cert/app/?sample=1">Open full board in the app</a>
+        </div>
+      </header>
+
+      <section class="audience" aria-label="Who it is for">
+        <p class="audience__text">
+          Built for <strong>hood and kitchen exhaust cleaning owners</strong> running 1 to 3 crews who lose track of who is due next while photos stay in a tech camera roll.
+        </p>
+      </section>
+
+      <section class="section" aria-labelledby="how-heading">
+        <h2 class="section__title" id="how-heading">How it works</h2>
+        <ol class="flow-rows">
+          <li class="flow-row">
+            <div class="flow-row__body">
+              <h3 class="flow-row__title">Run the job on site</h3>
+              <p class="flow-row__desc">Phone checklist with compressed before and after photos per area, plus explicit pass or deficiency notes.</p>
+            </div>
+          </li>
+          <li class="flow-row">
+            <div class="flow-row__body">
+              <h3 class="flow-row__title">Save the service record</h3>
+              <p class="flow-row__desc">Complete the job once, then download or share a PDF with record number, next due date, and photo pairs. That PDF is organized proof for the owner, not a promise anyone will accept it.</p>
+            </div>
+          </li>
+          <li class="flow-row">
+            <div class="flow-row__body">
+              <h3 class="flow-row__title">Rebook from one board</h3>
+              <p class="flow-row__desc">Pro shows overdue, due in 30 days, and later accounts with days overdue and one rebook action on rows that need attention.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section" aria-labelledby="preview-heading">
+        <h2 class="section__title" id="preview-heading">Service record preview</h2>
+        <p class="meta section__lede">Real PDF layout from the app. Sample photos, not from a real job.</p>
+        <picture class="section-preview-picture" data-defer-section-mobile>
+          <source
+            media="(max-width: 767px)"
+            type="image/webp"
+            srcset="assets/certificate-preview-section-mobile.webp"
+          />
+          <source
+            media="(max-width: 767px)"
+            srcset="assets/certificate-preview-section-mobile.png"
+          />
+          <source type="image/webp" srcset="assets/certificate-preview.webp" />
+          <img
+            class="cert-preview-img section-preview-picture__img"
+            src="assets/certificate-preview.png"
+            width="560"
+            height="726"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
+            alt="Example hood cleaning service record PDF"
+          />
+        </picture>
+        <script>
+          (function () {
+            if (!window.matchMedia('(max-width: 767px)').matches) return;
+            var picture = document.currentScript.previousElementSibling;
+            if (!picture || !picture.matches('[data-defer-section-mobile]')) return;
+            var img = picture.querySelector('img');
+            if (!img) return;
+            var sources = picture.querySelectorAll('source');
+            var fallbackSrc = img.getAttribute('src');
+            var placeholder =
+              'data:image/svg+xml,' +
+              encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="560" height="726" viewBox="0 0 560 726"><rect width="100%" height="100%" fill="#f4f4f5"/></svg>'
+              );
+            window.__hoodCertSectionDefer = {
+              picture: picture,
+              img: img,
+              sources: Array.prototype.slice.call(sources),
+              fallbackSrc: fallbackSrc
+            };
+            for (var i = sources.length - 1; i >= 0; i--) {
+              picture.removeChild(sources[i]);
+            }
+            img.setAttribute('src', placeholder);
+          })();
+        </script>
+      </section>
+
+      <section class="section pricing-section" aria-labelledby="pricing-heading">
+        <h2 class="section__title" id="pricing-heading">Pricing</h2>
+        <div class="pricing-grid">
+          <div class="pricing-card">
+            <p class="pricing-card__name">Free</p>
+            <p class="pricing-card__price">$0</p>
+            <ul class="pricing-card__list">
+              <li>3 service records per month</li>
+              <li>Phone checklist and PDF export</li>
+              <li>No rebook board</li>
+            </ul>
+            <a class="btn btn-secondary btn-block" href="/hood-cert/app/">Start free</a>
+          </div>
+          <div class="pricing-card pricing-card--pro">
+            <p class="pricing-card__name">Pro</p>
+            <p class="pricing-card__price">$49<span>/mo per company</span></p>
+            <ul class="pricing-card__list">
+              <li>Unlimited service records</li>
+              <li>Rebook board with overdue triage</li>
+              <li>One-tap rebook notes on due rows</li>
+            </ul>
+            <a class="btn btn-accent btn-block" href="/hood-cert/app/?sample=1">Try Pro board</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section waitlist" aria-labelledby="waitlist-heading">
+        <h2 class="section__title" id="waitlist-heading">Join the rebook board waitlist</h2>
+        <p class="meta">We store your email in this browser only for the demo. Nothing is sent.</p>
+        <form class="waitlist-form" id="waitlist-form">
+          <label class="sr-only" for="waitlist-email">Email</label>
+          <input class="field-input" id="waitlist-email" type="email" placeholder="you@yourhoodcompany.com" required />
+          <button type="submit" class="btn btn-accent">Join the waitlist</button>
+        </form>
+        <p class="waitlist-confirm hidden" id="waitlist-confirm" role="status"></p>
+      </section>
+
+      <section class="section disclaimer-block" aria-label="Claims">
+        <p>Hood Cert Pack helps you organize photos and job notes into a professional service record and a rebook schedule. We do not certify NFPA compliance, and we cannot promise a fire marshal or insurer will accept any document. NFPA 96 is cited only as the industry standard that sets cleaning frequency by cooking volume.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a class="btn btn-accent" href="/hood-cert/app/?sample=1">Try the rebook board</a>
+      <p class="footer__credit meta">Demo for hood cleaning owner-operators · Part of Dan's Demo Lab</p>
+      <p class="sample-photo-credit sample-photo-credit--footer">
+        Sample photos:
+        <a href="https://commons.wikimedia.org/wiki/File:Long-uncleaned_kitchen_hood_filter,_close-up.jpg">"Long-uncleaned kitchen hood filter, close-up"</a>
+        and
+        <a href="https://commons.wikimedia.org/wiki/File:Kitchen_hood_filter_after_being_washed_in_a_dishwasher,_close-up.jpg">"Kitchen hood filter after being washed in a dishwasher, close-up"</a>
+        by
+        <a href="https://commons.wikimedia.org/wiki/User:Veikk0.ma">Veikk0.ma</a>
+        on
+        <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>,
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+        Resized and recompressed.
+      </p>
+    </footer>
+  </div>
+  <script src="shared/sample-board.js" defer></script>
+  <script src="landing.js" defer></script>
+</body>
+</html>

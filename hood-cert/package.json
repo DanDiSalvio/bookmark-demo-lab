@@ -1,0 +1,17 @@
+{
+  "name": "hood-cert-pack-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "sharp": "^0.33.5",
+    "@playwright/test": "^1.49.0",
+    "jspdf": "^2.5.2"
+  },
+  "dependencies": {
+    "jspdf": "^2.5.2"
+  }
+}
